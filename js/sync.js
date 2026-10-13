@@ -50,7 +50,7 @@ const GH = {
    commit(uploads [{path,text}], deletes [cesta], ctx) */
 const GitHubProvider = {
   name: 'GitHub',
-  canPush() { return Settings.get('gh').canPush !== false; },
+  canPush() { return Settings.get('gh').canPush !== false && !Settings.get('readOnly'); },
   needsNet: true,
   async snapshot() {
     const branch = GH.cfg().branch || 'main';
@@ -106,7 +106,7 @@ const GitHubProvider = {
 /* Sdílená složka (Mega, Proton Drive, OneDrive, Dropbox, síťový disk…) – jen v programu pro Windows */
 const FolderProvider = {
   name: 'Sdílená složka',
-  canPush() { return true; },
+  canPush() { return !Settings.get('readOnly'); },
   needsNet: false,
   async snapshot() {
     const r = await window.native.folderList(Settings.get('sharedFolder'));
@@ -118,8 +118,24 @@ const FolderProvider = {
     for (const u of uploads) await window.native.folderWrite(dir, u.path, u.text);
     for (const p of deletes) await window.native.folderDelete(dir, p);
   },
-  errorText(e) { return 'Sdílená složka: ' + (e.message || e).toString().replace(/^Error invoking remote method '[^']+': (Error: )?/, ''); },
+  errorText(e) { return 'Sdílená složka: ' + ipcError(e); },
 };
+
+/* Mega přímo – přihlašuje se program sám (bez aplikace MEGA) */
+const MegaProvider = {
+  name: 'Mega',
+  needsNet: true,
+  cfg() {
+    const m = Settings.get('mega') || {};
+    return { email: m.email || '', password: window.native ? window.native.unprotect(m.pass || '') : '', folder: m.folder || 'Prompter kapela' };
+  },
+  canPush() { return !Settings.get('readOnly'); },
+  async snapshot() { const r = await window.native.megaSnapshot(this.cfg()); return { remote: r.files, extras: r.extras, ctx: {} }; },
+  read(p, v) { return window.native.megaRead(this.cfg(), p, v); },
+  commit(up, del) { return window.native.megaCommit(this.cfg(), up, del); },
+  errorText(e) { return ipcError(e); },
+};
+function ipcError(e) { return String((e && e.message) || e).replace(/^Error invoking remote method '[^']+': (Error: )?/, ''); }
 
 const DATA_PATH_RE = /^data\/(songs|playlists|templates|config)\/[A-Za-z0-9_-]+\.json$/;
 
@@ -134,10 +150,11 @@ const Sync = {
   mode() {
     const m = Settings.get('syncMode');
     if (m === 'folder') return window.native && Settings.get('sharedFolder') ? 'folder' : 'off';
+    if (m === 'mega') return window.native && (Settings.get('mega') || {}).email ? 'mega' : 'off';
     if (m === 'github' || (m === undefined && GH.configured())) return GH.configured() ? 'github' : 'off';
     return 'off';
   },
-  provider() { return { folder: FolderProvider, github: GitHubProvider }[this.mode()] || null; },
+  provider() { return { folder: FolderProvider, github: GitHubProvider, mega: MegaProvider }[this.mode()] || null; },
   enabled() { return !!this.provider(); },
 
   /* Při změně způsobu sdílení začneme porovnávat od nuly (nic se nesmaže, jen se sloučí) */
@@ -153,7 +170,7 @@ const Sync = {
     if (!this.enabled() || !Settings.get('autoSync')) { this.refreshState(); return; }
     clearTimeout(this.timer);
     this.refreshState();
-    this.timer = setTimeout(() => this.run().catch(() => {}), this.mode() === 'folder' ? 2000 : 8000);
+    this.timer = setTimeout(() => this.run().catch(() => {}), this.mode() === 'folder' ? 2000 : 6000);
   },
 
   refreshState() {
@@ -185,6 +202,7 @@ const Sync = {
       this.lastSync = new Date();
       this.lastError = '';
       this.setState(Store.pendingCount() && p.canPush() ? 'pending' : 'idle');
+      Settings.set('lastSyncAt', this.lastSync.toISOString());
       return result;
     } catch (e) {
       console.error(e);
@@ -227,7 +245,7 @@ const Sync = {
         if (!remoteChanged && localChanged) { if (canPush) uploads.push(p); }
         else if (remoteChanged && !localChanged) downloads.push(p);
         else if (remoteChanged && localChanged) conflicts.push(p);
-        else if (canPush) uploads.push(p);
+        // jinak: obě strany beze změny od poslední synchronizace – nic
       } else if (L && !R) {
         if (K && !localChanged) localDeletes.push(p);
         else if (canPush) uploads.push(p);
@@ -261,7 +279,7 @@ const Sync = {
       changedLocal++;
     }
     const saveCopy = async (type, obj) => {
-      if (type === 'config') return;
+      if (type === 'config' || !obj.updatedAt) return;
       const copy = clone(obj);
       copy.id = uid();
       const who = ` (konflikt – ${obj.updatedBy || '?'})`;
@@ -275,7 +293,10 @@ const Sync = {
       if (!robj) continue;
       const type = typeOf(p);
       const lobj = local[p].obj;
-      const localNewer = (lobj.updatedAt || '') > (robj.updatedAt || '');
+      // Stejný obsah (např. výchozí šablony u nového člena) – žádný konflikt
+      if (gitBlobSha(Store.serialize(robj)) === local[p].sha) { meta.remote[p] = remote[p]; meta.local[p] = local[p].sha; continue; }
+      // Nikdy needitovaná místní výchozí data (bez updatedAt) vždy ustoupí sdíleným
+      const localNewer = !!lobj.updatedAt && (lobj.updatedAt || '') > (robj.updatedAt || '');
       const winner = localNewer ? lobj : robj;
       const loser = localNewer ? robj : lobj;
       await Store.put(type, winner, { silent: true, noStamp: true, fromSync: true });
@@ -316,8 +337,8 @@ const Sync = {
       newSha[p] = gitBlobSha(text);
     }
     if (canPush && (upl.length || deletes.length || extraDeletes.length)) {
-      await prov.commit(upl, [...deletes, ...extraDeletes], snap.ctx);
-      for (const p of Object.keys(newSha)) { meta.remote[p] = newSha[p]; meta.local[p] = newSha[p]; }
+      const versions = (await prov.commit(upl, [...deletes, ...extraDeletes], snap.ctx)) || {};
+      for (const p of Object.keys(newSha)) { meta.remote[p] = versions[p] || newSha[p]; meta.local[p] = newSha[p]; }
       for (const p of deletes) { delete meta.remote[p]; delete meta.local[p]; delete meta.tombstones[p]; }
       pushed = upl.length + deletes.length;
     }

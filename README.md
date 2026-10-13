@@ -4,11 +4,7 @@ Aplikace pro psaní, úpravy a zobrazování textů písní na čtečce (prompte
 
 - **Čtečka**: samostatný program pro Windows (`Prompter.exe`). Funguje **úplně bez internetu**, startuje rovnou přes celou obrazovku a data má jako soubory ve složce `data` vedle programu.
 - **Editor**: stejná aplikace v prohlížeči (GitHub Pages nebo lokálně). Členové kapely v něm píšou písně a skládají playlisty.
-- **Sdílení** si vybereš v Nastavení:
-  - **sdílená složka** v cloudu (Mega zdarma, Proton Drive, OneDrive, Dropbox…): nejjednodušší, funguje v programu `Prompter.exe`,
-  - **GitHub** (zdarma): funguje i ve webovém editoru v prohlížeči.
-
-  V obou případech data vidí a mění jen ten, koho pozveš.
+- **Sdílení s kapelou**: písně se synchronizují samy přes internet (Mega nebo GitHub, obojí zdarma). Členové kapely nic nezakládají ani neinstalují, jen vloží **kód kapely**.
 
 ---
 
@@ -67,27 +63,28 @@ Zpěváky (jména, barvy) upravíš v záložce **Zpěváci**. Vzhled stránky (
 
 Náhled v editoru odpovídá přesně monitoru čtečky. Rozměr monitoru se sdílí s celou kapelou.
 
-## 3a. Sdílení přes cloudovou složku (Mega, Proton Drive…)
+## 3. Sdílení s kapelou
 
-1. **Ty:** nainstaluj **MEGA Desktop App** (mega.io/desktop). Ve složce MEGA vytvoř složku např. `Kapela-pisne`.
-2. Na webu mega.io ji **sdílej** členům kapely (zadáš jejich e-maily) s právem **Číst a zapisovat**. Nepoužívej „Sdílet odkaz“.
-3. **Každý člen** (i PC čtečky): účet Mega zdarma, přijme pozvánku a v MEGA Desktop App si sdílenou složku nastaví k **synchronizaci** na disk.
-4. V Prompteru: **Nastavení → Sdílení s kapelou → Sdílená složka → Vybrat složku…** a zvolí tu složku.
+### Člen kapely (1 minuta)
+1. Stáhne a spustí Prompter.
+2. V uvítacím okně klikne na **🔑 Mám kód kapely** (nebo vpravo nahoře na **připojit ke kapele**).
+3. Vloží kód od správce a klikne na **Připojit**. Písně a playlisty se stáhnou samy a další změny se synchronizují automaticky.
 
-Změny se mezi počítači přenášejí samy, zhruba do minuty po synchronizaci cloudu. Program sleduje složku a změny načte sám. Když cloud vytvoří konfliktní kopii souboru, Prompter ji převezme jako samostatnou píseň „(konflikt)“, takže nic se neztratí. Čtečka má vždy i vlastní kopii dat, a hraje proto i bez internetu nebo bez cloudu.
+### Správce kapely (jednou, asi 10 minut)
+V **Nastavení → Sdílení s kapelou** zvol, kde budou písně uložené:
 
-U **Proton Drive** je postup stejný (oprávnění *Editor*). Ověř si ale, že aplikace Proton Drive pro Windows u členů umí synchronizovat složky, které jim někdo nasdílel.
+- **Mega** (jen v programu Prompter.exe):
+  1. Na mega.io založ **nový společný účet pro kapelu**, ne svůj osobní, protože heslo se přes kód kapely dostane ke všem členům. Dvoufázové ověření nezapínej.
+  2. Vyplň e-mail a heslo tohoto účtu a klikni na **Připojit k Mega**. Program si sám vytvoří složku „Prompter kapela“ a nahraje do ní písně.
+- **GitHub** (funguje i ve webovém editoru): program tě provede třemi odkazy: účet, soukromý repozitář a token.
 
-## 3b. Sdílení přes GitHub (nastaví jednou správce)
+Po připojení se ukáže **kód kapely**. Zkopíruj ho a pošli členům. Pro PC čtečky můžeš vytvořit kód **jen pro čtení**: čtečka pak písně jen stahuje a nic neodešle.
 
-1. Na github.com vytvoř **soukromý (Private)** repozitář, např. `kapela-pisne`.
-2. **Settings → Collaborators → Add people**: pozvi členy kapely.
-3. Každý člen si vytvoří token na `github.com/settings/personal-access-tokens/new`:
-   - *Repository access*: **Only select repositories** → `kapela-pisne`
-   - *Permissions → Contents*: **Read and write** (čtečka stačí **Read-only**)
-4. V aplikaci: **Nastavení → Sdílení s kapelou**. Vyplň vlastníka, repozitář a token a klikni **Připojit**.
+Když dva lidé upraví stejnou píseň najednou, nic se neztratí: druhá verze se uloží jako kopie „(konflikt)“. Bez internetu vše funguje dál a změny se odešlou při dalším připojení. Když kód unikne, změň heslo k Mega (nebo vytvoř nový token na GitHubu), připoj se znovu a pošli členům nový kód.
 
-Změny se odesílají automaticky jedním commitem. Když dva lidé upraví stejnou píseň zároveň, nic se neztratí: novější verze zůstane a starší se uloží jako kopie s označením „(konflikt)“. Bez internetu vše funguje dál a změny se odešlou při dalším připojení.
+**Pokročilá varianta:** synchronizovaná složka. Program může používat i složku, kterou synchronizuje jiná aplikace (MEGA Desktop, OneDrive, Dropbox, síťový disk).
+
+> Připojení k Mega používá neoficiální knihovnu `megajs`. Kdyby ho Mega někdy změnou na své straně rozbila, přepni na GitHub. Písně v programu zůstanou.
 
 ## 4. Pro vývoj
 

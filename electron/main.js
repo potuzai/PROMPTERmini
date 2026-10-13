@@ -1,7 +1,7 @@
 'use strict';
 /* Program čtečky pro Windows (Electron).
    Data = obyčejné JSON soubory ve složce „data“ vedle programu (nebo v profilu uživatele). */
-const { app, BrowserWindow, ipcMain, shell, powerSaveBlocker, Menu, screen, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, powerSaveBlocker, Menu, screen, dialog, safeStorage } = require('electron');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
@@ -188,6 +188,30 @@ ipcMain.on('watchFolder', (e, dir) => {
     });
     watcher.on('error', () => { /* složka odpojena – kontroluje se i pravidelně */ });
   } catch (err) { /* fs.watch nepodporováno – stačí pravidelná kontrola */ }
+});
+
+/* ===== Mega přímo z programu ===== */
+const Mega = require('./mega');
+ipcMain.handle('megaTest', (e, cfg) => Mega.test(cfg));
+ipcMain.handle('megaSnapshot', (e, cfg) => Mega.snapshot(cfg));
+ipcMain.handle('megaRead', (e, cfg, p, v) => Mega.read(cfg, p, v));
+ipcMain.handle('megaCommit', (e, cfg, up, del) => Mega.commit(cfg, up, del));
+ipcMain.handle('megaLogout', () => Mega.logout());
+
+/* Šifrování hesel a tokenů v nastavení (Windows: DPAPI – rozšifruje jen tento uživatel na tomto PC) */
+ipcMain.on('protect', (e, text) => {
+  try {
+    if (text && safeStorage.isEncryptionAvailable()) { e.returnValue = 'enc:' + safeStorage.encryptString(text).toString('base64'); return; }
+  } catch (err) { /* nedostupné */ }
+  e.returnValue = text ? 'b64:' + Buffer.from(text, 'utf8').toString('base64') : '';
+});
+ipcMain.on('unprotect', (e, val) => {
+  try {
+    if (!val) e.returnValue = '';
+    else if (val.startsWith('enc:')) e.returnValue = safeStorage.decryptString(Buffer.from(val.slice(4), 'base64'));
+    else if (val.startsWith('b64:')) e.returnValue = Buffer.from(val.slice(4), 'base64').toString('utf8');
+    else e.returnValue = val;
+  } catch (err) { e.returnValue = ''; }
 });
 
 let win;

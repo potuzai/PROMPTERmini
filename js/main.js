@@ -77,14 +77,14 @@ const App = {
 
   paintSync() {
     const st = Sync.state;
-    const labels = { off: 'jen v tomto PC', idle: 'synchronizováno', pending: 'neodeslané změny', syncing: 'synchronizuji…', error: 'chyba synchronizace', offline: 'offline' };
+    const labels = { off: 'připojit ke kapele', idle: 'synchronizováno', pending: 'neodeslané změny', syncing: 'synchronizuji…', error: 'chyba synchronizace', offline: 'offline' };
     this.syncPill.className = 'sync-pill ' + st;
-    $('.lbl', this.syncPill).textContent = labels[st] || st;
+    $('.lbl', this.syncPill).textContent = (labels[st] || st) + (Settings.get('readOnly') && st !== 'off' ? ' · jen čtení' : '');
     this.syncPill.title = st === 'error' ? Sync.lastError : (Sync.lastSync ? 'Poslední synchronizace ' + Sync.lastSync.toLocaleTimeString('cs-CZ') : 'Kliknutím synchronizuješ');
   },
 
   async syncClick() {
-    if (!Sync.enabled()) { location.hash = '#/settings'; return toast('Nastav sdílení s kapelou v Nastavení.', 'info'); }
+    if (!Sync.enabled()) return joinBandDialog();
     try { const r = await Sync.run(); toast(`Synchronizováno · staženo ${r.downloaded || 0}, odesláno ${r.pushed || 0}`, 'ok'); }
     catch (e) { toast(e.message, 'err', 6000); }
   },
@@ -130,6 +130,7 @@ const App = {
     SongsView.editor = null;
     const views = { songs: SongsView, playlists: PlaylistsView, templates: TemplatesView, singers: SingersView, settings: SettingsView };
     (views[view] || SongsView).render(main, param);
+    if (!Settings.get('welcomed') && Sync.mode() === 'off' && !$('.modal')) setTimeout(() => welcomeDialog(), 200);
   },
 };
 

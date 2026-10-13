@@ -1,0 +1,140 @@
+// Test přímého napojení na Mega + kódu kapely: správce založí kapelu, člen se připojí kódem.
+const { _electron } = require('playwright');
+const fs = require('fs'); const path = require('path'); const os = require('os');
+const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode = 1; } else console.log('ok: ' + m); };
+const ROOT = path.join(__dirname, '..');
+const EL = path.join(ROOT, 'node_modules/electron/dist/electron');
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'prompter-mega-'));
+const STATE = path.join(tmp, 'mega-cloud.json');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const cloud = () => JSON.parse(fs.readFileSync(STATE, 'utf8'));
+const cloudFiles = () => { const st = cloud(); const p = id => st.nodes[id] ? (p(st.nodes[id].parent) + '/' + st.nodes[id].name) : ''; return Object.entries(st.nodes).filter(([, n]) => !n.dir).map(([id, n]) => ({ path: p(id).replace('/Cloud Drive/', ''), text: Buffer.from(n.data, 'base64').toString() })); };
+
+async function launch(name, settings, env = {}) {
+  const dir = path.join(tmp, name);
+  fs.mkdirSync(dir, { recursive: true });
+  const sf = path.join(dir, 'settings.json');
+  const prev = fs.existsSync(sf) ? JSON.parse(fs.readFileSync(sf, 'utf8')) : {};
+  fs.writeFileSync(sf, JSON.stringify(Object.assign({ readerFullscreen: false, userName: name }, prev, settings)));
+  const app = await _electron.launch({ executablePath: EL, args: ['--no-sandbox', ROOT], env: { ...process.env, PROMPTER_DATA_DIR: dir, PROMPTER_MEGA_MOCK: path.join(__dirname, 'mega-mock.js'), MEGA_MOCK_STATE: STATE, ...env } });
+  const w = await app.firstWindow();
+  w.on('pageerror', e => console.log(name, 'PAGEERR', e.message));
+  await w.waitForFunction(() => typeof Store !== 'undefined' && Store.ready, null, { timeout: 20000 });
+  return { app, w, dir };
+}
+
+(async () => {
+  /* ----- Správce: přivítání → založit kapelu → Mega ----- */
+  const A = await launch('Petr', {});
+  await A.w.evaluate(() => { location.hash = '#/songs'; });
+  await A.w.waitForSelector('.modal-title:has-text("Vítej")', { timeout: 5000 });
+  assert(true, 'při prvním spuštění se zobrazí uvítání');
+  await A.w.click('.modal button:has-text("Založit kapelu")');
+  await sleep(400);
+  assert(await A.w.evaluate(() => location.hash) === '#/settings', 'uvítání → nastavení sdílení');
+  await A.w.click('label.chk:has-text("Mega – program se připojí sám") input');
+  await sleep(200);
+  await A.w.fill('input[type=email]', 'kapela@test.cz');
+  await A.w.fill('input[placeholder="heslo k účtu Mega"]', 'spatne');
+  await A.w.click('button:has-text("Připojit k Mega")');
+  await sleep(800);
+  assert(await A.w.isVisible('text=špatný e-mail nebo heslo'), 'špatné heslo → srozumitelná chyba');
+  await A.w.fill('input[placeholder="heslo k účtu Mega"]', 'heslo123');
+  await A.w.click('button:has-text("Připojit k Mega")');
+  await A.w.waitForSelector('.modal-title:has-text("Pozvat členy")', { timeout: 15000 });
+  assert(true, 'po připojení se nabídne pozvání členů');
+  const files0 = cloudFiles();
+  assert(files0.some(f => /Prompter kapela\/songs\/.+\.json/.test(f.path) && f.text.includes('Ukázková')), 'písně nahrány do Mega do složky kapely');
+  assert(files0.some(f => f.path === 'Prompter kapela/config/singers.json'), 'zpěváci nahráni');
+  const savedPass = JSON.parse(fs.readFileSync(path.join(A.dir, 'settings.json'), 'utf8')).mega.pass;
+  assert(savedPass && !savedPass.includes('heslo123'), 'heslo není v nastavení čitelně');
+  await A.w.fill('.modal input.inp', 'Rusted');
+  const code = await A.w.inputValue('.modal textarea');
+  await A.w.click('.modal input[type=checkbox]');
+  const roCode = await A.w.inputValue('.modal textarea');
+  assert(code.startsWith('PROMPTER-') && roCode !== code, 'kód kapely (úpravy i jen pro čtení)');
+  await A.w.click('.modal button:has-text("Hotovo")');
+  await A.w.evaluate(async () => { await Store.put('songs', { id: 'zluty', title: 'Žlutý pes', artist: '', key: 'C', tempo: '', tags: [], text: '@J Žlutý pes' }); await Sync.run(); });
+
+  /* ----- Člen: přivítání → Mám kód kapely ----- */
+  const B = await launch('Jana', {});
+  await B.w.evaluate(() => { location.hash = '#/songs'; });
+  await B.w.waitForSelector('.modal-title:has-text("Vítej")');
+  await B.w.click('.modal button:has-text("Mám kód kapely")');
+  await B.w.waitForSelector('.modal textarea');
+  await B.w.fill('.modal textarea', 'nesmysl');
+  await B.w.click('.modal button:has-text("Připojit")');
+  await sleep(300);
+  assert(await B.w.isVisible('text=nevypadá jako kód kapely'), 'neplatný kód → chyba, dialog zůstane otevřený');
+  await B.w.fill('.modal textarea', '  ' + code + '\n');
+  await B.w.click('.modal button:has-text("Připojit")');
+  await B.w.waitForFunction(() => Store.songs.has('zluty'), null, { timeout: 15000 });
+  assert(true, 'člen se připojil kódem a stáhl písně');
+  assert(await B.w.evaluate(() => Settings.get('bandName')) === 'Rusted', 'název kapely převzat');
+  assert(await B.w.evaluate(() => ![...Store.songs.values()].some(s => s.sample && s.title === 'Ukázková píseň' && !s.updatedBy?.includes('Petr'))) , 'ukázková píseň člena se do kapely nenahrála');
+  const tplCopies = await B.w.evaluate(() => [...Store.templates.values()].filter(t => t.name.includes('konflikt')).length);
+  assert(tplCopies === 0, 'výchozí šablony nezpůsobily konflikty');
+
+  /* ----- Úpravy oběma směry ----- */
+  await B.w.evaluate(async () => { const s = Store.songs.get('zluty'); s.text += '\n@T doplnila Jana'; await Store.put('songs', s); await Sync.run(); });
+  await A.w.evaluate(() => Sync.run());
+  assert((await A.w.evaluate(() => Store.songs.get('zluty').text)).includes('doplnila Jana'), 'úprava člena se dostala ke správci');
+  assert(cloudFiles().filter(f => f.path.endsWith('songs/zluty.json')).length === 1, 'v Mega zůstává jen jedna verze souboru');
+  const r = await A.w.evaluate(() => Sync.run());
+  assert(r.pushed === 0 && r.downloaded === 0, 'opakovaná synchronizace nic nepřenáší');
+
+  /* ----- Konflikt ----- */
+  await A.w.evaluate(async () => { const s = Store.songs.get('zluty'); s.text = 'verze Petr'; await Store.put('songs', s); });
+  await sleep(30);
+  await B.w.evaluate(async () => { const s = Store.songs.get('zluty'); s.text = 'verze Jana'; await Store.put('songs', s); });
+  await A.w.evaluate(() => Sync.run()); await B.w.evaluate(() => Sync.run()); await A.w.evaluate(() => Sync.run());
+  const aT = await A.w.evaluate(() => [...Store.songs.values()].map(s => s.text).sort());
+  const bT = await B.w.evaluate(() => [...Store.songs.values()].map(s => s.text).sort());
+  assert(aT.includes('verze Petr') && aT.includes('verze Jana') && JSON.stringify(aT) === JSON.stringify(bT), 'konflikt: obě verze zachovány u obou');
+
+  /* ----- Dvojité nahrání téhož souboru (souběh) ----- */
+  const st = cloud();
+  const songsDir = Object.entries(st.nodes).find(([, n]) => n.name === 'songs')[0];
+  st.nodes.fdup = { name: 'zluty.json', parent: songsDir, dir: false, ts: 1, data: Buffer.from(JSON.stringify({ id: 'zluty', title: 'Žlutý pes', text: 'souběžná verze', updatedAt: '2026-01-01T00:00:00Z', updatedBy: 'X' })).toString('base64') };
+  fs.writeFileSync(STATE, JSON.stringify(st));
+  await A.w.evaluate(() => Sync.run());
+  assert(cloudFiles().filter(f => f.path.endsWith('songs/zluty.json')).length === 1, 'duplicitní soubor v Mega uklizen');
+  assert((await A.w.evaluate(() => [...Store.songs.values()].map(s => s.text))).includes('souběžná verze'), 'obsah duplicity zachován jako kopie');
+
+  /* ----- Mazání ----- */
+  await B.w.evaluate(() => Sync.run());
+  await B.w.evaluate(async () => { await Store.remove('songs', 'zluty'); await Sync.run(); });
+  assert(!cloudFiles().some(f => f.path.endsWith('songs/zluty.json')), 'smazání odstraní soubor z Mega');
+  await A.w.evaluate(() => Sync.run());
+  assert(!(await A.w.evaluate(() => Store.songs.has('zluty'))), 'smazání se přeneslo');
+
+  /* ----- Relace: znovupoužití a obnova po vypršení ----- */
+  const logins0 = cloud().calls.login;
+  await A.w.evaluate(() => Sync.run()); await A.w.evaluate(() => Sync.run());
+  assert(cloud().calls.login === logins0, 'další synchronizace bez nového přihlášení (relace se znovu používá)');
+  await A.app.close(); await B.app.close();
+
+  /* ----- Čtečka jen pro čtení + vypršelá relace + výpadek ----- */
+  const C = await launch('Ctecka', { startInReader: true });
+  await sleep(500);
+  assert(await C.w.evaluate(() => Reader.isOpen()), 'čtečka startuje do čtečky');
+  await C.w.evaluate(async c => { await BandCode.join(c); }, roCode);
+  assert(await C.w.evaluate(() => Settings.get('readOnly')) === true, 'kód jen pro čtení → čtečka nic neodesílá');
+  const before = JSON.stringify(cloudFiles());
+  await C.w.evaluate(async () => { await Store.put('songs', { id: 'loc', title: 'Jen lokálně', text: '' }); await Sync.run(); });
+  assert(JSON.stringify(cloudFiles()) === before, 'změna na čtečce nešla do cloudu');
+  await C.app.close();
+  const C2 = await launch('Ctecka', {}, { MEGA_MOCK_EXPIRED: '1' });
+  const logins1 = cloud().calls.login;
+  const res = await C2.w.evaluate(async () => { while (Sync.running) await Sync.running.catch(() => {}); return Sync.run().then(r => Sync.mode() + (r.skipped ? ' skipped' : '')).catch(e => e.message); });
+  assert(res === 'mega' && cloud().calls.login > logins1, 'po vypršení relace se program přihlásí znovu sám (' + res + ')');
+  await C2.app.close();
+  const C3 = await launch('Ctecka', {}, { MEGA_MOCK_FAIL_UPLOAD: '1' });
+  await C3.w.evaluate(async () => { while (Sync.running) await Sync.running.catch(() => {}); Settings.set('readOnly', false); });
+  await C3.w.evaluate(async () => { await Store.put('songs', { id: 'x1', title: 'Neodeslaná', text: '' }); });
+  const err = await C3.w.evaluate(() => Sync.run().then(r => 'BEZ CHYBY ' + JSON.stringify(r)).catch(e => e.message));
+  assert(/přetížená/.test(err), 'výpadek Mega → srozumitelná chyba (' + err + ')');
+  assert(await C3.w.evaluate(() => Store.songs.has('x1') && Store.pendingCount() > 0), 'neodeslaná změna zůstane a odešle se příště');
+  await C3.app.close();
+  fs.rmSync(tmp, { recursive: true, force: true });
+})().catch(e => { console.log('FAIL: výjimka', e); process.exit(1); });

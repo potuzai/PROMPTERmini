@@ -290,10 +290,39 @@ const SettingsView = {
   },
 
   shareBlock() {
-    const cur = Sync.mode();
+    const mode = Sync.mode();
+    const names = { github: 'GitHub', mega: 'Mega', folder: 'sdílenou složku' };
+    const top = h('div', { style: { marginBottom: '12px' } });
+    if (mode !== 'off') {
+      const canInvite = (mode === 'github' || mode === 'mega') && !Settings.get('readOnly');
+      top.append(
+        h('p', {}, '✅ Připojeno ke kapele ', h('b', {}, Settings.get('bandName') || ''), ' přes ', h('b', {}, names[mode]),
+          Settings.get('readOnly') ? h('span', { class: 'tag', style: { marginLeft: '6px' } }, 'jen pro čtení') : null,
+          Sync.lastError ? h('span', { style: { color: 'var(--err)', marginLeft: '8px' } }, Sync.lastError) : null),
+        h('div', { class: 'row' },
+          canInvite ? h('button', { class: 'btn primary nogrow', onclick: () => inviteDialog() }, '👥 Pozvat členy (kód kapely)') : null,
+          h('button', { class: 'btn nogrow', onclick: () => App.syncClick() }, '⟳ Synchronizovat teď'),
+          h('button', { class: 'btn danger nogrow', onclick: async () => {
+            if (!await confirmDlg('Odpojit tento počítač od kapely? Písně v něm zůstanou, jen se přestanou synchronizovat.', 'Odpojit')) return;
+            Settings.set('syncMode', 'none'); Settings.set('readOnly', false);
+            if (window.native) { window.native.megaLogout(); window.native.watchFolder(''); }
+            await Sync.resetMeta(); Sync.lastError = ''; Sync.state = 'off'; Sync.refreshState(); App.go(true);
+          } }, 'Odpojit')));
+    } else {
+      top.append(
+        h('p', {}, 'Písně jsou zatím jen v tomto počítači.'),
+        h('div', { class: 'row' },
+          h('button', { class: 'btn primary nogrow', onclick: () => joinBandDialog() }, '🔑 Mám kód kapely'),
+          h('span', { class: 'help', style: { alignSelf: 'center' } }, '← člen kapely: stačí vložit kód od správce. Správce: zvol níže, kde budou písně uložené.')));
+    }
+
     const body = h('div');
+    const cur = Settings.get('syncMode') || (mode === 'github' ? 'github' : 'none');
     const setMode = async m => {
-      if (m === Settings.get('syncMode') && Sync.mode() !== 'off') return paint(m);
+      if (m === Settings.get('syncMode')) return paint(m);
+      if (m === 'none' && Sync.mode() !== 'off') {
+        if (!await confirmDlg('Vypnout sdílení na tomto počítači?', 'Vypnout')) { App.go(true); return; }
+      }
       Settings.set('syncMode', m);
       await Sync.resetMeta();
       Sync.lastError = ''; Sync.state = 'off';
@@ -302,24 +331,67 @@ const SettingsView = {
       paint(m);
     };
     const opt = (m, label, sub, disabled) => h('label', { class: 'chk', style: { alignItems: 'flex-start', opacity: disabled ? 0.5 : 1 } },
-      h('input', { type: 'radio', name: 'syncmode', checked: (Settings.get('syncMode') || (cur === 'github' ? 'github' : 'none')) === m, disabled, onchange: () => setMode(m) }),
+      h('input', { type: 'radio', name: 'syncmode', checked: cur === m, disabled, onchange: () => setMode(m) }),
       h('span', {}, h('b', {}, label), h('br'), h('span', { class: 'help' }, sub)));
-    const detail = h('div', { style: { marginTop: '12px' } });
+    const detail = h('div', { style: { marginTop: '12px', paddingTop: '12px', borderTop: '1px solid var(--line)' } });
     const paint = m => {
       detail.innerHTML = '';
-      if (m === 'folder') detail.appendChild(this.folderBlock());
+      if (m === 'mega') detail.appendChild(this.megaBlock());
+      else if (m === 'folder') detail.appendChild(this.folderBlock());
       else if (m === 'github') detail.appendChild(this.ghBlock());
-      else detail.appendChild(h('p', { class: 'help' }, 'Písně jsou jen v tomto počítači. Přenést je jde i ručně: Záloha → Stáhnout zálohu → na druhém PC Obnovit ze zálohy.'));
+      else detail.appendChild(h('p', { class: 'help' }, 'Bez sdílení. Přenést písně jde i ručně: Záloha → Stáhnout zálohu → na druhém PC Obnovit ze zálohy.'));
     };
     body.append(
+      h('div', { class: 'help', style: { marginBottom: '6px' } }, 'Kde budou písně kapely uložené (nastavuje správce, členové pak jen vloží kód kapely):'),
       opt('none', 'Nesdílet', 'vše jen v tomto počítači'),
-      opt('folder', 'Sdílená složka – Mega, Proton Drive, OneDrive, Dropbox…', window.native
-        ? 'nejjednodušší: složku ve svém cloudu nasdílíš členům kapely, jejich aplikace pro synchronizaci se postará o zbytek'
-        : 'dostupné jen v programu Prompter.exe (prohlížeč nemá přístup ke složkám na disku)', !window.native),
-      opt('github', 'GitHub (zdarma)', 'funguje i ve webovém editoru v prohlížeči, souběžné úpravy řeší nejlépe, ale každý člen potřebuje účet a token'),
+      opt('mega', 'Mega – program se připojí sám', window.native
+        ? 'zdarma 20 GB · stačí jeden společný účet Mega pro kapelu · nic dalšího se neinstaluje'
+        : 'jen v programu Prompter.exe', !window.native),
+      opt('github', 'GitHub – program se připojí sám', 'zdarma · funguje i ve webovém editoru v prohlížeči · nejspolehlivější při souběžných úpravách'),
+      opt('folder', 'Synchronizovaná složka (pokročilé)', window.native
+        ? 'složka, kterou synchronizuje jiná aplikace (MEGA Desktop, OneDrive, Dropbox, síťový disk…)'
+        : 'jen v programu Prompter.exe', !window.native),
       detail);
-    paint(Settings.get('syncMode') || (cur === 'github' ? 'github' : 'none'));
-    return h('fieldset', {}, h('legend', {}, '☁ Sdílení s kapelou'), body);
+    paint(cur);
+    return h('fieldset', {}, h('legend', {}, '☁ Sdílení s kapelou'), top, body,
+      h('label', { class: 'chk', style: { marginTop: '10px' } }, h('input', { type: 'checkbox', checked: Settings.get('autoSync'), onchange: e => Settings.set('autoSync', e.target.checked) }), 'Synchronizovat automaticky'));
+  },
+
+  megaBlock() {
+    const m = Settings.get('mega') || {};
+    const email = h('input', { class: 'inp', type: 'email', value: m.email || '', placeholder: 'kapela@email.cz' });
+    const pass = h('input', { class: 'inp', type: 'password', value: m.pass ? window.native.unprotect(m.pass) : '', placeholder: 'heslo k účtu Mega' });
+    const folder = h('input', { class: 'inp', value: m.folder || 'Prompter kapela' });
+    const status = h('div', { class: 'help', style: { marginTop: '8px' } });
+    const connect = async () => {
+      const cfg = { email: email.value.trim(), password: pass.value, folder: folder.value.trim() || 'Prompter kapela' };
+      if (!cfg.email || !cfg.password) return toast('Vyplň e-mail a heslo.', 'warn');
+      status.textContent = 'Přihlašuji k Mega…';
+      try {
+        const r = await window.native.megaTest(cfg);
+        Settings.set('mega', { email: cfg.email, pass: window.native.protect(cfg.password), folder: cfg.folder });
+        Settings.set('syncMode', 'mega'); Settings.set('readOnly', false);
+        await Sync.resetMeta(); Sync.lastError = '';
+        const free = r.space ? ` · volné místo ${((r.space.total - r.space.used) / 1e9).toFixed(1)} GB` : '';
+        status.textContent = `Přihlášeno (${r.email})${free}. Synchronizuji…`;
+        const res = await Sync.run();
+        toast(`Mega připojena · staženo ${res.downloaded}, nahráno ${res.pushed}`, 'ok', 5000);
+        App.go(true);
+        setTimeout(() => inviteDialog(), 300);
+      } catch (e) { status.innerHTML = `<span style="color:var(--err)">${esc(ipcError(e))}</span>`; }
+    };
+    return h('div', {},
+      h('ol', { class: 'help', style: { lineHeight: 1.7, marginTop: 0 } },
+        h('li', {}, 'Na ', h('a', { href: 'https://mega.io/register', target: '_blank' }, 'mega.io/register'), ' založ ', h('b', {}, 'nový společný účet pro kapelu'), ' (ne svůj osobní – heslo budou znát všichni členové přes kód kapely). Dvoufázové ověření u něj nezapínej.'),
+        h('li', {}, 'Vyplň e-mail a heslo tohoto účtu a klikni na Připojit. Program si v Mega sám vytvoří složku a nahraje do ní písně.'),
+        h('li', {}, 'Pak ti ukáže ', h('b', {}, 'kód kapely'), ' – ten pošli členům. Oni nic nezakládají ani neinstalují.')),
+      h('div', { class: 'grid3' },
+        h('label', { class: 'f' }, h('span', {}, 'E-mail účtu Mega'), email),
+        h('label', { class: 'f' }, h('span', {}, 'Heslo'), pass),
+        h('label', { class: 'f' }, h('span', {}, 'Složka v Mega'), folder)),
+      h('div', { class: 'row', style: { marginTop: '10px' } }, h('button', { class: 'btn primary nogrow', onclick: connect }, '🔗 Připojit k Mega')),
+      status,
+      h('p', { class: 'help' }, 'Heslo je v tomto počítači uložené šifrovaně (chrání ho Windows). Připojení k Mega používá neoficiální knihovnu – kdyby Mega něco změnila a přestalo to fungovat, přepni na GitHub; písně v programu zůstanou.'));
   },
 
   folderBlock() {
@@ -369,59 +441,45 @@ const SettingsView = {
 
   ghBlock() {
     const g = clone(Settings.get('gh'));
-    const inp = (k, ph, type = 'text') => { const i = h('input', { class: 'inp', type, value: g[k] || '', placeholder: ph }); i.oninput = () => { g[k] = i.value.trim(); }; return i; };
-    const status = h('div', { class: 'help' });
-    const paintStatus = () => {
-      const c = Settings.get('gh');
-      status.innerHTML = GH.configured()
-        ? `Připojeno jako <b>${esc(c.login || '?')}</b> k <b>${esc(c.owner)}/${esc(c.repo)}</b> · ${c.canPush ? 'čtení i zápis' : '<b>jen čtení</b>'}` + (Sync.lastSync ? ` · poslední synchronizace ${Sync.lastSync.toLocaleTimeString('cs-CZ')}` : '') + (Sync.lastError ? ` · <span style="color:var(--err)">${esc(Sync.lastError)}</span>` : '')
-        : 'GitHub zatím není připojený.';
-    };
-    paintStatus();
+    const repoIn = h('input', { class: 'inp', value: g.owner && g.repo ? `${g.owner}/${g.repo}` : '', placeholder: 'uživatel/kapela-pisne nebo odkaz na repozitář' });
+    const tokenIn = h('input', { class: 'inp', type: 'password', value: g.token || '', placeholder: 'github_pat_…' });
+    const status = h('div', { class: 'help', style: { marginTop: '8px' } });
+    const c0 = Settings.get('gh');
+    if (GH.configured() && Sync.mode() === 'github') status.innerHTML = `Připojeno jako <b>${esc(c0.login || '?')}</b> k <b>${esc(c0.owner)}/${esc(c0.repo)}</b> · ${c0.canPush && !Settings.get('readOnly') ? 'čtení i zápis' : '<b>jen čtení</b>'}`;
     const connect = async () => {
-      if (!g.owner || !g.repo || !g.token) return toast('Vyplň vlastníka, repozitář i token.', 'warn');
-      const old = Settings.get('gh');
-      Settings.set('gh', Object.assign({}, old, g));
+      const m = /(?:github\.com[/:])?([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+?)(?:\.git)?\/?$/.exec(repoIn.value.trim());
+      if (!m || !tokenIn.value.trim()) return toast('Vyplň repozitář (uživatel/název) i token.', 'warn');
+      const prev = clone(Settings.get('gh')), prevMode = Settings.get('syncMode');
+      Settings.set('gh', Object.assign({}, prev, { owner: m[1], repo: m[2], token: tokenIn.value.trim(), branch: prev.branch || 'main' }));
       Settings.set('syncMode', 'github');
+      status.textContent = 'Ověřuji přístup…';
       try {
         const r = await GH.test();
-        Settings.set('gh', Object.assign({}, Settings.get('gh'), { login: r.login, canPush: r.canPush, branch: g.branch || r.defaultBranch || 'main' }));
-        if (!r.private) toast('Pozor: repozitář je VEŘEJNÝ – texty uvidí kdokoli. Doporučuji ho přepnout na Private.', 'warn', 8000);
-        toast(`Připojeno jako ${r.login}${r.canPush ? '' : ' (jen čtení)'}. Synchronizuji…`, 'ok');
+        Settings.set('gh', Object.assign({}, Settings.get('gh'), { login: r.login, canPush: r.canPush, branch: r.defaultBranch || 'main' }));
+        Settings.set('readOnly', false);
+        if (!r.private) toast('Pozor: repozitář je VEŘEJNÝ – texty uvidí kdokoli. Přepni ho na Private (Settings → General → Danger Zone).', 'warn', 9000);
+        await Sync.resetMeta(); Sync.lastError = '';
         const res = await Sync.run();
-        toast(`Hotovo: staženo ${res.downloaded}, odesláno ${res.pushed}${res.conflicts ? ', konflikty ' + res.conflicts : ''}`, 'ok', 5000);
+        toast(`GitHub připojen · staženo ${res.downloaded}, odesláno ${res.pushed}`, 'ok', 5000);
+        App.go(true);
+        if (r.canPush) setTimeout(() => inviteDialog(), 300);
       } catch (e) {
-        toast('Nepodařilo se připojit: ' + e.message, 'err', 7000);
+        Settings.set('gh', prev); Settings.set('syncMode', prevMode);
+        status.innerHTML = `<span style="color:var(--err)">Nepodařilo se připojit: ${esc(e.message)}</span>`;
       }
-      paintStatus();
     };
+    const tokenUrl = 'https://github.com/settings/personal-access-tokens/new?name=Prompter%20kapela&description=Synchronizace%20pisni&expires_in=none&contents=write';
     return h('div', {},
-      h('p', { class: 'help' }, 'Písně, playlisty a šablony se ukládají do tvého soukromého repozitáře na GitHubu. Přístup má jen ten, koho do repozitáře pozveš. Bez internetu vše funguje dál, změny se odešlou při příštím připojení.'),
-      h('div', { class: 'grid3' },
-        h('label', { class: 'f' }, h('span', {}, 'Vlastník (uživatel/organizace)'), inp('owner', 'např. potuzai')),
-        h('label', { class: 'f' }, h('span', {}, 'Repozitář'), inp('repo', 'např. kapela-pisne')),
-        h('label', { class: 'f' }, h('span', {}, 'Větev'), inp('branch', 'main'))),
-      h('label', { class: 'f', style: { marginTop: '8px' } }, h('span', {}, 'Osobní token (Personal access token)'), inp('token', 'github_pat_…', 'password')),
-      h('div', { class: 'row', style: { marginTop: '10px' } },
-        h('button', { class: 'btn primary nogrow', onclick: connect }, '🔗 Připojit a synchronizovat'),
-        h('button', { class: 'btn nogrow', onclick: () => Sync.run().then(r => toast(`Staženo ${r.downloaded || 0}, odesláno ${r.pushed || 0}`, 'ok')).catch(e => toast(e.message, 'err')).finally(paintStatus) }, '⟳ Synchronizovat teď'),
-        h('button', { class: 'btn danger nogrow', onclick: async () => {
-          if (!await confirmDlg('Odpojit od GitHubu? Data v tomto počítači zůstanou.', 'Odpojit')) return;
-          Settings.set('gh', Object.assign({}, Settings.get('gh'), { token: '', login: '', canPush: null }));
-          Sync.refreshState(); App.go();
-        } }, 'Odpojit')),
-      h('label', { class: 'chk', style: { marginTop: '8px' } }, h('input', { type: 'checkbox', checked: Settings.get('autoSync'), onchange: e => Settings.set('autoSync', e.target.checked) }), 'Synchronizovat automaticky po každé změně'),
-      status,
-      h('details', { style: { marginTop: '10px' } }, h('summary', { style: { cursor: 'pointer' } }, h('b', {}, 'Návod – jak sdílení nastavit (5 minut)')),
-        h('ol', { class: 'help', style: { lineHeight: 1.7 }, html: `
-          <li><b>Správce (jednou):</b> na <a href="https://github.com/new" target="_blank">github.com/new</a> vytvoř repozitář, např. <code>kapela-pisne</code>, a zvol <b>Private</b>.</li>
-          <li>V repozitáři: <b>Settings → Collaborators → Add people</b> – pozvi GitHub účty členů kapely. Kdo pozvaný není, data neuvidí.</li>
-          <li><b>Každý člen:</b> na <a href="https://github.com/settings/personal-access-tokens/new" target="_blank">github.com/settings/personal-access-tokens/new</a> vytvoř token:
-            Resource owner = vlastník repozitáře, Repository access = <b>Only select repositories</b> → <code>kapela-pisne</code>,
-            Permissions → Repository → <b>Contents: Read and write</b>. Platnost klidně 1 rok.</li>
-          <li>Token vlož sem, vyplň vlastníka a repozitář a klikni <b>Připojit</b>. Hotovo – změny se synchronizují samy.</li>
-          <li><b>Čtečka na pódiu:</b> stačí token jen pro čtení (<b>Contents: Read-only</b>) – čtečka pak nemůže nic změnit ve sdílených datech.</li>
-          <li>Odebrání člena: v repozitáři ho odeber z Collaborators – jeho token přestane fungovat.</li>` })));
+      h('ol', { class: 'help', style: { lineHeight: 1.75, marginTop: 0 } },
+        h('li', { html: 'Přihlas se na GitHub (nebo si <a href="https://github.com/signup" target="_blank">zdarma založ účet</a>).' }),
+        h('li', { html: '<a href="https://github.com/new?name=kapela-pisne&visibility=private" target="_blank">Vytvoř soukromý repozitář</a> – název nech „kapela-pisne“, musí být <b>Private</b>, klikni <b>Create repository</b>.' }),
+        h('li', { html: `<a href="${tokenUrl}" target="_blank">Vytvoř přístupový token</a> – u <b>Repository access</b> zvol <b>Only select repositories</b> → kapela-pisne. U <b>Permissions → Contents</b> musí být <b>Read and write</b>. Dole klikni <b>Generate token</b> a token zkopíruj.` }),
+        h('li', {}, 'Vlož sem repozitář a token a klikni Připojit. Program pak ukáže kód kapely pro ostatní členy.')),
+      h('div', { class: 'grid2' },
+        h('label', { class: 'f' }, h('span', {}, 'Repozitář'), repoIn),
+        h('label', { class: 'f' }, h('span', {}, 'Token'), tokenIn)),
+      h('div', { class: 'row', style: { marginTop: '10px' } }, h('button', { class: 'btn primary nogrow', onclick: connect }, '🔗 Připojit ke GitHubu')),
+      status);
   },
 };
 

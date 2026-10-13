@@ -1,14 +1,14 @@
 {
   "name": "prompter-pisni",
   "productName": "Prompter",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Čtečka a editor textů písní pro kapelu",
   "main": "electron/main.js",
   "private": true,
   "scripts": {
     "start": "electron .",
-    "build:win": "electron-packager . Prompter --platform=win32 --arch=x64 --out=dist --overwrite --icon=img/icon.ico --ignore=^/dist --ignore=^/node_modules --ignore=^/local-data --ignore=^/tests --ignore=^/\\.github",
-    "build:win32": "electron-packager . Prompter --platform=win32 --arch=ia32 --out=dist --overwrite --icon=img/icon.ico --ignore=^/dist --ignore=^/node_modules --ignore=^/local-data --ignore=^/tests --ignore=^/\\.github",
+    "build:win": "electron-packager . Prompter --platform=win32 --arch=x64 --out=dist --overwrite --icon=img/icon.ico --ignore=^/dist --ignore=^/local-data --ignore=^/tests --ignore=^/\\.github",
+    "build:win32": "electron-packager . Prompter --platform=win32 --arch=ia32 --out=dist --overwrite --icon=img/icon.ico --ignore=^/dist --ignore=^/local-data --ignore=^/tests --ignore=^/\\.github",
     "test": "node tests/run-all.js"
   },
   "devDependencies": {
@@ -16,5 +16,8 @@
     "electron": "^38.2.0",
     "http-server": "^14.1.1",
     "playwright": "^1.56.1"
+  },
+  "dependencies": {
+    "megajs": "^1.3.10"
   }
 }

@@ -6,7 +6,7 @@ const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode
     const ctx = await b.newContext({ viewport: { width: 1400, height: 850 } });
     await ctx.addInitScript(() => {
       window.GH_API_OVERRIDE = 'http://localhost:8124';
-      if (!localStorage.getItem('prompter-settings')) localStorage.setItem('prompter-settings', JSON.stringify({ gh: { owner: 'o', repo: 'r', branch: 'main', token: 'TESTTOKEN', canPush: true, login: 'x' } }));
+      if (!localStorage.getItem('prompter-settings')) localStorage.setItem('prompter-settings', JSON.stringify({ welcomed: true, gh: { owner: 'o', repo: 'r', branch: 'main', token: 'TESTTOKEN', canPush: true, login: 'x' } }));
     });
     const p = await ctx.newPage();
     p.on('pageerror', e => console.log('PAGEERR', e.message));
@@ -68,5 +68,38 @@ const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode
   await A.evaluate(async () => { Settings.set('screenW', 1920); Settings.set('screenH', 1200); await new Promise(r => setTimeout(r, 100)); await Sync.run(); });
   await B.evaluate(() => Sync.run());
   assert(await B.evaluate(() => Settings.get('screenH')) === 1200, 'rozměr monitoru sdílen');
+
+  // Kód kapely: nový člen se připojí jen vložením kódu (bez GitHub účtu)
+  const code = await A.evaluate(() => BandCode.make({ name: 'Rusted', ro: false }));
+  const ctxC = await b.newContext({ viewport: { width: 1400, height: 850 } });
+  await ctxC.addInitScript(() => { window.GH_API_OVERRIDE = 'http://localhost:8124'; });
+  await ctxC.grantPermissions(['clipboard-read', 'clipboard-write']);
+  const C = await ctxC.newPage();
+  C.on('pageerror', e => console.log('PAGEERR', e.message));
+  await C.goto('http://localhost:8123/index.html#/songs');
+  await C.waitForSelector('.modal-title:has-text("Vítej")');
+  await C.evaluate(t => navigator.clipboard.writeText(t), code);
+  await C.click('.modal button:has-text("Mám kód kapely")');
+  await C.waitForSelector('.modal textarea');
+  assert((await C.inputValue('.modal textarea')) === code, 'kód kapely se sám vložil ze schránky');
+  await C.click('.modal button:has-text("Připojit")');
+  await C.waitForFunction(() => Store.songs.has('a2'), null, { timeout: 15000 });
+  assert(true, 'člen připojen kódem kapely (GitHub) a stáhl písně');
+  assert(await C.evaluate(() => !Store.songs.size || ![...Store.songs.values()].some(s => s.sample)), 'ukázková píseň se nenahrála');
+  st = await (await fetch('http://localhost:8124/__state')).json();
+  assert(!Object.values(st.files).some(t => t.includes('"sample": true')), 'v úložišti kapely není ukázková píseň');
+  assert(await C.isVisible('text=synchronizováno'), 'stav synchronizace v liště');
+  await C.evaluate(async () => { await Store.put('songs', { id: 'c1', title: 'Od člena C', text: '' }); await Sync.run(); });
+  await A.evaluate(() => Sync.run());
+  assert(await A.evaluate(() => Store.songs.has('c1')), 'změna od člena připojeného kódem dorazila');
+  const roCode = await A.evaluate(() => BandCode.make({ name: 'Rusted', ro: true }));
+  await C.evaluate(async c => { await BandCode.join(c); }, roCode);
+  const before = JSON.stringify((await (await fetch('http://localhost:8124/__state')).json()).files);
+  await C.evaluate(async () => { await Store.put('songs', { id: 'c2', title: 'Nesmí ven', text: '' }); await Sync.run(); });
+  const after = JSON.stringify((await (await fetch('http://localhost:8124/__state')).json()).files);
+  assert(before === after, 'kód jen pro čtení: nic se neodešle');
+  assert(await C.isVisible('text=jen čtení'), 'lišta ukazuje „jen čtení“');
+  const megaErr = await C.evaluate(c => BandCode.join(c).then(() => '').catch(e => e.message), 'PROMPTER-' + btoa(JSON.stringify({ v: 1, k: 'mega', e: 'a', p: 'b', n: 'x' })));
+  assert(/jen v programu/.test(megaErr), 'kód pro Mega v prohlížeči → vysvětlení');
   await b.close();
 })();

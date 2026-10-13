@@ -1,6 +1,6 @@
 'use strict';
 /* ===== Lokální úložiště (IndexedDB) + výchozí data ===== */
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.2.0';
 const DB_NAME = 'prompter-pisne';
 const DB_VER = 1;
 const STORES = ['songs', 'playlists', 'templates', 'config', 'meta'];
@@ -55,6 +55,10 @@ const DEFAULT_SETTINGS = {
   editorFontSize: 16,
   autoSync: true,
   sharedFolder: '',              // sdílená složka (Mega, Proton Drive…)
+  mega: { email: '', pass: '', folder: 'Prompter kapela' },
+  readOnly: false,               // jen stahovat (např. čtečka)
+  bandName: '',
+  welcomed: false,
   gh: { owner: '', repo: '', branch: 'main', token: '', login: '', canPush: null },
 };
 
@@ -237,7 +241,7 @@ function currentUserName() {
 
 function sampleSong() {
   return {
-    id: uid(), title: 'Ukázková píseň', artist: 'Kapela', key: 'G', tempo: 120, tags: ['ukázka'],
+    id: uid(), sample: true, title: 'Ukázková píseň', artist: 'Kapela', key: 'G', tempo: 120, tags: ['ukázka'],
     note: 'Smaž mě, až si přidáš vlastní písně.',
     text: [
       '## Sloka 1',

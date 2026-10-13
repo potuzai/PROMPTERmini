@@ -12,7 +12,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function launch(name) {
   const dir = path.join(tmp, name);
   fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(path.join(dir, 'settings.json'), JSON.stringify({ syncMode: 'folder', sharedFolder: SHARED, userName: name, readerFullscreen: false }));
+  fs.writeFileSync(path.join(dir, 'settings.json'), JSON.stringify({ welcomed: true, syncMode: 'folder', sharedFolder: SHARED, userName: name, readerFullscreen: false }));
   const app = await _electron.launch({ executablePath: EL, args: ['--no-sandbox', ROOT], env: { ...process.env, PROMPTER_DATA_DIR: dir } });
   const w = await app.firstWindow();
   w.on('pageerror', e => console.log(name, 'PAGEERR', e.message));
@@ -91,7 +91,7 @@ async function launch(name) {
   // Nastavení – obrazovka sdílení
   await B.w.evaluate(() => { location.hash = '#/settings'; });
   await sleep(500);
-  assert(await B.w.isVisible('text=Sdílená složka – Mega'), 'volba sdílené složky v nastavení');
+  assert(await B.w.isVisible('text=Synchronizovaná složka (pokročilé)'), 'volba synchronizované složky v nastavení');
   assert(await B.w.isVisible('text=📁 Vybrat složku…'), 'tlačítko pro výběr složky');
   await B.w.locator('fieldset:has-text("Sdílení s kapelou")').screenshot({ path: path.join(os.tmpdir(), 'share-settings.png') });
 

@@ -22,4 +22,11 @@ contextBridge.exposeInMainWorld('native', {
   suggestFolders: () => ipcRenderer.sendSync('suggestFolders'),
   watchFolder: dir => ipcRenderer.send('watchFolder', dir),
   onFolderChange: fn => ipcRenderer.on('folderChanged', () => fn()),
+  megaTest: cfg => ipcRenderer.invoke('megaTest', cfg),
+  megaSnapshot: cfg => ipcRenderer.invoke('megaSnapshot', cfg),
+  megaRead: (cfg, p, v) => ipcRenderer.invoke('megaRead', cfg, p, v),
+  megaCommit: (cfg, up, del) => ipcRenderer.invoke('megaCommit', cfg, up, del),
+  megaLogout: () => ipcRenderer.invoke('megaLogout'),
+  protect: text => ipcRenderer.sendSync('protect', text),
+  unprotect: val => ipcRenderer.sendSync('unprotect', val),
 });

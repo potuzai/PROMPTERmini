@@ -9,6 +9,7 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
 (async () => {
   const b = await chromium.launch();
   const ctx = await b.newContext({ viewport: { width: 1500, height: 900 }, acceptDownloads: true });
+  await ctx.addInitScript(() => { if (!localStorage.getItem('prompter-settings')) localStorage.setItem('prompter-settings', JSON.stringify({ welcomed: true })); });
   const p = await ctx.newPage();
   const errors = [];
   p.on('pageerror', e => errors.push(e.message));
@@ -232,8 +233,8 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   await p.click('text=1920×1200'); await sleep(200);
   assert(await p.evaluate(() => Settings.get('screenH')) === 1200, 'předvolba rozlišení');
   assert(await p.isVisible('text=doporučuji písmo alespoň'), 'doporučená velikost písma');
-  assert(await p.isVisible('text=GitHub (zdarma)'), 'volba GitHub v nastavení');
-  assert(await p.isDisabled('input[type=radio] >> nth=1'), 'sdílená složka v prohlížeči nedostupná (jen v programu)');
+  assert(await p.isVisible('text=GitHub – program se připojí sám') && await p.isVisible('text=Mám kód kapely'), 'volby sdílení a připojení kódem v nastavení');
+  assert(await p.isDisabled('input[type=radio] >> nth=1'), 'Mega v prohlížeči nedostupná (jen v programu)');
 
   /* ---------- Data přežijí obnovení stránky ---------- */
   await p.reload(); await p.waitForFunction(() => typeof Store !== 'undefined' && Store.ready);
