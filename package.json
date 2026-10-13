@@ -1,0 +1,17 @@
+{
+  "name": "prompter-pisni",
+  "productName": "Prompter",
+  "version": "1.0.0",
+  "description": "Čtečka a editor textů písní pro kapelu",
+  "main": "electron/main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-packager . Prompter --platform=win32 --arch=x64 --out=dist --overwrite --icon=img/icon.ico --ignore=^/dist --ignore=^/node_modules --ignore=^/local-data --ignore=^/tests --ignore=^/\\.github",
+    "build:win32": "electron-packager . Prompter --platform=win32 --arch=ia32 --out=dist --overwrite --icon=img/icon.ico --ignore=^/dist --ignore=^/node_modules --ignore=^/local-data --ignore=^/tests --ignore=^/\\.github"
+  },
+  "devDependencies": {
+    "@electron/packager": "^18.3.6",
+    "electron": "^38.2.0"
+  }
+}
