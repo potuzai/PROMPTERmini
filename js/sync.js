@@ -44,71 +44,17 @@ const GH = {
   },
 };
 
-const Sync = {
-  state: 'off',   // off | idle | syncing | error | pending | offline
-  lastSync: null,
-  lastError: '',
-  running: null,
-  timer: null,
-  listeners: new Set(),
-
-  on(fn) { this.listeners.add(fn); },
-  setState(s, err = '') { this.state = s; this.lastError = err; for (const fn of this.listeners) fn(s); },
-
-  schedule() {
-    if (!GH.configured() || !Settings.get('autoSync')) { this.refreshState(); return; }
-    clearTimeout(this.timer);
-    this.refreshState();
-    this.timer = setTimeout(() => this.run().catch(() => {}), 8000);
-  },
-
-  refreshState() {
-    if (this.state === 'syncing') return;
-    if (!GH.configured()) return this.setState('off');
-    if (!navigator.onLine) return this.setState('offline');
-    if (this.state === 'error') return this.setState('error', this.lastError);
-    this.setState(Store.pendingCount() ? 'pending' : 'idle');
-  },
-
-  run(opts = {}) {
-    if (this.running) return this.running;
-    this.running = this._run(opts).finally(() => { this.running = null; });
-    return this.running;
-  },
-
-  async _run(opts) {
-    if (!GH.configured()) return { skipped: true };
-    if (!navigator.onLine) { this.setState('offline'); return { skipped: true }; }
-    this.setState('syncing');
-    try {
-      let result;
-      for (let attempt = 0; attempt < 3; attempt++) {
-        try { result = await this._once(opts); break; }
-        catch (e) { if (e.retry && attempt < 2) continue; throw e; }
-      }
-      this.lastSync = new Date();
-      this.lastError = '';
-      this.setState(Store.pendingCount() && Settings.get('gh').canPush !== false ? 'pending' : 'idle');
-      return result;
-    } catch (e) {
-      console.error(e);
-      let msg = e.message;
-      if (e.status === 401) msg = 'Neplatný token (401). Zkontroluj nastavení sdílení.';
-      else if (e.status === 404) msg = 'Repozitář nenalezen nebo k němu nemáš přístup (404).';
-      else if (e.status === 403) msg = 'Přístup odepřen (403) – token nemá oprávnění zápisu?';
-      else if (e instanceof TypeError) msg = 'Nelze se připojit ke GitHubu (offline?)';
-      this.setState('error', msg);
-      throw new Error(msg);
-    }
-  },
-
-  async _once() {
-    const cfg = GH.cfg();
-    const branch = cfg.branch || 'main';
-    const meta = Store.meta;
-
-    // 1) Aktuální stav větve
-    let headSha, treeSha;
+/* ===== Poskytovatelé úložiště =====
+   snapshot() → { remote: {cesta: sha}, extras: [cesty konfliktních kopií], ctx }
+   read(cesta, sha, ctx) → text
+   commit(uploads [{path,text}], deletes [cesta], ctx) */
+const GitHubProvider = {
+  name: 'GitHub',
+  canPush() { return Settings.get('gh').canPush !== false; },
+  needsNet: true,
+  async snapshot() {
+    const branch = GH.cfg().branch || 'main';
+    let headSha;
     try {
       const ref = await GH.req('GET', GH.repoPath(`/git/ref/heads/${encodeURIComponent(branch)}`));
       headSha = ref.object.sha;
@@ -124,12 +70,136 @@ const Sync = {
       throw e;
     }
     const commit = await GH.req('GET', GH.repoPath(`/git/commits/${headSha}`));
-    treeSha = commit.tree.sha;
-    const tree = await GH.req('GET', GH.repoPath(`/git/trees/${treeSha}?recursive=1`));
+    const tree = await GH.req('GET', GH.repoPath(`/git/trees/${commit.tree.sha}?recursive=1`));
     const remote = {};
-    for (const t of tree.tree) if (t.type === 'blob' && /^data\/(songs|playlists|templates|config)\/[^/]+\.json$/.test(t.path)) remote[t.path] = t.sha;
+    for (const t of tree.tree) if (t.type === 'blob' && DATA_PATH_RE.test(t.path)) remote[t.path] = t.sha;
+    return { remote, extras: [], ctx: { headSha, treeSha: commit.tree.sha, branch } };
+  },
+  async read(path, sha) {
+    const blob = await GH.req('GET', GH.repoPath(`/git/blobs/${sha}`));
+    return b64ToText(blob.content);
+  },
+  async commit(uploads, deletes, ctx) {
+    const entries = uploads.map(u => ({ path: u.path, mode: '100644', type: 'blob', content: u.text }));
+    for (const p of deletes) entries.push({ path: p, mode: '100644', type: 'blob', sha: null });
+    const newTree = await GH.req('POST', GH.repoPath('/git/trees'), { base_tree: ctx.treeSha, tree: entries });
+    const newCommit = await GH.req('POST', GH.repoPath('/git/commits'), {
+      message: `Změny z aplikace Prompter (${currentUserName()}): ${uploads.length} upraveno, ${deletes.length} smazáno`,
+      tree: newTree.sha, parents: [ctx.headSha],
+    });
+    try {
+      await GH.req('PATCH', GH.repoPath(`/git/refs/heads/${encodeURIComponent(ctx.branch)}`), { sha: newCommit.sha, force: false });
+    } catch (e) {
+      if (e.status === 422 || e.status === 409) { const er = new Error('race'); er.retry = true; throw er; }
+      throw e;
+    }
+  },
+  errorText(e) {
+    if (e.status === 401) return 'Neplatný token (401). Zkontroluj nastavení sdílení.';
+    if (e.status === 404) return 'Repozitář nenalezen nebo k němu nemáš přístup (404).';
+    if (e.status === 403) return 'Přístup odepřen (403) – token nemá oprávnění zápisu?';
+    if (e instanceof TypeError) return 'Nelze se připojit ke GitHubu (offline?)';
+    return e.message;
+  },
+};
 
-    // 2) Lokální stav
+/* Sdílená složka (Mega, Proton Drive, OneDrive, Dropbox, síťový disk…) – jen v programu pro Windows */
+const FolderProvider = {
+  name: 'Sdílená složka',
+  canPush() { return true; },
+  needsNet: false,
+  async snapshot() {
+    const r = await window.native.folderList(Settings.get('sharedFolder'));
+    return { remote: r.files, extras: r.extras, ctx: {} };
+  },
+  read(path) { return window.native.folderRead(Settings.get('sharedFolder'), path); },
+  async commit(uploads, deletes) {
+    const dir = Settings.get('sharedFolder');
+    for (const u of uploads) await window.native.folderWrite(dir, u.path, u.text);
+    for (const p of deletes) await window.native.folderDelete(dir, p);
+  },
+  errorText(e) { return 'Sdílená složka: ' + (e.message || e).toString().replace(/^Error invoking remote method '[^']+': (Error: )?/, ''); },
+};
+
+const DATA_PATH_RE = /^data\/(songs|playlists|templates|config)\/[A-Za-z0-9_-]+\.json$/;
+
+const Sync = {
+  state: 'off',   // off | idle | syncing | error | pending | offline
+  lastSync: null,
+  lastError: '',
+  running: null,
+  timer: null,
+  listeners: new Set(),
+
+  mode() {
+    const m = Settings.get('syncMode');
+    if (m === 'folder') return window.native && Settings.get('sharedFolder') ? 'folder' : 'off';
+    if (m === 'github' || (m === undefined && GH.configured())) return GH.configured() ? 'github' : 'off';
+    return 'off';
+  },
+  provider() { return { folder: FolderProvider, github: GitHubProvider }[this.mode()] || null; },
+  enabled() { return !!this.provider(); },
+
+  /* Při změně způsobu sdílení začneme porovnávat od nuly (nic se nesmaže, jen se sloučí) */
+  async resetMeta() {
+    Store.meta.remote = {}; Store.meta.local = {}; Store.meta.tombstones = {};
+    await Store.saveMeta();
+  },
+
+  on(fn) { this.listeners.add(fn); },
+  setState(s, err = '') { this.state = s; this.lastError = err; for (const fn of this.listeners) fn(s); },
+
+  schedule() {
+    if (!this.enabled() || !Settings.get('autoSync')) { this.refreshState(); return; }
+    clearTimeout(this.timer);
+    this.refreshState();
+    this.timer = setTimeout(() => this.run().catch(() => {}), this.mode() === 'folder' ? 2000 : 8000);
+  },
+
+  refreshState() {
+    if (this.state === 'syncing') return;
+    const p = this.provider();
+    if (!p) return this.setState('off');
+    if (p.needsNet && !navigator.onLine) return this.setState('offline');
+    if (this.state === 'error') return this.setState('error', this.lastError);
+    this.setState(Store.pendingCount() ? 'pending' : 'idle');
+  },
+
+  run(opts = {}) {
+    if (this.running) return this.running;
+    this.running = this._run(opts).finally(() => { this.running = null; });
+    return this.running;
+  },
+
+  async _run(opts) {
+    const p = this.provider();
+    if (!p) return { skipped: true };
+    if (p.needsNet && !navigator.onLine) { this.setState('offline'); return { skipped: true }; }
+    this.setState('syncing');
+    try {
+      let result;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try { result = await this._once(p); break; }
+        catch (e) { if (e.retry && attempt < 2) continue; throw e; }
+      }
+      this.lastSync = new Date();
+      this.lastError = '';
+      this.setState(Store.pendingCount() && p.canPush() ? 'pending' : 'idle');
+      return result;
+    } catch (e) {
+      console.error(e);
+      const msg = p.errorText(e);
+      this.setState('error', msg);
+      throw new Error(msg);
+    }
+  },
+
+  async _once(prov) {
+    const meta = Store.meta;
+    const snap = await prov.snapshot();
+    const remote = snap.remote;
+
+    // Lokální stav
     const local = {}; // path -> {type, obj, sha, text}
     for (const type of Object.keys(TYPES)) {
       for (const obj of Store[type].values()) {
@@ -138,12 +208,8 @@ const Sync = {
       }
     }
 
-    const canPush = cfg.canPush !== false;
-    const uploads = [];   // {path, text}
-    const deletes = [];   // path
-    const downloads = []; // path
-    const conflicts = []; // path
-    const localDeletes = [];
+    const canPush = prov.canPush();
+    const uploads = [], deletes = [], downloads = [], conflicts = [], localDeletes = [];
 
     const allPaths = new Set([...Object.keys(remote), ...Object.keys(local), ...Object.keys(meta.tombstones)]);
     for (const p of allPaths) {
@@ -170,51 +236,65 @@ const Sync = {
       }
     }
 
-    // 3) Stažení (souběžně)
+    // Stažení (souběžně)
     const fetched = {};
-    const need = [...downloads, ...conflicts];
+    const need = [...downloads, ...conflicts, ...snap.extras];
     let i = 0;
     const worker = async () => {
       while (i < need.length) {
         const p = need[i++];
-        const blob = await GH.req('GET', GH.repoPath(`/git/blobs/${remote[p]}`));
-        fetched[p] = b64ToText(blob.content);
+        try { fetched[p] = await prov.read(p, remote[p], snap.ctx); } catch (e) { if (prov === GitHubProvider) throw e; }
       }
     };
     await Promise.all(Array.from({ length: Math.min(6, need.length) }, worker));
+    const parse = p => { try { const o = JSON.parse(fetched[p]); return o && o.id ? o : null; } catch (e) { return null; } };
 
     const typeOf = p => p.split('/')[1];
     let changedLocal = 0;
     for (const p of downloads) {
-      let obj;
-      try { obj = JSON.parse(fetched[p]); } catch (e) { console.warn('Vadný soubor', p); continue; }
+      const obj = parse(p);
+      if (!obj) { console.warn('Vadný nebo nedokončený soubor', p); continue; } // zkusí se příště
       await Store.put(typeOf(p), obj, { silent: true, noStamp: true, fromSync: true });
       meta.remote[p] = remote[p];
       meta.local[p] = gitBlobSha(Store.serialize(obj));
       delete meta.tombstones[p];
       changedLocal++;
     }
+    const saveCopy = async (type, obj) => {
+      if (type === 'config') return;
+      const copy = clone(obj);
+      copy.id = uid();
+      const who = ` (konflikt – ${obj.updatedBy || '?'})`;
+      if ('title' in copy) copy.title = (copy.title || '') + who;
+      else if ('name' in copy) copy.name = (copy.name || '') + who;
+      await Store.put(type, copy, { silent: true, noStamp: true, fromSync: true });
+      if (canPush) uploads.push(Store.path(type, copy.id));
+    };
     for (const p of conflicts) {
-      let robj;
-      try { robj = JSON.parse(fetched[p]); } catch (e) { continue; }
+      const robj = parse(p);
+      if (!robj) continue;
       const type = typeOf(p);
       const lobj = local[p].obj;
       const localNewer = (lobj.updatedAt || '') > (robj.updatedAt || '');
       const winner = localNewer ? lobj : robj;
       const loser = localNewer ? robj : lobj;
       await Store.put(type, winner, { silent: true, noStamp: true, fromSync: true });
-      if (type !== 'config') {
-        const copy = clone(loser);
-        copy.id = uid();
-        if ('title' in copy) copy.title = (copy.title || '') + ` (konflikt – ${loser.updatedBy || '?'})`;
-        if ('name' in copy) copy.name = (copy.name || '') + ` (konflikt – ${loser.updatedBy || '?'})`;
-        await Store.put(type, copy, { silent: true, noStamp: true, fromSync: true });
-        if (canPush) uploads.push(Store.path(type, copy.id));
-      }
+      await saveCopy(type, loser);
       meta.remote[p] = remote[p];
       meta.local[p] = gitBlobSha(Store.serialize(robj));
       if (localNewer && canPush) uploads.push(p);
       changedLocal++;
+    }
+    // Konfliktní kopie, které vytvořila synchronizační aplikace úložiště (např. „píseň (1).json“)
+    const extraDeletes = [];
+    for (const p of snap.extras) {
+      const obj = parse(p);
+      const type = typeOf(p);
+      if (obj && TYPES[type]) {
+        const same = Store[type].get(obj.id);
+        if (!same || Store.serialize(same) !== Store.serialize(obj)) { await saveCopy(type, obj); changedLocal++; }
+      }
+      if (obj && canPush) extraDeletes.push(p);
     }
     for (const p of localDeletes) {
       const L = local[p];
@@ -222,42 +302,28 @@ const Sync = {
       changedLocal++;
     }
 
-    // 4) Odeslání jedním commitem
+    // Odeslání
     let pushed = 0;
-    if (canPush && (uploads.length || deletes.length)) {
-      const entries = [];
-      const newSha = {};
-      for (const p of uploads) {
-        const type = typeOf(p);
-        const id = p.split('/').pop().replace(/\.json$/, '');
-        const obj = Store[type].get(id);
-        if (!obj) continue;
-        const text = Store.serialize(obj);
-        entries.push({ path: p, mode: '100644', type: 'blob', content: text });
-        newSha[p] = gitBlobSha(text);
-      }
-      for (const p of deletes) entries.push({ path: p, mode: '100644', type: 'blob', sha: null });
-      if (entries.length) {
-        const newTree = await GH.req('POST', GH.repoPath('/git/trees'), { base_tree: treeSha, tree: entries });
-        const who = currentUserName();
-        const newCommit = await GH.req('POST', GH.repoPath('/git/commits'), {
-          message: `Změny z aplikace Prompter (${who}): ${uploads.length} upraveno, ${deletes.length} smazáno`,
-          tree: newTree.sha, parents: [headSha],
-        });
-        try {
-          await GH.req('PATCH', GH.repoPath(`/git/refs/heads/${encodeURIComponent(branch)}`), { sha: newCommit.sha, force: false });
-        } catch (e) {
-          if (e.status === 422 || e.status === 409) { const er = new Error('race'); er.retry = true; throw er; }
-          throw e;
-        }
-        for (const p of Object.keys(newSha)) { meta.remote[p] = newSha[p]; meta.local[p] = newSha[p]; }
-        for (const p of deletes) { delete meta.remote[p]; delete meta.local[p]; delete meta.tombstones[p]; }
-        pushed = entries.length;
-      }
+    const upl = [];
+    const newSha = {};
+    for (const p of new Set(uploads)) {
+      const type = typeOf(p);
+      const id = p.split('/').pop().replace(/\.json$/, '');
+      const obj = Store[type].get(id);
+      if (!obj) continue;
+      const text = Store.serialize(obj);
+      upl.push({ path: p, text });
+      newSha[p] = gitBlobSha(text);
+    }
+    if (canPush && (upl.length || deletes.length || extraDeletes.length)) {
+      await prov.commit(upl, [...deletes, ...extraDeletes], snap.ctx);
+      for (const p of Object.keys(newSha)) { meta.remote[p] = newSha[p]; meta.local[p] = newSha[p]; }
+      for (const p of deletes) { delete meta.remote[p]; delete meta.local[p]; delete meta.tombstones[p]; }
+      pushed = upl.length + deletes.length;
     }
     await Store.saveMeta();
     if (changedLocal) Store.emit('sync', null);
-    return { downloaded: downloads.length, conflicts: conflicts.length, pushed, removed: localDeletes.length };
+    return { downloaded: downloads.length, conflicts: conflicts.length + snap.extras.length, pushed, removed: localDeletes.length };
   },
 };
 

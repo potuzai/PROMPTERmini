@@ -278,7 +278,7 @@ const SettingsView = {
       h('fieldset', {}, h('legend', {}, '👤 Uživatel a zabezpečení'),
         h('div', { class: 'row', style: { maxWidth: '640px' } }, h('label', { class: 'f' }, h('span', {}, 'Moje jméno (u změn)'), nameIn), h('div', { class: 'nogrow' }, pinBtn)),
         h('p', { class: 'help' }, 'PIN chrání úpravy na tomto počítači (např. na čtečce, aby nikdo omylem nic nezměnil). Čtečka funguje i bez PINu. Kdo smí vidět a upravovat sdílené písně, určuješ přes GitHub níže.')),
-      this.ghBlock(),
+      this.shareBlock(),
       h('fieldset', {}, h('legend', {}, '💾 Záloha a import'),
         h('div', { class: 'row' },
           h('button', { class: 'btn nogrow', onclick: () => exportBackup() }, '⇩ Stáhnout zálohu (vše)'),
@@ -289,6 +289,84 @@ const SettingsView = {
       h('p', { class: 'help' }, 'Verze ' + APP_VERSION + (window.native ? ' · program pro Windows' : ' · webová verze')));
   },
 
+  shareBlock() {
+    const cur = Sync.mode();
+    const body = h('div');
+    const setMode = async m => {
+      if (m === Settings.get('syncMode') && Sync.mode() !== 'off') return paint(m);
+      Settings.set('syncMode', m);
+      await Sync.resetMeta();
+      Sync.lastError = ''; Sync.state = 'off';
+      if (window.native) window.native.watchFolder(m === 'folder' ? Settings.get('sharedFolder') : '');
+      Sync.refreshState();
+      paint(m);
+    };
+    const opt = (m, label, sub, disabled) => h('label', { class: 'chk', style: { alignItems: 'flex-start', opacity: disabled ? 0.5 : 1 } },
+      h('input', { type: 'radio', name: 'syncmode', checked: (Settings.get('syncMode') || (cur === 'github' ? 'github' : 'none')) === m, disabled, onchange: () => setMode(m) }),
+      h('span', {}, h('b', {}, label), h('br'), h('span', { class: 'help' }, sub)));
+    const detail = h('div', { style: { marginTop: '12px' } });
+    const paint = m => {
+      detail.innerHTML = '';
+      if (m === 'folder') detail.appendChild(this.folderBlock());
+      else if (m === 'github') detail.appendChild(this.ghBlock());
+      else detail.appendChild(h('p', { class: 'help' }, 'Písně jsou jen v tomto počítači. Přenést je jde i ručně: Záloha → Stáhnout zálohu → na druhém PC Obnovit ze zálohy.'));
+    };
+    body.append(
+      opt('none', 'Nesdílet', 'vše jen v tomto počítači'),
+      opt('folder', 'Sdílená složka – Mega, Proton Drive, OneDrive, Dropbox…', window.native
+        ? 'nejjednodušší: složku ve svém cloudu nasdílíš členům kapely, jejich aplikace pro synchronizaci se postará o zbytek'
+        : 'dostupné jen v programu Prompter.exe (prohlížeč nemá přístup ke složkám na disku)', !window.native),
+      opt('github', 'GitHub (zdarma)', 'funguje i ve webovém editoru v prohlížeči, souběžné úpravy řeší nejlépe, ale každý člen potřebuje účet a token'),
+      detail);
+    paint(Settings.get('syncMode') || (cur === 'github' ? 'github' : 'none'));
+    return h('fieldset', {}, h('legend', {}, '☁ Sdílení s kapelou'), body);
+  },
+
+  folderBlock() {
+    const status = h('div', { class: 'help', style: { marginTop: '8px' } });
+    const paintStatus = () => {
+      const d = Settings.get('sharedFolder');
+      status.innerHTML = d
+        ? `Sdílená složka: <b>${esc(d)}</b>` + (Sync.lastSync ? ` · poslední synchronizace ${Sync.lastSync.toLocaleTimeString('cs-CZ')}` : '') + (Sync.lastError ? ` · <span style="color:var(--err)">${esc(Sync.lastError)}</span>` : '')
+        : 'Složka zatím není vybraná.';
+    };
+    paintStatus();
+    const inp = h('input', { class: 'inp', value: Settings.get('sharedFolder') || '', placeholder: 'např. C:\\Users\\Petr\\MEGA\\Kapela-pisne', readonly: true });
+    const choose = async dir => {
+      if (!dir) return;
+      Settings.set('sharedFolder', dir);
+      inp.value = dir;
+      await Sync.resetMeta();
+      window.native.watchFolder(dir);
+      try {
+        const r = await Sync.run();
+        toast(`Složka připojena · načteno ${r.downloaded}, zapsáno ${r.pushed}${r.conflicts ? ', konflikty ' + r.conflicts : ''}`, 'ok', 5000);
+      } catch (e) { toast(e.message, 'err', 7000); }
+      paintStatus();
+    };
+    const sugg = window.native.suggestFolders();
+    return h('div', {},
+      h('div', { class: 'row' }, inp,
+        h('button', { class: 'btn primary nogrow', onclick: async () => choose(await window.native.pickFolder()) }, '📁 Vybrat složku…'),
+        h('button', { class: 'btn nogrow', onclick: () => Sync.run().then(r => toast(`Načteno ${r.downloaded || 0}, zapsáno ${r.pushed || 0}`, 'ok')).catch(e => toast(e.message, 'err')).finally(paintStatus) }, '⟳ Synchronizovat teď')),
+      sugg.length ? h('p', { class: 'help' }, 'Nalezené cloudové složky v tomto PC: ', sugg.map(p => h('code', { style: { marginRight: '6px' } }, p))) : null,
+      status,
+      h('details', { style: { marginTop: '10px' } }, h('summary', { style: { cursor: 'pointer' } }, h('b', {}, 'Návod – Mega (zdarma)')),
+        h('ol', { class: 'help', style: { lineHeight: 1.7 }, html: `
+          <li><b>Ty (jednou):</b> nainstaluj <b>MEGA Desktop App</b> (mega.io/desktop) a přihlas se. Ve složce MEGA na disku vytvoř složku např. <code>Kapela-pisne</code>.</li>
+          <li>Na webu mega.io klikni na tu složku pravým tlačítkem → <b>Sdílet</b> → zadej e-maily členů a dej jim právo <b>Číst a zapisovat</b> (Read and write).
+            <i>Pozor: nepoužívej „Sdílet odkaz“ – ten je jen pro čtení a může ho otevřít kdokoli.</i></li>
+          <li><b>Každý člen:</b> založí si účet Mega (zdarma), přijme pozvánku a v MEGA Desktop App si nastaví <b>synchronizaci</b> sdílené složky (Incoming shares) do svého PC.</li>
+          <li>V Prompteru: <b>Vybrat složku…</b> → zvol tu synchronizovanou složku. Hotovo.</li>
+          <li><b>Čtečka:</b> stejně tak – MEGA Desktop App + synchronizace složky. Když není internet, čtečka jede z vlastních dat a změny dožene, až se připojí.</li>` })),
+      h('details', { style: { marginTop: '6px' } }, h('summary', { style: { cursor: 'pointer' } }, h('b', {}, 'Návod – Proton Drive')),
+        h('ol', { class: 'help', style: { lineHeight: 1.7 }, html: `
+          <li>Nainstaluj <b>Proton Drive pro Windows</b>, ve složce Proton Drive vytvoř složku <code>Kapela-pisne</code> a vyber ji tady v Prompteru.</li>
+          <li>Na webu drive.proton.me složku sdílej členům (pozvánka e-mailem, oprávnění <b>Editor</b>). Členové potřebují účet Proton (stačí zdarma).</li>
+          <li>Každý člen musí mít sdílenou složku <b>synchronizovanou na disk</b> v aplikaci Proton Drive. Ověř si, že to jeho verze aplikace umí – pokud sdílené složky v jeho Windows aplikaci nevidí, použijte Mega nebo GitHub.</li>` })),
+      h('p', { class: 'help' }, 'Bezpečnost: písně uvidí jen ti, se kterými složku nasdílíš. Data ve čtečce zůstávají i v její vlastní složce „data“ – když cloud vypadne, čtečka hraje dál.'));
+  },
+
   ghBlock() {
     const g = clone(Settings.get('gh'));
     const inp = (k, ph, type = 'text') => { const i = h('input', { class: 'inp', type, value: g[k] || '', placeholder: ph }); i.oninput = () => { g[k] = i.value.trim(); }; return i; };
@@ -297,13 +375,14 @@ const SettingsView = {
       const c = Settings.get('gh');
       status.innerHTML = GH.configured()
         ? `Připojeno jako <b>${esc(c.login || '?')}</b> k <b>${esc(c.owner)}/${esc(c.repo)}</b> · ${c.canPush ? 'čtení i zápis' : '<b>jen čtení</b>'}` + (Sync.lastSync ? ` · poslední synchronizace ${Sync.lastSync.toLocaleTimeString('cs-CZ')}` : '') + (Sync.lastError ? ` · <span style="color:var(--err)">${esc(Sync.lastError)}</span>` : '')
-        : 'Sdílení není nastavené – data jsou jen v tomto počítači.';
+        : 'GitHub zatím není připojený.';
     };
     paintStatus();
     const connect = async () => {
       if (!g.owner || !g.repo || !g.token) return toast('Vyplň vlastníka, repozitář i token.', 'warn');
       const old = Settings.get('gh');
       Settings.set('gh', Object.assign({}, old, g));
+      Settings.set('syncMode', 'github');
       try {
         const r = await GH.test();
         Settings.set('gh', Object.assign({}, Settings.get('gh'), { login: r.login, canPush: r.canPush, branch: g.branch || r.defaultBranch || 'main' }));
@@ -316,7 +395,7 @@ const SettingsView = {
       }
       paintStatus();
     };
-    return h('fieldset', {}, h('legend', {}, '☁ Sdílení s kapelou (GitHub)'),
+    return h('div', {},
       h('p', { class: 'help' }, 'Písně, playlisty a šablony se ukládají do tvého soukromého repozitáře na GitHubu. Přístup má jen ten, koho do repozitáře pozveš. Bez internetu vše funguje dál, změny se odešlou při příštím připojení.'),
       h('div', { class: 'grid3' },
         h('label', { class: 'f' }, h('span', {}, 'Vlastník (uživatel/organizace)'), inp('owner', 'např. potuzai')),

@@ -14,4 +14,12 @@ contextBridge.exposeInMainWorld('native', {
   setFullscreen: on => ipcRenderer.invoke('setFullscreen', on),
   isFullscreen: () => ipcRenderer.sendSync('isFullscreen'),
   quit: () => ipcRenderer.invoke('quit'),
+  folderList: dir => ipcRenderer.invoke('folderList', dir),
+  folderRead: (dir, rel) => ipcRenderer.invoke('folderRead', dir, rel),
+  folderWrite: (dir, rel, text) => ipcRenderer.invoke('folderWrite', dir, rel, text),
+  folderDelete: (dir, rel) => ipcRenderer.invoke('folderDelete', dir, rel),
+  pickFolder: () => ipcRenderer.invoke('pickFolder'),
+  suggestFolders: () => ipcRenderer.sendSync('suggestFolders'),
+  watchFolder: dir => ipcRenderer.send('watchFolder', dir),
+  onFolderChange: fn => ipcRenderer.on('folderChanged', () => fn()),
 });

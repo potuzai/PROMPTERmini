@@ -1,6 +1,6 @@
 'use strict';
 /* ===== Lokální úložiště (IndexedDB) + výchozí data ===== */
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.1.0';
 const DB_NAME = 'prompter-pisne';
 const DB_VER = 1;
 const STORES = ['songs', 'playlists', 'templates', 'config', 'meta'];
@@ -54,6 +54,7 @@ const DEFAULT_SETTINGS = {
   userName: '',
   editorFontSize: 16,
   autoSync: true,
+  sharedFolder: '',              // sdílená složka (Mega, Proton Drive…)
   gh: { owner: '', repo: '', branch: 'main', token: '', login: '', canPush: null },
 };
 

@@ -1,9 +1,9 @@
 const { _electron } = require('playwright');
 const fs = require('fs');
 const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode = 1; } else console.log('ok: ' + m); };
-const launch = () => _electron.launch({ args: ['--no-sandbox', '/home/user/prompter'], executablePath: '/home/user/prompter/node_modules/electron/dist/electron' });
+const launch = () => _electron.launch({ args: ['--no-sandbox', require('path').join(__dirname, '..') + ''], executablePath: require('path').join(__dirname, '..', 'node_modules') + '/electron/dist/electron' });
 (async () => {
-  fs.rmSync('/home/user/prompter/local-data', { recursive: true, force: true });
+  fs.rmSync(require('path').join(__dirname, '..') + '/local-data', { recursive: true, force: true });
   const app = await launch();
   const w = await app.firstWindow();
   w.on('pageerror', e => console.log('PAGEERR', e.message));

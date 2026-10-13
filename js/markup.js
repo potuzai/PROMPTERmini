@@ -145,7 +145,7 @@ function cleanText(text, opts = {}) {
   if (o.trimSpaces) lines = lines.map(l => l.replace(/\s+/g, ' ').trim());
   if (o.removeChords) {
     lines = lines.filter(l => !(l && isChordLine(l)))
-      .map(l => l.replace(/\[[A-H][^\]\s]{0,8}\]/g, '').replace(/\s{2,}/g, ' ').trim());
+      .map(l => l.replace(/\[([^\]\s]{1,10})\]/g, (all, inner) => CHORD_RE.test(inner) ? '' : all).replace(/\s{2,}/g, ' ').trim());
   }
   if (o.detectSections) {
     const out = [];

@@ -39,10 +39,18 @@ const App = {
     }
     this.go();
     Sync.refreshState();
-    if (GH.configured()) {
+    if (Sync.enabled()) {
       Sync.run().then(r => { if (r && r.downloaded) toast(`Staženo ${r.downloaded} změn od ostatních`, 'ok'); }).catch(() => {});
-      setInterval(() => { if (Settings.get('autoSync') && !Reader.isOpen()) Sync.run().catch(() => {}); }, 5 * 60 * 1000);
     }
+    // Pravidelná kontrola změn od ostatních (složka každou minutu, GitHub každých 5 min)
+    let tick = 0;
+    setInterval(() => {
+      tick++;
+      if (!Sync.enabled() || !Settings.get('autoSync')) return;
+      if (Sync.mode() === 'folder' || tick % 5 === 0) Sync.run().catch(() => {});
+    }, 60 * 1000);
+    if (window.native && Sync.mode() === 'folder') window.native.watchFolder(Settings.get('sharedFolder'));
+    if (window.native) window.native.onFolderChange(() => { if (Sync.mode() === 'folder') Sync.schedule(); });
   },
 
   canEdit() { return !Settings.get('pinHash') || sessionStorage.getItem('unlocked') === '1'; },
@@ -76,7 +84,7 @@ const App = {
   },
 
   async syncClick() {
-    if (!GH.configured()) { location.hash = '#/settings'; return toast('Nastav sdílení přes GitHub v Nastavení.', 'info'); }
+    if (!Sync.enabled()) { location.hash = '#/settings'; return toast('Nastav sdílení s kapelou v Nastavení.', 'info'); }
     try { const r = await Sync.run(); toast(`Synchronizováno · staženo ${r.downloaded || 0}, odesláno ${r.pushed || 0}`, 'ok'); }
     catch (e) { toast(e.message, 'err', 6000); }
   },

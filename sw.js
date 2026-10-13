@@ -1,5 +1,5 @@
 // Service worker: aplikace funguje offline i z GitHub Pages
-const CACHE = 'prompter-v1.0.0';
+const CACHE = 'prompter-v1.1.0';
 const FILES = ['./', 'index.html', 'css/app.css', 'img/icon.svg', 'manifest.webmanifest',
   'js/util.js', 'js/db.js', 'js/markup.js', 'js/render.js', 'js/sync.js', 'js/reader.js', 'js/ui-songs.js', 'js/ui-playlists.js', 'js/ui-other.js', 'js/main.js'];
 self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())));

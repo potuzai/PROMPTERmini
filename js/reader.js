@@ -29,7 +29,7 @@ const Reader = {
     this.mirrorOverride = null;
     this.wakeCursor();
     this.ensureFullscreen();
-    if (!this._synced && Settings.get('readerSyncOnStart') && GH.configured()) {
+    if (!this._synced && Settings.get('readerSyncOnStart') && Sync.enabled()) {
       this._synced = true;
       Sync.run().then(r => { if (r && r.downloaded && this.isOpen()) this.flash(`Staženo ${r.downloaded} změn`); }).catch(() => {});
     }
@@ -260,7 +260,7 @@ const Reader = {
   },
 
   async syncNow() {
-    if (!GH.configured()) return this.flash('Sdílení není nastaveno');
+    if (!Sync.enabled()) return this.flash('Sdílení není nastaveno');
     this.flash('Synchronizuji…');
     try { const r = await Sync.run(); this.flash(r && r.downloaded ? `Staženo ${r.downloaded} změn` : 'Vše aktuální'); }
     catch (e) { this.flash('Chyba: ' + e.message); }
@@ -341,7 +341,7 @@ const Reader = {
       if (o.id === '__edit') { this.closeMenu(); return this.exit(); }
       this.open(o.id, 0);
     },
-      '↑ ↓ výběr · Enter / levé tlačítko otevřít · Esc zpět' + (GH.configured() ? ' · S synchronizovat' : ''));
+      '↑ ↓ výběr · Enter / levé tlačítko otevřít · Esc zpět' + (Sync.enabled() ? ' · S synchronizovat' : ''));
   },
 
   showJumpMenu() {
