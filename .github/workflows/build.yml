@@ -22,6 +22,10 @@ jobs:
       - run: npm ci
       - run: npm run build:win
       - run: npm run build:win32
+      - shell: bash
+        run: |
+          cp README.md dist/Prompter-win32-x64/NAVOD.md
+          cp README.md dist/Prompter-win32-ia32/NAVOD.md
       - run: |
           Compress-Archive -Path dist/Prompter-win32-x64 -DestinationPath Prompter-Windows-64bit.zip
           Compress-Archive -Path dist/Prompter-win32-ia32 -DestinationPath Prompter-Windows-32bit.zip
@@ -29,10 +33,20 @@ jobs:
         with:
           name: Prompter-Windows
           path: Prompter-Windows-*.zip
-      - name: Vydání (jen pro tag v*)
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Verze z package.json
+        id: ver
+        shell: bash
+        run: echo "v=v$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Vydání ke stažení (Releases)
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.ver.outputs.v }}
+          name: Prompter ${{ steps.ver.outputs.v }}
+          target_commitish: ${{ github.sha }}
+          make_latest: true
+          body: |
+            **Prompter-Windows-64bit.zip**: běžná Windows 10/11 (64bit). **Prompter-Windows-32bit.zip**: starší 32bitová Windows.
+            Rozbal a spusť `Prompter.exe`. Návod je v souboru NAVOD.md uvnitř složky.
           files: Prompter-Windows-*.zip
 
   pages:
