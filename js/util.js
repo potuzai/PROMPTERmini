@@ -34,6 +34,8 @@ function uid() {
   return t + r;
 }
 
+function isMobile() { return window.matchMedia('(max-width: 820px)').matches; }
+
 function debounce(fn, ms) {
   let t;
   return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };

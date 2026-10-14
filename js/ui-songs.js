@@ -7,7 +7,7 @@ const SongsView = {
   render(main, songId) {
     const side = h('div', { class: 'side' });
     const content = h('div', { class: 'content', style: { padding: 0 } });
-    main.append(h('div', { class: 'view' }, side, content));
+    main.append(h('div', { class: 'view' + (songId ? ' has-detail' : '') }, side, content));
 
     const searchInp = h('input', { class: 'inp', type: 'search', placeholder: 'Hledat název, interpreta, text, štítek…', value: this.search });
     const list = h('div', { class: 'list' });
@@ -115,6 +115,9 @@ class SongEditor {
     // Rozložení: vlevo údaje, nástroje a text; vpravo náhled čtečky přes celou výšku
     const ed = h('div', { class: 'song-editor' },
       h('div', { class: 'ed-left' },
+        h('div', { class: 'm-bar' },
+          h('button', { class: 'btn m-back', onclick: () => { location.hash = '#/songs'; } }, '◀ Písně'),
+          h('button', { class: 'btn m-meta', onclick: e => { e.currentTarget.closest('.ed-left').classList.toggle('show-meta'); } }, 'Údaje o písni ▾')),
         h('div', { class: 'meta-row' }, f('Název', this.inTitle), f('Interpret', this.inArtist), f('Tónina', this.inKey), f('Tempo', this.inTempo), f('Štítky (čárkou)', this.inTags), f('Šablona písně', this.inTpl)),
         tb,
         h('div', { class: 'pane' },

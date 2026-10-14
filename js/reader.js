@@ -13,6 +13,7 @@ const Reader = {
     document.body.appendChild(this.el);
     this.el.addEventListener('contextmenu', e => e.preventDefault());
     this.el.addEventListener('mousedown', e => this.onMouse(e));
+    this.el.addEventListener('touchstart', e => this.onTouch(e), { passive: false });
     this.el.addEventListener('wheel', e => this.onWheel(e), { passive: false });
     this.el.addEventListener('mousemove', () => this.wakeCursor());
     document.addEventListener('keydown', e => this.onKey(e));
@@ -208,6 +209,17 @@ const Reader = {
     else if (b === 3) this.prev();
     else if (b === 4) this.next();
   },
+  /* Dotyk (mobil, tablet): pravá část = další, levá = zpět, horní pruh = seznam písní */
+  onTouch(e) {
+    if (!this.isOpen() || this.menu || !e.touches.length) return;
+    e.preventDefault(); // bez dodatečného „kliknutí myší“
+    this.wakeCursor();
+    if (this.consumeFsPending()) return;
+    const t = e.touches[0];
+    if (t.clientY < innerHeight * 0.12) return this.showJumpMenu();
+    if (t.clientX > innerWidth * 0.4) this.next(); else this.prev();
+  },
+
   wheelAcc: 0, wheelT: 0,
   onWheel(e) {
     if (!this.isOpen() || this.menu) return;
@@ -350,8 +362,10 @@ const Reader = {
       return { idx: i, n: i + 1, label: s ? s.title : '?', sub: s ? [s.artist, s.key].filter(Boolean).join(' · ') : '' };
     });
     opts.push({ idx: -1, n: '', label: '↩ Jiný playlist…' });
+    opts.push({ idx: -2, n: '', label: '✕ Zavřít čtečku' });
     this.showMenu(this.playlistName() || 'Písně', opts, this.songIdx, o => {
       if (o.idx === -1) return this.showStartMenu();
+      if (o.idx === -2) { this.closeMenu(); return this.exit(); }
       this.closeMenu(); this.songIdx = o.idx; this.pageIdx = 0; this.render();
     }, '↑ ↓ výběr · číslo = skok · Enter otevřít · Esc zavřít');
   },

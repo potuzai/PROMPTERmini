@@ -246,12 +246,19 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   assert(await p.evaluate(() => Store.songs.size) === countBefore && await p.evaluate(() => Settings.get('screenH')) === 1200, 'data a nastavení přežijí obnovení stránky');
   assert(await p.evaluate(() => Settings.get('screenW')) === 1920, 'zvolená orientace na šířku se po obnovení nepřepne zpět');
 
-  // tisk playlistu
-  await p.evaluate(() => { location.hash = '#/playlists/pl1'; }); await sleep(400);
-  const popup = p.waitForEvent('popup');
-  await p.click('button:has-text("Tisk seznamu")');
-  const pp = await popup; await pp.waitForLoadState();
-  assert((await pp.content()).includes('Holubí dům'), 'tisk seznamu playlistu');
+  // tisk playlistu (setlist + texty, barevně i černobíle)
+  await p.evaluate(() => { window.print = () => { window.__printed = (window.__printed || 0) + 1; }; location.hash = '#/playlists/pl1'; }); await sleep(400);
+  await p.click('.bottom-actions button:has-text("Tisk")'); await sleep(200);
+  assert(await p.isVisible('.modal-title:has-text("Tisk playlistu")'), 'dialog tisku playlistu');
+  await p.click('.modal button:has-text("Tisknout")'); await sleep(300);
+  assert(await p.evaluate(() => window.__printed === 1), 'tisk spuštěn');
+  const prInfo = await p.evaluate(() => ({ list: document.querySelectorAll('#print-root .pr-setlist tr').length, songs: document.querySelectorAll('#print-root .pr-song').length, text: document.querySelector('#print-root').textContent }));
+  assert(prInfo.list === 3 && prInfo.songs === 3 && prInfo.text.includes('Holubí dům'), 'tisk obsahuje setlist i texty všech písní');
+  await p.emulateMedia({ media: 'print' });
+  assert(await p.evaluate(() => getComputedStyle(document.querySelector('#topbar')).display === 'none' && getComputedStyle(document.querySelector('#print-root')).display === 'block'), 'při tisku je vidět jen tisková sestava');
+  await p.emulateMedia({ media: 'screen' });
+  await p.evaluate(() => { const o = Object.assign({}, Settings.get('printOpts'), { what: 'texts', color: false }); printDocument(buildPrintPlaylist(Store.playlists.get('pl1'), o)); });
+  assert(await p.evaluate(() => !document.querySelector('#print-root .pr-setlist') && !!document.querySelector('#print-root .pr-bw')), 'černobílý tisk jen textů');
 
   const real = errors.filter(e => !/Failed to load resource|favicon/.test(e));
   assert(real.length === 0, 'žádné chyby JavaScriptu' + (real.length ? ': ' + real.join(' | ') : ''));

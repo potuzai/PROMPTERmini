@@ -9,7 +9,7 @@ const bg = [
 setTimeout(() => {
   let failed = false;
   const xvfb = process.platform === 'linux' && !process.env.DISPLAY;
-  for (const t of ['test-ui.js', 'test-full.js', 'test-sync.js', 'test-folder.js', 'test-mega.js', 'test-electron.js']) {
+  for (const t of ['test-ui.js', 'test-full.js', 'test-mobile.js', 'test-sync.js', 'test-folder.js', 'test-mega.js', 'test-electron.js']) {
     console.log('\n=== ' + t);
     const args = [path.join(__dirname, t)];
     const r = xvfb && /folder|mega|electron/.test(t) ? spawnSync('xvfb-run', ['-a', process.execPath, ...args], { stdio: 'inherit' }) : spawnSync(process.execPath, args, { stdio: 'inherit' });

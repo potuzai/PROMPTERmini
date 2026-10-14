@@ -6,7 +6,9 @@ const PlaylistsView = {
   render(main, plId) {
     const side = h('div', { class: 'side' });
     const content = h('div', { class: 'content' });
-    main.append(h('div', { class: 'view' }, side, content));
+    main.append(h('div', { class: 'view' + (plId ? ' has-detail' : '') }, side, content));
+    // na mobilu: zpět na seznam
+    content.appendChild(h('button', { class: 'btn m-back', onclick: () => { location.hash = '#/playlists'; } }, '◀ Playlisty'));
     const list = h('div', { class: 'list' });
     side.append(h('div', { class: 'side-head' }, h('button', { class: 'btn primary', onclick: () => this.create() }, '＋ Nový playlist')), list);
     this.paintSide = () => {
@@ -120,7 +122,7 @@ const PlaylistsView = {
         f('Název playlistu', inName), h('div', { style: { flex: '0 0 160px' } }, f('Datum', inDate)), f('Šablona pro všechny písně', inTpl), f('Poznámka', inNote)),
       h('div', { class: 'bottom-actions', style: { marginBottom: '12px' } },
         h('button', { class: 'btn primary', onclick: () => { location.hash = '#/reader/' + pl.id; } }, '▶ Spustit ve čtečce'),
-        h('button', { class: 'btn', onclick: () => this.print(pl) }, '🖨 Tisk seznamu'),
+        h('button', { class: 'btn', onclick: () => this.print(pl) }, '🖨 Tisk'),
         h('button', { class: 'btn', onclick: () => this.duplicate(pl) }, '⧉ Duplikovat'),
         h('button', { class: 'btn', onclick: () => this.exportTxt(pl) }, '⇩ Export textů'),
         h('span', { class: 'grow' }),
@@ -142,17 +144,112 @@ const PlaylistsView = {
     await Store.remove('playlists', pl.id);
     location.hash = '#/playlists';
   },
-  print(pl) {
-    const w = window.open('', '_blank');
-    if (!w) return toast('Prohlížeč zablokoval nové okno.', 'err');
-    const rows = pl.items.map((id, i) => { const s = Store.songs.get(id); return s ? `<tr><td>${i + 1}.</td><td><b>${esc(s.title)}</b></td><td>${esc(s.artist || '')}</td><td>${esc(s.key || '')}</td><td>${esc(s.tempo || '')}</td></tr>` : ''; }).join('');
-    w.document.write(`<!doctype html><meta charset="utf-8"><title>${esc(pl.name)}</title><style>body{font-family:Arial;padding:30px}h1{margin:0}td{padding:8px 14px;border-bottom:1px solid #ccc;font-size:20px}</style>
-      <h1>${esc(pl.name)}</h1><p>${pl.date ? new Date(pl.date).toLocaleDateString('cs-CZ') : ''} ${esc(pl.note || '')}</p>
-      <table><tr><th></th><th align=left>Píseň</th><th align=left>Interpret</th><th>Tónina</th><th>BPM</th></tr>${rows}</table><script>print()<\/script>`);
-    w.document.close();
+  async print(pl) {
+    const o = Object.assign({ what: 'both', bigList: false, color: true, pageBreak: true, size: 'm', cols: 1, notes: true, sections: true }, Settings.get('printOpts') || {});
+    const radio = (name, val, label, help) => h('label', { class: 'chk' }, h('input', { type: 'radio', name, checked: o[name] === val, onchange: () => { o[name] = val; } }), h('span', {}, label, help ? h('span', { class: 'help' }, ' – ' + help) : null));
+    const chk = (k, label) => h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: !!o[k], onchange: e => { o[k] = e.target.checked; } }), label);
+    const body = h('div', { class: 'print-dlg' },
+      h('div', { class: 'grid2' },
+        h('div', {},
+          h('h3', {}, 'Co vytisknout'),
+          radio('what', 'list', 'Setlist', 'jen pořadí písní'),
+          radio('what', 'texts', 'Texty písní', 'celé texty jako zpěvník'),
+          radio('what', 'both', 'Setlist + texty'),
+          h('h3', {}, 'Setlist'),
+          chk('bigList', 'Velké písmo (na zem k pódiu)')),
+        h('div', {},
+          h('h3', {}, 'Texty'),
+          chk('color', 'Barevně (zpěváci barvou, jinak jmenovkou)'),
+          chk('pageBreak', 'Každá píseň na novou stránku'),
+          chk('sections', 'Nadpisy slok a refrénů'),
+          chk('notes', 'Poznámky (//)'),
+          h('div', { class: 'row', style: { marginTop: '8px' } },
+            h('label', { class: 'f' }, h('span', {}, 'Velikost písma'), (() => { const s = h('select', { class: 'inp' }, [['s', 'malé'], ['m', 'střední'], ['l', 'velké']].map(([v, l]) => h('option', { value: v, selected: o.size === v }, l))); s.onchange = () => { o.size = s.value; }; return s; })()),
+            h('label', { class: 'f' }, h('span', {}, 'Sloupce'), (() => { const s = h('select', { class: 'inp' }, [[1, '1'], [2, '2']].map(([v, l]) => h('option', { value: v, selected: +o.cols === v }, l))); s.onchange = () => { o.cols = +s.value; }; return s; })())))));
+    const go = await modal({ title: '🖨 Tisk playlistu „' + (pl.name || '') + '“', body, wide: true, buttons: [{ label: 'Zrušit', value: false }, { label: '🖨 Tisknout', value: true, primary: true }] });
+    if (!go) return;
+    Settings.set('printOpts', o);
+    printDocument(buildPrintPlaylist(pl, o));
   },
   exportTxt(pl) {
     const txt = pl.items.map((id, i) => { const s = Store.songs.get(id); return s ? `=== ${i + 1}. ${s.title}${s.artist ? ' – ' + s.artist : ''} ===\n\n${s.text}\n` : ''; }).join('\n\n');
     downloadFile(safeFileName(pl.name) + '.txt', txt, 'text/plain');
   },
 };
+
+/* ===== Tisk ===== */
+function printDocument(node) {
+  let root = $('#print-root');
+  if (!root) { root = h('div', { id: 'print-root' }); document.body.appendChild(root); }
+  root.innerHTML = '';
+  root.appendChild(node);
+  document.body.classList.add('printing');
+  const done = () => { document.body.classList.remove('printing'); root.innerHTML = ''; window.removeEventListener('afterprint', done); };
+  window.addEventListener('afterprint', done);
+  setTimeout(() => {
+    try { window.print(); } catch (e) { toast('Tisk se nepodařilo spustit.', 'err'); }
+    // některé prohlížeče „afterprint“ nevyvolají
+    setTimeout(() => { if (document.body.classList.contains('printing')) done(); }, 60000);
+  }, 50);
+}
+
+function buildPrintPlaylist(pl, o) {
+  const songs = pl.items.map(id => Store.songs.get(id)).filter(Boolean);
+  const map = Store.singerMap();
+  const dateTxt = pl.date ? new Date(pl.date).toLocaleDateString('cs-CZ') : '';
+  const doc = h('div', { class: 'pr ' + 'pr-size-' + o.size + (o.color ? ' pr-color' : ' pr-bw') + (+o.cols === 2 ? ' pr-cols2' : '') });
+
+  if (o.what !== 'texts') {
+    const list = h('section', { class: 'pr-setlist' + (o.bigList ? ' big' : '') },
+      h('header', {}, h('h1', {}, pl.name || 'Playlist'), h('div', { class: 'pr-meta' }, [dateTxt, pl.note].filter(Boolean).join(' · '))),
+      h('table', {}, h('tbody', {}, songs.map((s, i) => h('tr', {},
+        h('td', { class: 'n' }, i + 1 + '.'),
+        h('td', { class: 't' }, h('b', {}, s.title), !o.bigList && s.artist ? h('span', { class: 'a' }, ' – ' + s.artist) : null),
+        h('td', { class: 'k' }, s.key || ''),
+        h('td', { class: 'bpm' }, s.tempo ? s.tempo + ' BPM' : ''))))));
+    doc.appendChild(list);
+  }
+
+  if (o.what !== 'list') {
+    const used = new Set();
+    const songEls = songs.map((s, i) => {
+      const { blocks } = parseSong(s.text);
+      const body = h('div', { class: 'pr-body' });
+      for (const b of blocks) {
+        if (b.type === 'gap') { body.appendChild(h('div', { class: 'pr-gap' })); continue; }
+        if (b.type === 'break') continue;
+        if (b.type === 'section') {
+          if (!o.sections) continue;
+          const sg = b.singers.map(c => map[c]).filter(Boolean);
+          body.appendChild(h('div', { class: 'pr-sec' }, b.text, sg.length ? h('span', { class: 'pr-sec-sg' }, ' · ' + sg.map(x => x.name).join(' + ')) : null));
+          continue;
+        }
+        if (b.type === 'note') { if (o.notes) body.appendChild(h('div', { class: 'pr-note', html: inlineHtml(b.text, map) })); continue; }
+        const sgs = b.singers.map(c => map[c]).filter(Boolean);
+        sgs.forEach(x => used.add(x.code));
+        const line = h('div', { class: 'pr-line' + (sgs.length ? ' has-sg' : '') });
+        if (sgs.length) {
+          line.style.setProperty('--bar', stripes(sgs.map(x => x.color)));
+          line.appendChild(h('span', { class: 'pr-who' }, sgs.map(x => x.name).join('+')));
+        }
+        const txt = h('span', { class: 'pr-txt', html: inlineHtml(b.text, map) || '&nbsp;' });
+        for (const sp of txt.querySelectorAll('.sg-in')) sp.style.textDecorationColor = sp.style.color;
+        if (sgs.some(x => x.bold)) txt.style.fontWeight = 700;
+        line.appendChild(txt);
+        body.appendChild(line);
+      }
+      return h('article', { class: 'pr-song' + (o.pageBreak ? ' pb' : '') },
+        h('header', {},
+          h('div', { class: 'pr-num' }, String(i + 1)),
+          h('div', { class: 'pr-title' }, h('h2', {}, s.title), s.artist ? h('div', { class: 'pr-artist' }, s.artist) : null),
+          h('div', { class: 'pr-keys' }, [s.key ? 'tónina ' + s.key : '', s.tempo ? s.tempo + ' BPM' : ''].filter(Boolean).join(' · '))),
+        body);
+    });
+    const legend = h('div', { class: 'pr-legend' }, 'Zpěváci: ', [...used].map(c => map[c]).filter(Boolean).map(x =>
+      h('span', { class: 'pr-leg', style: { '--bar': x.color } }, h('span', { class: 'pr-who' }, x.name))));
+    const head = h('header', { class: 'pr-texts-head' + (o.what === 'both' ? ' pb-before' : '') }, h('h1', {}, (pl.name || 'Playlist') + ' – texty'), h('div', { class: 'pr-meta' }, dateTxt), used.size ? legend : null);
+    doc.append(head, ...songEls);
+  }
+  doc.appendChild(h('footer', { class: 'pr-foot' }, `Prompter · ${pl.name || ''} · vytištěno ${new Date().toLocaleDateString('cs-CZ')}`));
+  return doc;
+}

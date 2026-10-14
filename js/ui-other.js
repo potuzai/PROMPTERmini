@@ -44,7 +44,8 @@ const TemplatesView = {
   render(main, tplId) {
     const side = h('div', { class: 'side' });
     const content = h('div', { class: 'content' });
-    main.append(h('div', { class: 'view' }, side, content));
+    main.append(h('div', { class: 'view' + (tplId ? ' has-detail' : '') }, side, content));
+    content.appendChild(h('button', { class: 'btn m-back', onclick: () => { location.hash = '#/templates/'; } }, '◀ Šablony'));
     const list = h('div', { class: 'list' });
     side.append(h('div', { class: 'side-head' },
       h('button', { class: 'btn primary', onclick: () => this.create(tplId) }, '＋ Nová šablona'),
@@ -60,7 +61,8 @@ const TemplatesView = {
     };
     this.paintSide();
     const tpl = Store.templates.get(tplId || def) || [...Store.templates.values()][0];
-    if (!tplId && tpl) { history.replaceState(null, '', '#/templates/' + tpl.id); tplId = tpl.id; this.paintSide(); }
+    if (!tplId && tpl && !isMobile()) { history.replaceState(null, '', '#/templates/' + tpl.id); tplId = tpl.id; this.paintSide(); }
+    if (!tplId && isMobile()) return;
     if (tpl) this.editor(content, tpl);
   },
 
