@@ -94,7 +94,11 @@ code { background: #2a2f3a; padding: 1px 5px; border-radius: 4px; font-family: C
 .ta-back > div { border-left: 5px solid transparent; margin-left: -12px; padding-left: 7px; min-height: 1.55em; }
 .ta-back > div.sec { background: rgba(255,255,255,.06); }
 .ta { width: 100%; height: 100%; background: transparent; border: 0; outline: none; resize: none; overflow-y: scroll; color: #e8eaef; caret-color: #fff; }
-.preview-wrap { position: relative; flex: 1; min-height: 0; background: #08090b; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.preview-wrap { position: relative; flex: 1; min-height: 0; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden;
+  /* šrafované pozadí, aby byl vidět skutečný tvar monitoru čtečky */
+  background: repeating-linear-gradient(135deg, #24272e 0 10px, #1e2026 10px 20px); }
+.preview-wrap .stage, .tpl-preview .stage { box-shadow: 0 0 0 1px rgba(255,255,255,.35), 0 10px 40px rgba(0,0,0,.6); }
+.preview-dim { position: absolute; right: 8px; bottom: 6px; font-size: 11px; color: #c9ced8; background: rgba(0,0,0,.55); padding: 2px 7px; border-radius: 4px; pointer-events: none; font-variant-numeric: tabular-nums; }
 .preview-wrap .stage { cursor: pointer; }
 .preview-wrap .stage .b-line:hover, .preview-wrap .stage .b-sec:hover { outline: 2px dashed rgba(79,140,255,.7); outline-offset: 2px; }
 .bottom-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }

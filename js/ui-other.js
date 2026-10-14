@@ -119,6 +119,7 @@ const TemplatesView = {
       prevWrap.innerHTML = '';
       stage = Render.makeStage(t, W, H);
       prevWrap.appendChild(stage);
+      prevWrap.appendChild(dimLabel(W, H));
       Render.renderPage(stage, lay, t, this.page, { title: song.title, artist: song.artist, key: song.key, tempo: song.tempo, pos: '3/12', next: 'Další píseň v playlistu' });
       Render.fit(stage, prevWrap, W, H, t.mirror);
       pageLbl.textContent = `strana ${this.page + 1}/${lay.pages.length}` + (lay.k < 0.999 ? ` · písmo zmenšeno na ${Math.round(lay.k * 100)} %` : '');
@@ -226,7 +227,27 @@ const SettingsView = {
     const diag = h('input', { class: 'inp', type: 'number', value: G('diagonal') || 24, min: 10, max: 100, step: 0.5 });
     const dist = h('input', { class: 'inp', type: 'number', value: G('distance') || 2.5, min: 0.5, max: 15, step: 0.1 });
     const rec = h('div', { class: 'help' });
-    const applyRes = (w, hh) => { wIn.value = w; hIn.value = hh; saveRes(); };
+    const presets = [[1920, 1080, 'Full HD (většina 24" monitorů)'], [1920, 1200, '24" 16:10'], [1680, 1050, '22" 16:10'], [1600, 900, ''], [1366, 768, 'notebook'], [1280, 1024, 'starší 4:3/5:4'], [2560, 1440, '27" QHD']];
+    const applyRes = (w, hh) => { wIn.value = w; hIn.value = hh; saveRes(); paintOrient(); };
+    const isPortrait = () => +hIn.value >= +wIn.value;
+    // presety se zobrazují v aktuální orientaci
+    const presetBox = h('div', { class: 'row', style: { marginTop: '8px' } });
+    const orientBtns = {};
+    const paintOrient = () => {
+      const p = isPortrait();
+      orientBtns.p.classList.toggle('primary', p); orientBtns.l.classList.toggle('primary', !p);
+      presetBox.innerHTML = '';
+      for (const [a, b, label] of presets) {
+        const [w, hh] = p ? [b, a] : [a, b];
+        presetBox.appendChild(h('button', { class: 'btn small nogrow', title: label, onclick: () => applyRes(w, hh) }, `${w}×${hh}`));
+      }
+    };
+    const setOrient = portrait => { if (portrait !== isPortrait()) applyRes(+hIn.value, +wIn.value); };
+    orientBtns.p = h('button', { class: 'btn nogrow', onclick: () => setOrient(true) }, 'Na výšku');
+    orientBtns.l = h('button', { class: 'btn nogrow', onclick: () => setOrient(false) }, 'Na šířku');
+    const rotSel = h('select', { class: 'inp' }, [[0, 'neotáčet (Windows už obrazovku otáčí)'], [90, 'o 90° doprava'], [270, 'o 90° doleva'], [180, 'o 180°']]
+      .map(([v, l]) => h('option', { value: v, selected: (Settings.get('readerRotate') || 0) === v }, l)));
+    rotSel.onchange = () => Settings.set('readerRotate', +rotSel.value);
     const saveRes = () => {
       Settings.set('screenW', Math.max(320, +wIn.value | 0)); Settings.set('screenH', Math.max(240, +hIn.value | 0));
       Settings.set('diagonal', +diag.value); Settings.set('distance', +dist.value);
@@ -236,9 +257,9 @@ const SettingsView = {
       const px = Math.round(capCm * 1.4 * pxPerCm / 0.72);
       rec.innerHTML = `Monitor ${G('diagonal')}" při ${G('screenW')}×${G('screenH')} ≈ ${pxPerCm.toFixed(1)} px/cm. Pro pohodlné čtení ze vzdálenosti ${G('distance')} m doporučuji písmo alespoň <b>${px} px</b> (nastavíš v šabloně).`;
     };
-    [wIn, hIn, diag, dist].forEach(i => i.addEventListener('change', saveRes));
+    [wIn, hIn, diag, dist].forEach(i => i.addEventListener('change', () => { saveRes(); paintOrient(); }));
     saveRes();
-    const presets = [[1920, 1080], [1920, 1200], [1680, 1050], [1366, 768], [1280, 1024], [1600, 900], [2560, 1440]];
+    paintOrient();
 
     // --- PIN
     const pinBtn = h('button', { class: 'btn', onclick: async () => {
@@ -263,7 +284,11 @@ const SettingsView = {
           h('label', { class: 'f' }, h('span', {}, 'Šířka (px)'), wIn), h('label', { class: 'f' }, h('span', {}, 'Výška (px)'), hIn),
           h('label', { class: 'f' }, h('span', {}, 'Úhlopříčka (palce)'), diag), h('label', { class: 'f' }, h('span', {}, 'Vzdálenost čtení (m)'), dist),
           h('button', { class: 'btn nogrow', title: 'Převezme rozlišení obrazovky, na které je aplikace právě otevřená', onclick: () => applyRes(Math.round(screen.width * devicePixelRatio), Math.round(screen.height * devicePixelRatio)) }, '⌖ Z této obrazovky')),
-        h('div', { class: 'row', style: { marginTop: '8px' } }, presets.map(([w, hh]) => h('button', { class: 'btn small nogrow', onclick: () => applyRes(w, hh) }, `${w}×${hh}`))),
+        h('div', { class: 'row', style: { marginTop: '10px', alignItems: 'center' } }, h('span', { class: 'nogrow help' }, 'Orientace monitoru:'), orientBtns.p, orientBtns.l),
+        presetBox,
+        h('div', { class: 'row', style: { marginTop: '10px', maxWidth: '640px' } },
+          h('label', { class: 'f' }, h('span', {}, 'Otočit obraz čtečky (jen tento počítač)'), rotSel)),
+        h('p', { class: 'help' }, 'Když máš monitor fyzicky na výšku a ve Windows je nastavené otočení obrazovky (Nastavení → Systém → Obrazovka → Orientace: Na výšku), nech „neotáčet“. Když Windows obrazovku neotáčí, otočí obraz čtečka sama.'),
         h('p', {}, rec)),
       h('fieldset', {}, h('legend', {}, '▶ Čtečka'),
         chk('readerFullscreen', 'Čtečka přes celou obrazovku'),

@@ -230,8 +230,12 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   assert(await p.evaluate(() => Store.songs.size) === countBefore, 'obnova ze zálohy');
 
   /* ---------- Nastavení monitoru ---------- */
-  await p.click('text=1920×1200'); await sleep(200);
-  assert(await p.evaluate(() => Settings.get('screenH')) === 1200, 'předvolba rozlišení');
+  assert(await p.evaluate(() => Settings.get('screenW') < Settings.get('screenH')), 'výchozí monitor na výšku');
+  await p.click('button:has-text("1200×1920")'); await sleep(200);
+  assert(await p.evaluate(() => Settings.get('screenW') === 1200 && Settings.get('screenH') === 1920), 'předvolba rozlišení na výšku');
+  await p.click('button:has-text("Na šířku")'); await sleep(200);
+  assert(await p.evaluate(() => Settings.get('screenW') === 1920 && Settings.get('screenH') === 1200), 'přepnutí na šířku');
+  await p.click('button:has-text("1920×1200")'); await sleep(200);
   assert(await p.isVisible('text=doporučuji písmo alespoň'), 'doporučená velikost písma');
   assert(await p.isVisible('text=GitHub – program se připojí sám') && await p.isVisible('text=Mám kód kapely'), 'volby sdílení a připojení kódem v nastavení');
   assert(!(await p.isDisabled('label.chk:has-text("Mega – program") input')), 'Mega jde zvolit i v prohlížeči');
@@ -240,6 +244,7 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   /* ---------- Data přežijí obnovení stránky ---------- */
   await p.reload(); await p.waitForFunction(() => typeof Store !== 'undefined' && Store.ready);
   assert(await p.evaluate(() => Store.songs.size) === countBefore && await p.evaluate(() => Settings.get('screenH')) === 1200, 'data a nastavení přežijí obnovení stránky');
+  assert(await p.evaluate(() => Settings.get('screenW')) === 1920, 'zvolená orientace na šířku se po obnovení nepřepne zpět');
 
   // tisk playlistu
   await p.evaluate(() => { location.hash = '#/playlists/pl1'; }); await sleep(400);

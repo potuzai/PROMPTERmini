@@ -124,7 +124,7 @@ const Reader = {
     if (!this.stage) return;
     const cur = this.current();
     const mirror = this.mirrorOverride ?? (cur ? cur.tpl.mirror : 'none');
-    Render.fit(this.stage, this.wrap, Settings.get('screenW'), Settings.get('screenH'), mirror);
+    Render.fit(this.stage, this.wrap, Settings.get('screenW'), Settings.get('screenH'), mirror, Settings.get('readerRotate') || 0);
   },
 
   next() {

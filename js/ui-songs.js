@@ -361,6 +361,7 @@ class SongEditor {
     this.prevWrap.innerHTML = '';
     this.stage = Render.makeStage(tpl, W, H);
     this.prevWrap.appendChild(this.stage);
+    this.prevWrap.appendChild(dimLabel(W, H));
     Render.renderPage(this.stage, this.lay, tpl, this.page, { title: song.title, artist: song.artist, key: song.key, tempo: song.tempo, pos: '1/1', next: '' });
     this.pageLbl.textContent = `${this.page + 1}/${this.lay.pages.length}` + (this.lay.k < 0.999 ? ` · ${Math.round(this.lay.k * 100)} %` : '');
     this.tplMirror = tpl.mirror;

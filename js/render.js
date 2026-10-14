@@ -185,17 +185,25 @@ const Render = {
   },
 
   /* Přizpůsobí plátno velikosti okna (zachová poměr stran) */
-  fit(stage, wrap, W, H, mirror = 'none') {
+  /* rotate: otočení obrazu ve stupních (0/90/180/270) – když je monitor otočený, ale Windows ne */
+  fit(stage, wrap, W, H, mirror = 'none', rotate = 0) {
     const r = wrap.getBoundingClientRect();
-    const s = Math.min(r.width / W, r.height / H) || 1;
-    const x = (r.width - W * s) / 2, y = (r.height - H * s) / 2;
+    const rot = (((+rotate || 0) % 360) + 360) % 360;
+    const bw = rot % 180 ? H : W, bh = rot % 180 ? W : H;
+    const s = Math.min(r.width / bw, r.height / bh) || 1;
     const mx = mirror === 'h' || mirror === 'hv' ? -1 : 1;
     const my = mirror === 'v' || mirror === 'hv' ? -1 : 1;
-    stage.style.transformOrigin = '0 0';
-    stage.style.transform = `translate(${x + (mx < 0 ? W * s : 0)}px, ${y + (my < 0 ? H * s : 0)}px) scale(${s * mx}, ${s * my})`;
+    stage.style.left = (r.width - W) / 2 + 'px';
+    stage.style.top = (r.height - H) / 2 + 'px';
+    stage.style.transformOrigin = '50% 50%';
+    stage.style.transform = `rotate(${rot}deg) scale(${s * mx}, ${s * my})`;
     return s;
   },
 };
+
+function dimLabel(W, H) {
+  return h('div', { class: 'preview-dim' }, `monitor ${W}×${H} · ${H >= W ? 'na výšku' : 'na šířku'}`);
+}
 
 function stripes(colors, soft) {
   if (colors.length === 1) return soft ? colors[0] : colors[0];

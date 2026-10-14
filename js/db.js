@@ -41,7 +41,8 @@ const EXTRA_TEMPLATES = [
 ];
 
 const DEFAULT_SETTINGS = {
-  screenW: 1920, screenH: 1080, diagonal: 24, distance: 2.5,
+  screenW: 1080, screenH: 1920, diagonal: 24, distance: 2.5,   // výchozí: 24" monitor na výšku
+  readerRotate: 0,               // otočení obrazu čtečky (když Windows obrazovku neotáčí)
   readerFullscreen: true,        // čtečka automaticky přes celou obrazovku
   startInReader: false,          // po otevření aplikace rovnou čtečka (pro PC čtečky)
   swapMouse: false,              // prohodit levé/pravé tlačítko myši
@@ -89,7 +90,7 @@ const Settings = {
   set(k, v) {
     this.data[k] = v; this.save();
     if (SHARED_DISPLAY_KEYS.includes(k) && typeof Store !== 'undefined' && Store.ready) {
-      const d = Object.assign({ id: 'display' }, Store.config.get('display') || {});
+      const d = Object.assign({ id: 'display', portraitMigrated: true }, Store.config.get('display') || {});
       if (d[k] !== v) { d[k] = v; Store.put('config', d, { silent: true }); }
     }
   },
@@ -166,6 +167,15 @@ const Store = {
       for (const t of [DEFAULT_TEMPLATE, ...EXTRA_TEMPLATES]) await this.put('templates', clone(t), { silent: true, noStamp: true });
     }
     if (this.songs.size === 0 && !Settings.get('gh').repo) await this.put('songs', sampleSong(), { silent: true });
+    // Starší verze měly výchozí monitor na šířku – čtečka kapely je na výšku
+    const disp = this.config.get('display');
+    if (disp && !disp.portraitMigrated) {
+      if ((disp.screenW || 0) > (disp.screenH || 0)) { const w = disp.screenW; disp.screenW = disp.screenH; disp.screenH = w; }
+      disp.portraitMigrated = true;
+      await this.put('config', disp, { silent: true });
+    }
+    const ls = Settings.data;
+    if (!ls.portraitMigrated) { if (ls.screenW > ls.screenH) { const w = ls.screenW; ls.screenW = ls.screenH; ls.screenH = w; } ls.portraitMigrated = true; Settings.save(); }
     this.ready = true;
   },
 
