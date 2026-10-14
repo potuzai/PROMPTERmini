@@ -99,7 +99,8 @@ const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode
   const after = JSON.stringify((await (await fetch('http://localhost:8124/__state')).json()).files);
   assert(before === after, 'kód jen pro čtení: nic se neodešle');
   assert(await C.isVisible('text=jen čtení'), 'lišta ukazuje „jen čtení“');
-  const megaErr = await C.evaluate(c => BandCode.join(c).then(() => '').catch(e => e.message), 'PROMPTER-' + btoa(JSON.stringify({ v: 1, k: 'mega', e: 'a', p: 'b', n: 'x' })));
-  assert(/jen v programu/.test(megaErr), 'kód pro Mega v prohlížeči → vysvětlení');
+  const badErr = await C.evaluate(c => BandCode.join(c).then(() => '').catch(e => e.message), 'PROMPTER-' + btoa('{"v":1,"k":"xyz"}'));
+  assert(/Neznámý formát/.test(badErr), 'neznámý typ kódu → srozumitelná chyba');
+  assert(await C.evaluate(() => Sync.mode()) === 'github', 'po chybném kódu zůstane původní připojení');
   await b.close();
 })();

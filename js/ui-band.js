@@ -27,7 +27,6 @@ const BandCode = {
 
   async join(code) {
     const d = this.parse(code);
-    if (d.k === 'mega' && !window.native) throw new Error('Kód pro Mega funguje jen v programu Prompter.exe, ne v prohlížeči.');
     const prev = { syncMode: Settings.get('syncMode'), gh: clone(Settings.get('gh')), mega: clone(Settings.get('mega')), readOnly: Settings.get('readOnly') };
     try {
       if (d.k === 'gh') {
@@ -37,8 +36,8 @@ const BandCode = {
         Settings.set('syncMode', 'github');
       } else {
         const cfg = { email: d.e, password: d.p, folder: d.f || 'Prompter kapela' };
-        await window.native.megaTest(cfg);
-        Settings.set('mega', { email: d.e, pass: window.native.protect(d.p), folder: cfg.folder });
+        await MegaProvider.api().test(cfg);
+        Settings.set('mega', { email: d.e, pass: Secret.protect(d.p), folder: cfg.folder });
         Settings.set('syncMode', 'mega');
       }
     } catch (e) {

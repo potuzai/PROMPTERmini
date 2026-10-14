@@ -121,18 +121,55 @@ const FolderProvider = {
   errorText(e) { return 'Sdílená složka: ' + ipcError(e); },
 };
 
-/* Mega přímo – přihlašuje se program sám (bez aplikace MEGA) */
+/* Hesla v nastavení: v programu šifruje Windows (DPAPI), v prohlížeči jen zakódované */
+const Secret = {
+  protect(text) { return window.native ? window.native.protect(text) : (text ? 'b64:' + textToB64(text) : ''); },
+  unprotect(val) {
+    if (window.native) return window.native.unprotect(val);
+    if (!val) return '';
+    return val.startsWith('b64:') ? b64ToText(val.slice(4)) : val;
+  },
+};
+
+/* Mega v prohlížeči – stejné jádro jako v programu, knihovna se načte až když je potřeba */
+const WebMega = {
+  core: null,
+  async load() {
+    if (this.core) return this.core;
+    if (!window.mega) {
+      await new Promise((res, rej) => {
+        const s = document.createElement('script');
+        s.src = 'vendor/megajs-1.3.10.js';
+        s.onload = res; s.onerror = () => rej(new Error('Nepodařilo se načíst knihovnu pro Mega'));
+        document.head.appendChild(s);
+      });
+    }
+    this.core = createMegaCore(window.mega.Storage);
+    return this.core;
+  },
+  async test(cfg) { return (await this.load()).test(cfg); },
+  async snapshot(cfg) { return (await this.load()).snapshot(cfg); },
+  async read(cfg, p, v) { return (await this.load()).read(cfg, p, v); },
+  async commit(cfg, up, del) { return (await this.load()).commit(cfg, up, del); },
+  async logout() { if (this.core) this.core.logout(); },
+};
+
+/* Mega přímo – program i prohlížeč se přihlásí samy (bez aplikace MEGA) */
 const MegaProvider = {
   name: 'Mega',
   needsNet: true,
+  api() {
+    const n = window.native;
+    return n ? { test: n.megaTest, snapshot: n.megaSnapshot, read: n.megaRead, commit: n.megaCommit, logout: n.megaLogout } : WebMega;
+  },
   cfg() {
     const m = Settings.get('mega') || {};
-    return { email: m.email || '', password: window.native ? window.native.unprotect(m.pass || '') : '', folder: m.folder || 'Prompter kapela' };
+    return { email: m.email || '', password: Secret.unprotect(m.pass || ''), folder: m.folder || 'Prompter kapela' };
   },
   canPush() { return !Settings.get('readOnly'); },
-  async snapshot() { const r = await window.native.megaSnapshot(this.cfg()); return { remote: r.files, extras: r.extras, ctx: {} }; },
-  read(p, v) { return window.native.megaRead(this.cfg(), p, v); },
-  commit(up, del) { return window.native.megaCommit(this.cfg(), up, del); },
+  async snapshot() { const r = await this.api().snapshot(this.cfg()); return { remote: r.files, extras: r.extras, ctx: {} }; },
+  read(p, v) { return this.api().read(this.cfg(), p, v); },
+  commit(up, del) { return this.api().commit(this.cfg(), up, del); },
   errorText(e) { return ipcError(e); },
 };
 function ipcError(e) { return String((e && e.message) || e).replace(/^Error invoking remote method '[^']+': (Error: )?/, ''); }
@@ -150,7 +187,7 @@ const Sync = {
   mode() {
     const m = Settings.get('syncMode');
     if (m === 'folder') return window.native && Settings.get('sharedFolder') ? 'folder' : 'off';
-    if (m === 'mega') return window.native && (Settings.get('mega') || {}).email ? 'mega' : 'off';
+    if (m === 'mega') return (Settings.get('mega') || {}).email ? 'mega' : 'off';
     if (m === 'github' || (m === undefined && GH.configured())) return GH.configured() ? 'github' : 'off';
     return 'off';
   },

@@ -1,5 +1,6 @@
 // Test přímého napojení na Mega + kódu kapely: správce založí kapelu, člen se připojí kódem.
-const { _electron } = require('playwright');
+const { _electron, chromium } = require('playwright');
+const http = require('http');
 const fs = require('fs'); const path = require('path'); const os = require('os');
 const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode = 1; } else console.log('ok: ' + m); };
 const ROOT = path.join(__dirname, '..');
@@ -21,6 +22,31 @@ async function launch(name, settings, env = {}) {
   w.on('pageerror', e => console.log(name, 'PAGEERR', e.message));
   await w.waitForFunction(() => typeof Store !== 'undefined' && Store.ready, null, { timeout: 20000 });
   return { app, w, dir };
+}
+
+// Testovací server: prohlížečová napodobenina Mega čte a ukládá stejný „cloud“ jako program
+const megaSrv = http.createServer((req, res) => {
+  const h = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*', 'Access-Control-Allow-Methods': '*' };
+  if (req.method === 'OPTIONS') { res.writeHead(204, h); return res.end(); }
+  let body = ''; req.on('data', d => body += d);
+  req.on('end', () => {
+    if (req.method === 'POST') fs.writeFileSync(STATE, body);
+    res.writeHead(200, Object.assign({ 'Content-Type': 'application/json' }, h));
+    res.end(req.method === 'GET' && fs.existsSync(STATE) ? fs.readFileSync(STATE) : '');
+  });
+}).listen(8125);
+const APP_URL = process.env.APP_URL || 'http://localhost:8123/index.html';
+
+async function browserMember(browser) {
+  const ctx = await browser.newContext({ viewport: { width: 1400, height: 850 }, serviceWorkers: 'block' });
+  await ctx.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await ctx.addInitScript(() => { window.MEGA_MOCK_URL = 'http://localhost:8125/__mega'; });
+  // místo skutečné knihovny megajs podstrčíme napodobeninu
+  await ctx.route('**/vendor/megajs-1.3.10.js', r => r.fulfill({ contentType: 'application/javascript', body: fs.readFileSync(path.join(__dirname, 'mega-mock.js'), 'utf8') }));
+  const p = await ctx.newPage();
+  p.on('pageerror', e => console.log('WEB PAGEERR', e.message));
+  await p.goto(APP_URL + '#/songs');
+  return { ctx, p };
 }
 
 (async () => {
@@ -83,6 +109,47 @@ async function launch(name, settings, env = {}) {
   const r = await A.w.evaluate(() => Sync.run());
   assert(r.pushed === 0 && r.downloaded === 0, 'opakovaná synchronizace nic nepřenáší');
 
+  /* ----- Prohlížečová verze: člen se připojí stejným kódem ----- */
+  const browser = await chromium.launch();
+  const D = await browserMember(browser);
+  await D.p.waitForSelector('.modal-title:has-text("Vítej")');
+  await D.p.click('.modal button:has-text("Mám kód kapely")');
+  await D.p.fill('.modal textarea', code);
+  await D.p.click('.modal button:has-text("Připojit")');
+  await D.p.waitForFunction(() => Store.songs.has('zluty'), null, { timeout: 15000 });
+  assert(true, 'prohlížeč: připojení kódem kapely (Mega) a stažení písní');
+  assert((await D.p.evaluate(() => Store.songs.get('zluty').text)).includes('doplnila Jana'), 'prohlížeč má aktuální verzi písně');
+  assert(await D.p.evaluate(() => Sync.mode()) === 'mega' && await D.p.isVisible('text=synchronizováno'), 'prohlížeč: stav „synchronizováno“');
+  const lsRaw = await D.p.evaluate(() => localStorage.getItem('prompter-settings'));
+  assert(!lsRaw.includes('heslo123'), 'prohlížeč: heslo není v úložišti čitelně');
+  // úprava v prohlížeči přes editor → program ji uvidí
+  await D.p.evaluate(() => { location.hash = '#/songs/zluty'; });
+  await D.p.waitForSelector('.ta');
+  await D.p.click('.ta'); await D.p.keyboard.press('Control+End'); await D.p.keyboard.type('\n@V z prohlížeče');
+  await D.p.keyboard.press('Control+S');
+  await D.p.waitForFunction(() => Store.pendingCount() === 0 && Sync.state === 'idle', null, { timeout: 20000 });
+  await A.w.evaluate(() => Sync.run());
+  assert((await A.w.evaluate(() => Store.songs.get('zluty').text)).includes('z prohlížeče'), 'úprava z prohlížeče se dostala do programu');
+  // program → prohlížeč
+  await A.w.evaluate(async () => { await Store.put('playlists', { id: 'plweb', name: 'Koncert pátek', date: '2026-10-16', templateId: '', note: '', items: ['zluty'] }); await Sync.run(); });
+  await D.p.evaluate(() => Sync.run());
+  assert(await D.p.evaluate(() => Store.playlists.get('plweb')?.name) === 'Koncert pátek', 'playlist z programu se objevil v prohlížeči');
+  // po obnovení stránky zůstane připojeno
+  await D.p.reload(); await D.p.waitForFunction(() => typeof Store !== 'undefined' && Store.ready);
+  assert(await D.p.evaluate(() => Sync.mode() === 'mega' && Store.playlists.has('plweb')), 'prohlížeč: po obnovení stránky zůstane připojeno i s daty');
+  assert(!(await D.p.isVisible('.modal-title:has-text("Vítej")')), 'uvítání se už znovu neukáže');
+  // čtečka v prohlížeči z playlistu
+  await D.p.evaluate(() => { location.hash = '#/reader/plweb'; }); await sleep(500);
+  assert(await D.p.evaluate(() => !!document.querySelector('#reader .stage') && document.querySelector('#reader').textContent.includes('Žlutý pes')), 'prohlížeč: čtečka zobrazí playlist');
+  // odpojení na cizím počítači smaže heslo z prohlížeče
+  await D.p.evaluate(() => { location.hash = '#/settings'; }); await sleep(400);
+  await D.p.click('fieldset:has-text("Sdílení s kapelou") button:has-text("Odpojit")');
+  await D.p.click('.modal button:has-text("Odpojit")'); await sleep(400);
+  assert(await D.p.evaluate(() => Sync.mode()) === 'off', 'prohlížeč: odpojení od kapely');
+  assert(await D.p.evaluate(() => !Settings.get('mega').pass && !localStorage.getItem('prompter-settings').includes('b64:')), 'odpojení smaže uložené heslo z prohlížeče');
+  assert(await D.p.evaluate(() => Store.songs.has('zluty')), 'písně po odpojení zůstanou');
+  await D.ctx.close(); await browser.close();
+
   /* ----- Konflikt ----- */
   await A.w.evaluate(async () => { const s = Store.songs.get('zluty'); s.text = 'verze Petr'; await Store.put('songs', s); });
   await sleep(30);
@@ -136,5 +203,6 @@ async function launch(name, settings, env = {}) {
   assert(/přetížená/.test(err), 'výpadek Mega → srozumitelná chyba (' + err + ')');
   assert(await C3.w.evaluate(() => Store.songs.has('x1') && Store.pendingCount() > 0), 'neodeslaná změna zůstane a odešle se příště');
   await C3.app.close();
+  megaSrv.close();
   fs.rmSync(tmp, { recursive: true, force: true });
 })().catch(e => { console.log('FAIL: výjimka', e); process.exit(1); });

@@ -3,7 +3,7 @@
 Aplikace pro psaní, úpravy a zobrazování textů písní na čtečce (prompteru) kapely.
 
 - **Čtečka**: samostatný program pro Windows (`Prompter.exe`). Funguje **úplně bez internetu**, startuje rovnou přes celou obrazovku a data má jako soubory ve složce `data` vedle programu.
-- **Editor**: stejná aplikace v prohlížeči (GitHub Pages nebo lokálně). Členové kapely v něm píšou písně a skládají playlisty.
+- **Prohlížečová verze**: stejná aplikace na adrese https://potuzai.github.io/RUSTEDprompter/. Je to plnohodnotný editor i čtečka, který se synchronizuje s kapelou stejně jako program. Hodí se pro členy, kteří nechtějí nic instalovat, nebo když upravuješ z cizího počítače.
 - **Sdílení s kapelou**: písně se synchronizují samy přes internet (Mega nebo GitHub, obojí zdarma). Členové kapely nic nezakládají ani neinstalují, jen vloží **kód kapely**.
 
 ---
@@ -37,11 +37,13 @@ Aplikace pro psaní, úpravy a zobrazování textů písní na čtečce (prompte
 
 Monitor čtečky během běhu programu neusne. Program se po případném pádu sám obnoví a každý den zálohuje data do `data\zalohy` (drží 14 dní).
 
-## 2. Editor (počítače členů kapely)
+## 2. Prohlížečová verze (bez instalace)
 
-- **Varianta A (doporučeno):** otevři adresu GitHub Pages (např. `https://<uživatel>.github.io/prompter/`). V Edge/Chrome pak jde přes menu **Aplikace → Nainstalovat** vytvořit ikonu na ploše.
-- **Varianta B:** rozbal zdrojové soubory a spusť `Editor v prohlizeci.bat`.
-- **Varianta C:** použij přímo `Prompter.exe`, který obsahuje i plný editor.
+- Otevři **https://potuzai.github.io/RUSTEDprompter/** v Edge nebo Chrome. Napoprvé se objeví okno *Vítej*, v něm zvol **🔑 Mám kód kapely** a vlož kód.
+- Písně se uloží v tom prohlížeči a synchronizují se s kapelou, stejně jako v programu.
+- Ikonu na plochu přidáš v Edge přes **⋯ → Aplikace → Nainstalovat tento web jako aplikaci**.
+- Na **cizím počítači** se po práci odpoj: **Nastavení → Sdílení s kapelou → Odpojit**. Heslo se tím z prohlížeče smaže.
+- Pro PC čtečky doporučuji program `Prompter.exe`: data má v souborech, startuje sám a nezávisí na aktualizacích prohlížeče.
 
 ### Psaní textu
 
@@ -73,10 +75,10 @@ Náhled v editoru odpovídá přesně monitoru čtečky. Rozměr monitoru se sd�
 ### Správce kapely (jednou, asi 10 minut)
 V **Nastavení → Sdílení s kapelou** zvol, kde budou písně uložené:
 
-- **Mega** (jen v programu Prompter.exe):
+- **Mega** (v programu i v prohlížeči):
   1. Na mega.io založ **nový společný účet pro kapelu**, ne svůj osobní, protože heslo se přes kód kapely dostane ke všem členům. Dvoufázové ověření nezapínej.
   2. Vyplň e-mail a heslo tohoto účtu a klikni na **Připojit k Mega**. Program si sám vytvoří složku „Prompter kapela“ a nahraje do ní písně.
-- **GitHub** (funguje i ve webovém editoru): program tě provede třemi odkazy: účet, soukromý repozitář a token.
+- **GitHub**: program tě provede třemi odkazy: účet, soukromý repozitář a token.
 
 Po připojení se ukáže **kód kapely**. Zkopíruj ho a pošli členům. Pro PC čtečky můžeš vytvořit kód **jen pro čtení**: čtečka pak písně jen stahuje a nic neodešle.
 

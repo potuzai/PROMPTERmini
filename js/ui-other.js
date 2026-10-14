@@ -305,7 +305,11 @@ const SettingsView = {
           h('button', { class: 'btn danger nogrow', onclick: async () => {
             if (!await confirmDlg('Odpojit tento počítač od kapely? Písně v něm zůstanou, jen se přestanou synchronizovat.', 'Odpojit')) return;
             Settings.set('syncMode', 'none'); Settings.set('readOnly', false);
-            if (window.native) { window.native.megaLogout(); window.native.watchFolder(''); }
+            // přístupové údaje se z tohoto počítače smažou (důležité na cizím PC)
+            Settings.set('mega', Object.assign({}, Settings.get('mega'), { pass: '' }));
+            Settings.set('gh', Object.assign({}, Settings.get('gh'), { token: '', login: '', canPush: null }));
+            MegaProvider.api().logout();
+            if (window.native) window.native.watchFolder('');
             await Sync.resetMeta(); Sync.lastError = ''; Sync.state = 'off'; Sync.refreshState(); App.go(true);
           } }, 'Odpojit')));
     } else {
@@ -344,10 +348,8 @@ const SettingsView = {
     body.append(
       h('div', { class: 'help', style: { marginBottom: '6px' } }, 'Kde budou písně kapely uložené (nastavuje správce, členové pak jen vloží kód kapely):'),
       opt('none', 'Nesdílet', 'vše jen v tomto počítači'),
-      opt('mega', 'Mega – program se připojí sám', window.native
-        ? 'zdarma 20 GB · stačí jeden společný účet Mega pro kapelu · nic dalšího se neinstaluje'
-        : 'jen v programu Prompter.exe', !window.native),
-      opt('github', 'GitHub – program se připojí sám', 'zdarma · funguje i ve webovém editoru v prohlížeči · nejspolehlivější při souběžných úpravách'),
+      opt('mega', 'Mega – program se připojí sám', 'zdarma 20 GB · stačí jeden společný účet Mega pro kapelu · nic dalšího se neinstaluje'),
+      opt('github', 'GitHub – program se připojí sám', 'zdarma · nejspolehlivější při souběžných úpravách · správce potřebuje účet na GitHubu'),
       opt('folder', 'Synchronizovaná složka (pokročilé)', window.native
         ? 'složka, kterou synchronizuje jiná aplikace (MEGA Desktop, OneDrive, Dropbox, síťový disk…)'
         : 'jen v programu Prompter.exe', !window.native),
@@ -360,7 +362,7 @@ const SettingsView = {
   megaBlock() {
     const m = Settings.get('mega') || {};
     const email = h('input', { class: 'inp', type: 'email', value: m.email || '', placeholder: 'kapela@email.cz' });
-    const pass = h('input', { class: 'inp', type: 'password', value: m.pass ? window.native.unprotect(m.pass) : '', placeholder: 'heslo k účtu Mega' });
+    const pass = h('input', { class: 'inp', type: 'password', value: m.pass ? Secret.unprotect(m.pass) : '', placeholder: 'heslo k účtu Mega' });
     const folder = h('input', { class: 'inp', value: m.folder || 'Prompter kapela' });
     const status = h('div', { class: 'help', style: { marginTop: '8px' } });
     const connect = async () => {
@@ -368,8 +370,8 @@ const SettingsView = {
       if (!cfg.email || !cfg.password) return toast('Vyplň e-mail a heslo.', 'warn');
       status.textContent = 'Přihlašuji k Mega…';
       try {
-        const r = await window.native.megaTest(cfg);
-        Settings.set('mega', { email: cfg.email, pass: window.native.protect(cfg.password), folder: cfg.folder });
+        const r = await MegaProvider.api().test(cfg);
+        Settings.set('mega', { email: cfg.email, pass: Secret.protect(cfg.password), folder: cfg.folder });
         Settings.set('syncMode', 'mega'); Settings.set('readOnly', false);
         await Sync.resetMeta(); Sync.lastError = '';
         const free = r.space ? ` · volné místo ${((r.space.total - r.space.used) / 1e9).toFixed(1)} GB` : '';
@@ -391,7 +393,10 @@ const SettingsView = {
         h('label', { class: 'f' }, h('span', {}, 'Složka v Mega'), folder)),
       h('div', { class: 'row', style: { marginTop: '10px' } }, h('button', { class: 'btn primary nogrow', onclick: connect }, '🔗 Připojit k Mega')),
       status,
-      h('p', { class: 'help' }, 'Heslo je v tomto počítači uložené šifrovaně (chrání ho Windows). Připojení k Mega používá neoficiální knihovnu – kdyby Mega něco změnila a přestalo to fungovat, přepni na GitHub; písně v programu zůstanou.'));
+      h('p', { class: 'help' }, window.native
+        ? 'Heslo je v tomto počítači uložené šifrovaně (chrání ho Windows). '
+        : 'V prohlížeči je heslo uložené jen v tomto prohlížeči (nešifrovaně) – na cizím počítači se po práci odpoj (Nastavení → Odpojit). ',
+        'Připojení k Mega používá neoficiální knihovnu – kdyby Mega něco změnila a přestalo to fungovat, přepni na GitHub; písně v aplikaci zůstanou.'));
   },
 
   folderBlock() {

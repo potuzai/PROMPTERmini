@@ -234,7 +234,8 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   assert(await p.evaluate(() => Settings.get('screenH')) === 1200, 'předvolba rozlišení');
   assert(await p.isVisible('text=doporučuji písmo alespoň'), 'doporučená velikost písma');
   assert(await p.isVisible('text=GitHub – program se připojí sám') && await p.isVisible('text=Mám kód kapely'), 'volby sdílení a připojení kódem v nastavení');
-  assert(await p.isDisabled('input[type=radio] >> nth=1'), 'Mega v prohlížeči nedostupná (jen v programu)');
+  assert(!(await p.isDisabled('label.chk:has-text("Mega – program") input')), 'Mega jde zvolit i v prohlížeči');
+  assert(await p.isDisabled('label.chk:has-text("Synchronizovaná složka") input'), 'synchronizovaná složka jen v programu');
 
   /* ---------- Data přežijí obnovení stránky ---------- */
   await p.reload(); await p.waitForFunction(() => typeof Store !== 'undefined' && Store.ready);
