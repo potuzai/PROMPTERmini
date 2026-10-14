@@ -14,6 +14,7 @@ const SHOTS = process.env.SHOTS || '/tmp/claude-0/shots';
   await p.goto(URL + '#/songs'); await p.waitForFunction(() => typeof Store !== 'undefined' && Store.ready);
   const src = () => p.evaluate(() => SongsView.editor.src);
   const key = async (k, n = 1) => { for (let i = 0; i < n; i++) { await p.keyboard.press(k); await sleep(60); } };
+  const songMenu = async label => { await p.click('.ed-panel button:has-text("Píseň ⋯")'); await p.click(`.menu div:has-text("${label}")`); };
   const curText = () => p.evaluate(() => { const e = document.querySelector('.edit-stage .is-cur'); return e ? e.textContent : ''; });
 
   // nová píseň: prázdná stránka, vložení textu
@@ -102,31 +103,33 @@ const SHOTS = process.env.SHOTS || '/tmp/claude-0/shots';
   // zpěvák jen pro slova: jde měnit opakovaně a zrušit
   await p.click('.edit-stage .b-line:has-text("refrén druhý")'); await p.click('.edit-stage .b-line:has-text("refrén druhý")'); await sleep(150);
   await p.evaluate(() => { const el = document.querySelector('.is-edit'); const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); let n; while ((n = w.nextNode())) { const i = n.data.indexOf('druhý'); if (i >= 0) { const r = document.createRange(); r.setStart(n, i); r.setEnd(n, i + 5); getSelection().removeAllRanges(); getSelection().addRange(r); return; } } });
-  await p.click('.ed-panel .sg-btn >> nth=0'); await sleep(150);
+  await p.click('.ed-panel .sw >> nth=0'); await sleep(150);
   assert(/refrén \{J:druhý\}/.test(await src()), 'zpěvák pro označené slovo');
-  await p.click('.ed-panel .sg-btn >> nth=1'); await sleep(150);
+  await p.click('.ed-panel .sw >> nth=1'); await sleep(150);
   assert(/refrén \{T:druhý\}/.test(await src()) && !/\{J:/.test(await src()), 'barvu slova jde změnit znovu (bez vnoření)');
-  await p.click('.ed-panel button:has-text("Nikdo")'); await sleep(150);
+  await p.click('.ed-panel .sw.none'); await sleep(150);
   assert(/^refrén druhý$/m.test(await src()), '„Nikdo“ barvu slova zruší');
   await key('Escape');
 
   // pravý panel: zpěvák, sekce, poznámka, nová stránka
-  await p.click('.ed-panel .sg-btn >> nth=2');
+  await p.click('.ed-panel .sw >> nth=2');
   assert(/^@V refrén druhý/m.test(await src()), 'tlačítko zpěváka v panelu');
-  assert(await p.isVisible('.ed-panel .sg-btn.on'), 'panel ukazuje zpěváka vybraného řádku');
-  await p.click('.ed-panel button:has-text("Nová stránka")');
+  assert(await p.isVisible('.ed-panel .sw.on'), 'panel ukazuje zpěváka vybraného řádku');
+  await p.click('.ed-panel button:has-text("Další…")');
+  await p.click('.menu div:has-text("Nová stránka")');
   await sleep(200);
   assert(/---\n@V refrén druhý/.test(await src()), 'nová stránka před vybraný řádek');
-  assert(/2/.test(await p.textContent('.page-lbl')) && (await p.textContent('.page-lbl')).includes('/ 2'), 'stránky: počet v panelu');
+  assert(/2/.test(await p.textContent('.page-lbl')) && (await p.textContent('.page-lbl')).includes('/2'), 'stránky: počet v panelu');
   assert(await p.isVisible('.edit-stage .b-line:has-text("refrén druhý")'), 'stránka přeskočí na vybraný řádek');
   await key('PageUp'); await sleep(100);
   assert((await p.textContent('.page-lbl')).startsWith('1'), 'PgUp = předchozí stránka');
   await key('Control+z'); await sleep(150);
 
   // pro muzikanty: akordy jen v pohledu Pro muzikanty
-  await p.click('.ed-panel [data-v=mus]'); await sleep(250);
+  await songMenu('Ukázat akordy'); await sleep(250);
   assert(await p.evaluate(() => document.querySelector('.edit-stage').textContent.includes('Am')), 'pohled Pro muzikanty ukazuje akordy');
-  await p.click('.ed-panel [data-v=reader]'); await sleep(200);
+  await songMenu('Ukázat akordy'); await sleep(200);
+  assert(!(await p.evaluate(() => document.querySelector('.edit-stage').textContent.includes('Am'))), 'zpět na pohled čtečky');
 
   // playlist: pozice x/y v záhlaví
   await p.evaluate(async () => {
@@ -138,13 +141,14 @@ const SHOTS = process.env.SHOTS || '/tmp/claude-0/shots';
   }).then(async id => { await sleep(300); await p.evaluate(i => { location.hash = '#/songs/' + i; }, id); });
   await sleep(600);
   assert(await p.isVisible('.edit-stage .st-head:has-text("2/2")'), 'v záhlaví je pořadí v playlistu');
-  await p.selectOption('.ed-panel select >> nth=1', '');
+  await songMenu('Údaje o písni');
+  await p.selectOption('.modal select >> nth=1', '');
+  await p.click('.modal button:has-text("Hotovo")');
   await sleep(200);
   assert(!(await p.isVisible('.edit-stage .st-head:has-text("2/2")')), 'samostatně = bez pořadí');
 
   // zdrojový text
-  await p.click('.ed-panel summary:has-text("Celá píseň")');
-  await p.click('.ed-panel button:has-text("Zdrojový text")');
+  await songMenu('Zdrojový text');
   const ta = await p.inputValue('.modal textarea');
   assert(ta === await src(), 'zdrojový text odpovídá');
   await p.fill('.modal textarea', ta + '\n@J Ze zdroje');

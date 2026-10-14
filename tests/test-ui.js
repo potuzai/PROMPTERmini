@@ -37,7 +37,7 @@ const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode
   assert((await src()).includes('@J'), 'Ctrl+Y znovu');
   // tlačítko zpěváka v panelu
   await p.click('.se-wrap .b-line:has-text("refrén druhý")');
-  await p.click('.ed-panel .sg-btn >> nth=1');
+  await p.click('.ed-panel .sw >> nth=1');
   await p.waitForTimeout(300);
   assert((await src()).includes('@T refrén druhý'), 'tlačítko zpěváka obarví vybraný řádek');
   await p.waitForTimeout(1800); // autosave
