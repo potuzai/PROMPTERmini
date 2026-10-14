@@ -67,7 +67,7 @@ const App = {
     const tabs = [['songs', '🎵 Písně'], ['playlists', '📋 Playlisty'], ['templates', '🎨 Šablony'], ['singers', '🎤 Zpěváci'], ['settings', '⚙ Nastavení']];
     this.tabEls = {};
     const bar = h('div', { id: 'topbar' },
-      h('div', { class: 'logo' }, 'Prompter ', h('span', {}, 'písní')),
+      h('div', { class: 'logo', title: 'Prompter písní ' + APP_VERSION }, 'Prompter', h('span', {}, APP_VERSION)),
       h('div', { class: 'tabs' }, tabs.map(([k, l]) => (this.tabEls[k] = h('button', { class: 'tab', onclick: () => { location.hash = '#/' + k; } }, l)))),
       this.syncPill = h('button', { class: 'sync-pill', title: 'Stav synchronizace – kliknutím synchronizuješ', onclick: () => this.syncClick() }, h('span', { class: 'dot' }), h('span', { class: 'lbl' }, '')),
       h('button', { class: 'btn primary', title: 'Otevřít čtečku (výběr playlistu)', onclick: () => { location.hash = '#/reader/' + (Settings.get('lastPlaylist') || ''); } }, '▶ Čtečka'));

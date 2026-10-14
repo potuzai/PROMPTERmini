@@ -8,7 +8,9 @@ function h(tag, attrs = {}, ...children) {
   for (const [k, v] of Object.entries(attrs || {})) {
     if (v === undefined || v === null || v === false) continue;
     if (k === 'class') el.className = v;
-    else if (k === 'style' && typeof v === 'object') Object.assign(el.style, v);
+    else if (k === 'style' && typeof v === 'object') {
+      for (const [sk, sv] of Object.entries(v)) { if (sk.startsWith('--')) el.style.setProperty(sk, sv); else el.style[sk] = sv; }
+    }
     else if (k.startsWith('on') && typeof v === 'function') el.addEventListener(k.slice(2), v);
     else if (k === 'html') el.innerHTML = v;
     else if (v === true) el.setAttribute(k, '');
@@ -16,7 +18,8 @@ function h(tag, attrs = {}, ...children) {
   }
   for (const c of children.flat()) {
     if (c === null || c === undefined || c === false) continue;
-    el.appendChild(c instanceof Node ? c : document.createTextNode(String(c)));
+    if (c instanceof Node) { el.appendChild(c); continue; }
+    for (const part of (typeof glyphToIcon === 'function' ? glyphToIcon(c) : [String(c)])) el.appendChild(part instanceof Node ? part : document.createTextNode(part));
   }
   return el;
 }

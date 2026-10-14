@@ -54,7 +54,7 @@ const PlaylistsView = {
     const itemsBox = h('div', { class: 'list' });
     const libBox = h('div', { class: 'list' });
     const countLbl = h('span', { class: 'dim' });
-    const libSearch = h('input', { class: 'inp', type: 'search', placeholder: '🔍 Hledat píseň…', value: this.libSearch });
+    const libSearch = h('input', { class: 'inp', type: 'search', placeholder: 'Hledat píseň…', value: this.libSearch });
 
     const commit = () => { Store.put('playlists', pl); paintItems(); paintLib(); };
     let dragFrom = null;

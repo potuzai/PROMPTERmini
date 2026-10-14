@@ -9,7 +9,7 @@ const SongsView = {
     const content = h('div', { class: 'content', style: { padding: 0 } });
     main.append(h('div', { class: 'view' }, side, content));
 
-    const searchInp = h('input', { class: 'inp', type: 'search', placeholder: '🔍 Hledat název, interpreta, text, štítek…', value: this.search });
+    const searchInp = h('input', { class: 'inp', type: 'search', placeholder: 'Hledat název, interpreta, text, štítek…', value: this.search });
     const list = h('div', { class: 'list' });
     side.append(
       h('div', { class: 'side-head' },
@@ -124,8 +124,8 @@ class SongEditor {
           taWrap),
         h('div', { class: 'pane' },
           h('div', { class: 'pane-title' }, 'Náhled čtečky', this.brushLbl = h('span', {}), h('span', { class: 'grow' }), this.prevTpl,
-            h('button', { class: 'btn small icon', onclick: () => this.turn(-1) }, '◀'), this.pageLbl,
-            h('button', { class: 'btn small icon', onclick: () => this.turn(1) }, '▶'),
+            h('button', { class: 'btn small icon', onclick: () => this.turn(-1), title: 'Předchozí stránka' }, ic('left')), this.pageLbl,
+            h('button', { class: 'btn small icon', onclick: () => this.turn(1), title: 'Další stránka' }, ic('right')),
             h('button', { class: 'btn small', title: 'Otevřít ve čtečce', onclick: () => this.openReader() }, '▶ Čtečka')),
           this.prevWrap)),
       h('div', { class: 'bottom-actions' },

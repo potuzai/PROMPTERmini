@@ -92,7 +92,7 @@ async function launch(name) {
   await B.w.evaluate(() => { location.hash = '#/settings'; });
   await sleep(500);
   assert(await B.w.isVisible('text=Synchronizovaná složka (pokročilé)'), 'volba synchronizované složky v nastavení');
-  assert(await B.w.isVisible('text=📁 Vybrat složku…'), 'tlačítko pro výběr složky');
+  assert(await B.w.isVisible('button:has-text("Vybrat složku")'), 'tlačítko pro výběr složky');
   await B.w.locator('fieldset:has-text("Sdílení s kapelou")').screenshot({ path: path.join(os.tmpdir(), 'share-settings.png') });
 
   await A.app.close(); await B.app.close();

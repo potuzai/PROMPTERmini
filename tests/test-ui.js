@@ -10,7 +10,7 @@ const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode
   await p.goto('http://localhost:8123/index.html#/songs');
   await p.waitForFunction(() => typeof Store !== 'undefined' && Store.ready);
   // nová píseň
-  await p.click('text=＋ Nová píseň');
+  await p.click('button:has-text("Nová píseň")');
   await p.fill('.modal input', 'Testovací');
   await p.keyboard.press('Enter');
   await p.waitForSelector('.ta');
@@ -46,7 +46,7 @@ const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode
 
   // playlist
   await p.evaluate(() => location.hash = '#/playlists');
-  await p.click('text=＋ Nový playlist');
+  await p.click('button:has-text("Nový playlist")');
   await p.keyboard.press('Enter');
   await p.waitForTimeout(400);
   await p.click('.lib-item:has-text("Testovací") button');
@@ -59,7 +59,7 @@ const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode
   assert((await p.$$eval('.pl-item b', els => els.map(e => e.textContent)))[0].startsWith('Ukázková'), 'změna pořadí');
   await p.screenshot({ path: '/tmp/claude-0/shots/6-playlist.png' });
   // čtečka
-  await p.click('text=▶ Spustit ve čtečce');
+  await p.click('button:has-text("Spustit ve čtečce")');
   await p.waitForTimeout(600);
   const pos = () => p.evaluate(() => [Reader.songIdx, Reader.pageIdx]);
   console.log('start', await pos());

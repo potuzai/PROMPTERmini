@@ -129,8 +129,8 @@ const TemplatesView = {
     root.appendChild(h('div', { class: 'tpl-layout' }, form,
       h('div', { class: 'tpl-preview' },
         h('div', { class: 'pane-title' }, 'Náhled:', songSel,
-          h('button', { class: 'btn small icon', onclick: () => { this.page = Math.max(0, this.page - 1); paint(); } }, '◀'), pageLbl,
-          h('button', { class: 'btn small icon', onclick: () => { this.page++; paint(); } }, '▶'),
+          h('button', { class: 'btn small icon', onclick: () => { this.page = Math.max(0, this.page - 1); paint(); }, title: 'Předchozí stránka' }, ic('left')), pageLbl,
+          h('button', { class: 'btn small icon', onclick: () => { this.page++; paint(); }, title: 'Další stránka' }, ic('right')),
           h('span', { class: 'grow', style: { flex: 1 } }), h('span', {}, `monitor ${W}×${H}`)),
         prevWrap)));
     new ResizeObserver(() => stage && Render.fit(stage, prevWrap, W, H, t.mirror)).observe(prevWrap);
