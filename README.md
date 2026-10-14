@@ -47,13 +47,16 @@ Monitor čtečky během běhu programu neusne. Program se po případném pádu 
 
 ### Psaní textu
 
-Text se píše a upravuje přímo tak, jak vypadá ve čtečce: barvy zpěváků, nadpisy slok i akordy jsou vidět rovnou, bez značek. Všechny nástroje jsou v pravém panelu.
+Text se píše přímo do plochy, která vypadá jako čtečka: stejné písmo, barvy, pozadí a šířka monitoru podle šablony. Značky nejsou vidět. Červená přerušovaná čára ukazuje, kde ve čtečce začne další stránka, a u názvu písně je vidět počet stránek.
+
+- **Lišta nad textem**: Kdo zpívá, Struktura (sekce, opakování, poznámka, nová stránka), Formát textu a Vyčistit.
+- **Bublina u výběru**: když označíš slova, objeví se u nich zpěváci a tučné / kurzíva / větší / menší písmo.
+- **Pravý panel**: údaje o písni, šablona a písmo písně, informace pro muzikanty (přidat akordy a tabulatury, přepnout pohled Čtečka / Pro muzikanty).
 
 1. Vlož text (Ctrl+V). Akordy, zbytečné mezery a prázdné řádky se automaticky vyčistí a sloky a refrény se rozpoznají.
-2. Klikni do řádku (nebo označ víc řádků) a v panelu zvol **Kdo zpívá** (nebo **Alt+1 / Alt+2 / Alt+3**). Když označíš jen pár slov, obarví se jen ta.
-3. **Struktura**: vložit nadpis sekce, opakování refrénu, poznámku nebo novou stránku. Opakování a nová stránka se v textu ukážou jako štítek s křížkem na odebrání.
-4. **Formát textu**: tučně, kurzíva, větší / menší písmo, velká / malá písmena. Ctrl+Z vrátí jakoukoli úpravu.
-5. Akordy jsou vidět nad slovy. Kliknutím na akord ho změníš nebo smažeš. Další informace pro muzikanty přidáš přes **Pro muzikanty ▾**.
+2. Klikni do řádku nebo označ text a zvol zpěváka (nebo **Alt+1 / Alt+2 / Alt+3**). Když označíš jen pár slov, obarví se jen ta.
+3. Opakování a nová stránka se v textu ukážou jako štítek s křížkem na odebrání. Ctrl+Z vrátí jakoukoli úpravu.
+4. Akordy uvidíš nad slovy po přepnutí na **Pro muzikanty**. Kliknutím na akord ho změníš nebo smažeš.
 
 Pokročilí si můžou v panelu **Editor** přepnout na **Zdrojový text (značky)**, tedy text tak, jak se ukládá:
 

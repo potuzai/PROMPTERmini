@@ -8,8 +8,11 @@ class VisualEditor {
     this.ed = ed;           // SongEditor (ta = zdrojový text)
     this.hist = [];         // historie pro Ctrl+Z
     this.hpos = -1;
+    this.host = host;
     this.el = h('div', { class: 've', contenteditable: 'true', spellcheck: 'false', 'data-placeholder': 'Sem vlož nebo napiš text písně…' });
-    host.appendChild(this.el);
+    this.marks = h('div', { class: 've-marks', 'aria-hidden': 'true' });
+    this.paper = h('div', { class: 've-paper' }, this.el, this.marks);
+    host.appendChild(this.paper);
     this.el.addEventListener('input', () => this.onInput());
     this.el.addEventListener('keydown', e => this.onKey(e));
     this.el.addEventListener('paste', e => this.onPaste(e));
@@ -118,6 +121,78 @@ class VisualEditor {
       h('div', { class: 've-bhead' }, h('span', { class: 've-tag' }, ins.map(x => x.name).join(' + ') || codes.join('+') || 'Blok'), titleIn,
         h('button', { class: 've-x', title: 'Odebrat blok', 'data-act': 'remove' }, '✕')),
       pre);
+  }
+
+  /* ----- Vzhled jako ve čtečce (šablona, šířka monitoru) ----- */
+  applyLook(tpl, k) {
+    if (tpl) this.tpl = tpl;
+    if (k) this.k = k;
+    tpl = this.tpl;
+    if (!tpl) return;
+    const W = Settings.get('screenW') || 1080;
+    const avail = Math.max(200, this.host.clientWidth - 28);
+    const sc = Math.min(1, avail / W);
+    const p = this.paper, st = p.style;
+    st.width = Math.round(W * sc) + 'px';
+    // písmo podle šablony v měřítku monitoru; v telefonu ne menší než 15 px (zalomení pak neodpovídá přesně)
+    // k = zmenšení dlouhé písně, aby se vešla na stránku (šablona „zmenšit“)
+    const fs = Math.max(15, tpl.fontSize * sc * (this.k || 1));
+    st.setProperty('--vfs', fs + 'px');
+    st.setProperty('--vpadx', Math.max(10, tpl.padX * sc) + 'px');
+    st.setProperty('--vpady', Math.max(10, tpl.padY * sc) + 'px');
+    st.setProperty('--vbg', tpl.bgColor);
+    st.setProperty('--vfg', tpl.textColor);
+    st.setProperty('--vfont', `"${tpl.fontFamily}", Arial, sans-serif`);
+    st.setProperty('--vfw', tpl.fontWeight);
+    st.setProperty('--vlh', tpl.lineHeight);
+    st.setProperty('--vls', (tpl.letterSpacing || 0) + 'em');
+    st.setProperty('--valign', tpl.align);
+    st.setProperty('--vsec', tpl.sectionColor);
+    st.setProperty('--vsecs', tpl.sectionScale);
+    st.setProperty('--vnote', tpl.noteColor);
+    st.setProperty('--vgap', tpl.stanzaGap + 'em');
+    st.setProperty('--vbar', tpl.singerBar ? Math.max(3, tpl.barWidth * sc) + 'px' : '0px');
+    p.classList.toggle('upper', !!tpl.uppercase);
+    p.classList.toggle('sg-text', !!tpl.singerText);
+    p.classList.toggle('sg-bg', !!tpl.singerBg);
+    p.classList.toggle('no-sec', !tpl.showSections);
+    p.classList.toggle('no-notes', !tpl.showNotes);
+    // informace pro muzikanty: podle přepínače Čtečka / Pro muzikanty a vrstev
+    const mv = musDefaults();
+    p.classList.toggle('hide-mus', !mv.on);
+    p.classList.toggle('hide-chords', !mv.on || mv.chords === false);
+    for (const r of this.el.querySelectorAll('.ve-mus, .ve-block')) {
+      const codes = (r.dataset.inst || '').split('+').filter(Boolean);
+      r.classList.toggle('layer-off', mv.on && codes.length > 0 && codes.every(c => mv.inst && mv.inst[c] === false));
+    }
+    this.positionMarks();
+  }
+  /* Hranice stránek čtečky: řádek, kterým začíná další stránka, dostane značku */
+  markPages(lay) {
+    this.pageStarts = [];
+    lay.pages.forEach((pg, n) => {
+      if (!n) return;
+      const first = pg.flat()[0];
+      const b = first != null && lay.blocks[first];
+      if (!b) return;
+      this.pageStarts.push({ n: n + 1, line: b.repeat ? b.rsrc : b.src, inRepeat: !!b.repeat });
+    });
+    this.pageCount = lay.pages.length;
+    this.positionMarks();
+  }
+  positionMarks() {
+    for (const r of this.el.querySelectorAll('.pg-start')) r.classList.remove('pg-start');
+    this.marks.innerHTML = '';
+    if (!this.pageStarts) return;
+    const rows = [];
+    for (const ps of this.pageStarts) {
+      const row = this.rowByLine(ps.line);
+      if (row) { row.classList.add('pg-start'); rows.push([row, ps]); }
+    }
+    for (const [row, ps] of rows) {
+      this.marks.appendChild(h('div', { class: 've-pg', style: { top: (row.offsetTop - 2) + 'px' } },
+        h('span', {}, `strana ${ps.n} / ${this.pageCount}` + (ps.inRepeat ? ' (uprostřed opakování)' : ''))));
+    }
   }
 
   /* ----- Převod zpět na zdrojový text ----- */
@@ -340,8 +415,23 @@ class VisualEditor {
     this.onInput(); this.pushHist();
     return true;
   }
-  bold() { document.execCommand('bold'); this.onInput(); }
-  italic() { document.execCommand('italic'); this.onInput(); }
+  // vlastní tučné / kurzíva (execCommand by u šablony s tučným písmem „odtučňoval“)
+  bold() { this.toggleTag('B'); }
+  italic() { this.toggleTag('I'); }
+  toggleTag(tag) {
+    const sel = window.getSelection();
+    if (!sel.rangeCount || !this.el.contains(sel.anchorNode)) return;
+    const node = n => (n.nodeType === 1 ? n : n.parentNode);
+    const a = node(sel.anchorNode).closest(tag), f = node(sel.focusNode).closest(tag);
+    if (a && a === f && this.el.contains(a)) {
+      const first = a.firstChild, last = a.lastChild;
+      a.replaceWith(...a.childNodes);
+      if (first) { const r = document.createRange(); r.setStartBefore(first); r.setEndAfter(last); sel.removeAllRanges(); sel.addRange(r); }
+      this.onInput(); this.pushHist();
+      return;
+    }
+    this.inlineWrap(() => document.createElement(tag.toLowerCase()));
+  }
   size(dir) {
     const sel = window.getSelection();
     if (sel.rangeCount && this.el.contains(sel.anchorNode)) {

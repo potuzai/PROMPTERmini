@@ -29,7 +29,7 @@ const SHOTS = process.env.SHOTS || '/tmp/claude-0/shots';
   await p.keyboard.press('Enter');
   await p.waitForSelector('.ve');
   assert(await p.isVisible('.ve') && !(await p.isVisible('.ta')), 'výchozí je vizuální editor (bez značek)');
-  assert(await p.isVisible('.ed-panel .tb-label:has-text("Kdo zpívá")') && await p.isVisible('.ed-panel .tb-label:has-text("Údaje o písni")'), 'nástroje jsou v pravém panelu');
+  assert(await p.isVisible('.ed-tools .tb-label:has-text("Kdo zpívá")') && await p.isVisible('.ed-panel .tb-label:has-text("Údaje o písni")'), 'nástroje nad textem, údaje v pravém panelu');
 
   // psaní a Enter
   await p.click('.ve');
@@ -55,12 +55,12 @@ const SHOTS = process.env.SHOTS || '/tmp/claude-0/shots';
 
   // tučně
   await selectText('Druhý', 'řádek', 'řádek');
-  await p.click('.ed-panel button[title^="Tučně"]');
+  await p.click('.ed-tools button[title^="Tučně"]');
   await sleep(200);
   assert((await src()).includes('@J Druhý **řádek**'), 'tučné písmo z panelu');
   // větší
   await selectText('Druhý', 'Druhý', 'Druhý');
-  await p.click('.ed-panel button:has-text("Větší")');
+  await p.click('.ed-tools button:has-text("Větší")');
   await sleep(200);
   assert((await src()).includes('{+:Druhý}'), 'větší písmo pro označený text');
 
@@ -72,7 +72,7 @@ const SHOTS = process.env.SHOTS || '/tmp/claude-0/shots';
 
   // sekce před první řádek
   await selectText('První', 'P', 'P');
-  await p.click('.ed-panel button:has-text("Sekce")');
+  await p.click('.ed-tools button:has-text("Sekce")');
   await p.click('.modal button:has-text("Refrén")');
   await p.click('.modal button:has-text("Vložit")');
   await sleep(300);
@@ -90,20 +90,31 @@ const SHOTS = process.env.SHOTS || '/tmp/claude-0/shots';
   assert(await p.locator('.ve .vchord').count() >= 2, 'akordy jsou v editoru vidět nad textem');
   assert(!(await p.evaluate(() => document.querySelector('.ve').textContent.includes('[Am]'))), 'akordy nejsou psané jako značky');
   await sleep(500);
-  assert(!(await p.evaluate(() => document.querySelector('.preview-wrap .stage').textContent.includes('Am'))), 'náhled čtečky akordy neukazuje');
+  assert(await p.evaluate(() => getComputedStyle(document.querySelector('.ve .vchord'), '::after').display === 'none'), 'v pohledu „Čtečka“ jsou akordy schované');
+  await p.click('.ed-panel [data-v=mus]'); await sleep(300);
+  assert(await p.evaluate(() => getComputedStyle(document.querySelector('.ve .vchord'), '::after').display !== 'none'), 'v pohledu „Pro muzikanty“ jsou akordy nad textem');
+  await p.click('.ed-panel [data-v=reader]'); await sleep(200);
+
+  // bublina u výběru
+  await selectText('Třetí', 'Třetí', 'Třetí');
+  await sleep(150);
+  assert(await p.isVisible('.sel-bubble'), 'u označeného textu se ukáže bublina');
+  await p.click('.sel-bubble .sg-btn >> nth=2');
+  await sleep(200);
+  assert(/\{V:Třetí\}/.test(await src()), 'bublina přiřadí zpěváka označeným slovům');
 
   // opakování, poznámka, nová stránka
   await selectText('Čtvrtý', null, null); await p.keyboard.press('End');
-  await p.click('.ed-panel button:has-text("Opakovat")');
+  await p.click('.ed-tools button:has-text("Opakovat")');
   await p.click('.menu >> text=Refrén');
   await sleep(300);
   assert(/Čtvrtý\n>> Refrén/.test(await src()), 'vložení opakování refrénu');
   assert(await p.isVisible('.ve-rep:has-text("Refrén")'), 'opakování je vidět jako štítek');
-  await p.click('.ed-panel button:has-text("Poznámka")');
+  await p.click('.ed-tools button:has-text("Poznámka")');
   await p.keyboard.type('2× opakovat');
   await sleep(300);
   assert((await src()).includes('>> Refrén\n// 2× opakovat'), 'poznámka se vloží za opakování');
-  await p.click('.ed-panel button:has-text("Nová stránka")');
+  await p.click('.ed-tools button:has-text("Nová stránka")');
   await sleep(300);
   assert((await src()).includes('---'), 'nová stránka');
   await p.screenshot({ path: SHOTS + '/v1-visual-wide.png' });
@@ -125,6 +136,13 @@ const SHOTS = process.env.SHOTS || '/tmp/claude-0/shots';
   await sleep(1900);
   const saved = await p.evaluate(() => [...Store.songs.values()].find(s => s.title === 'Vizuální').text);
   assert(saved.includes('@V Nový ze zdroje') && saved.includes('{T:První}'), 'automatické uložení');
+
+  // hranice stránek čtečky
+  await p.evaluate(() => { const ta = document.querySelector('.ta'); ta.value += '\n' + Array.from({ length: 60 }, (_, i) => 'dlouhý řádek ' + (i + 1)).join('\n'); SongsView.editor.ve.render(ta.value); SongsView.editor.renderPreview(); });
+  await sleep(300);
+  assert(await p.locator('.ve-pg').count() >= 1 && await p.isVisible('.ve-pg:has-text("strana 2")'), 'v textu je vidět, kde začíná další stránka čtečky');
+  assert(/stránk[ya] ve čtečce/.test(await p.textContent('.page-info')), 'počet stránek u názvu písně');
+  await p.screenshot({ path: SHOTS + '/v1b-pages.png' });
 
   // šířky okna
   for (const [w, hgt, n] of [[1280, 800, 'v2-visual-mid'], [1000, 800, 'v3-visual-narrow']]) {

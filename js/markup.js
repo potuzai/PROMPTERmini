@@ -82,7 +82,7 @@ function parseSong(text) {
       lines.push({ kind: 'repeat', singers: [], ok: !!ref });
       if (ref) {
         // Zopakuje bloky sekce (bez koncových mezer)
-        let copy = ref.map(b => Object.assign({}, b, { repeat: true }));
+        let copy = ref.map(b => Object.assign({}, b, { repeat: true, rsrc: i }));
         while (copy.length && copy[copy.length - 1].type === 'gap') copy.pop();
         blocks.push(...copy);
       } else {
