@@ -134,7 +134,7 @@ class SongEditor {
             h('button', { class: 'btn small icon', title: 'Větší písmo editoru', onclick: () => this.efs(1) }, 'A+')),
           taWrap),
         h('div', { class: 'bottom-actions' },
-        h('button', { class: 'btn primary', onclick: () => this.save(true) }, '💾 Uložit (Ctrl+S)'),
+        h('button', { class: 'btn primary', title: 'Uložit hned (Ctrl+S) – jinak se ukládá samo', onclick: () => this.save(true) }, '💾 Uložit'),
         h('button', { class: 'btn', onclick: e => addToPlaylistMenu(e.currentTarget, [this.id]) }, '＋ Do playlistu ▾'),
         h('button', { class: 'btn', onclick: () => this.duplicate() }, '⧉ Duplikovat'),
         h('button', { class: 'btn', onclick: () => this.exportTxt() }, '⇩ Export .txt'),
@@ -614,43 +614,67 @@ async function pickSectionName(nextVerse) {
 }
 
 function showMarkupHelp() {
-  const sg = Store.singers();
-  const rows = [
-    ['## Refrén', 'nadpis sekce (sloka, refrén…)'],
-    ['## Refrén @' + (sg[2] ? sg[2].code : 'V'), 'sekce, kterou celou zpívá daný zpěvák'],
-    ['@' + (sg[0] ? sg[0].code : 'J') + ' text', 'řádek zpívá ' + (sg[0] ? sg[0].name : 'zpěvák')],
-    ['@' + (sg[0] ? sg[0].code : 'J') + '+' + (sg[1] ? sg[1].code : 'T') + ' text', 'řádek zpívají dva (pruh má obě barvy)'],
-    ['{' + (sg[1] ? sg[1].code : 'T') + ':slovo}', 'jiný zpěvák jen pro část řádku'],
-    ['>> Refrén', 'zopakuje celou sekci „Refrén“ (nemusíš ji psát znovu)'],
-    ['// 2× opakovat', 'poznámka malým písmem (v šabloně jde skrýt)'],
-    ['**tučně**  *kurzíva*  __podtržení__', 'zvýraznění'],
-    ['{+:slova}  {++:slova}  {-:slova}', 'větší / ještě větší / menší písmo (tlačítka Větší, Menší)'],
-    ['---', 'vynutí novou stránku ve čtečce'],
-    ['(prázdný řádek)', 'mezera mezi slokami'],
-  ];
-  const ins = Store.instruments();
-  const i0 = ins[0] ? ins[0].code : 'G', i1 = ins[1] ? ins[1].code : 'B';
-  const musRows = [
-    ['[Am]Zpívám [C]ptákům', 'akordy nad slovy'],
-    ['[G] [D] [Em]', 'samostatný řádek akordů (intro, mezihra)'],
-    ['%' + i0 + ' Ladění Drop D, capo 2', 'informace pro ' + (ins[0] ? ins[0].name.toLowerCase() : 'nástroj')],
-    ['%' + i0 + '+' + i1 + ' stop na 4', 'informace pro více nástrojů'],
-    ['%%' + i0 + ' Tabulatura intro', 'začátek bloku (tabulatura) – mezery zůstanou přesně'],
-    ['%%', 'konec bloku'],
-  ];
-  const body = h('div', {},
-    h('div', { class: 'cheat' }, rows.map(r => [h('code', {}, r[0]), h('span', {}, r[1])])),
-    h('h3', {}, 'Pro muzikanty – ve čtečce se nikdy nezobrazí'),
-    h('div', { class: 'cheat' }, musRows.map(r => [h('code', {}, r[0]), h('span', {}, r[1])])),
-    h('p', { class: 'help' }, 'Zobrazíš je v náhledu přepínačem „Pro muzikanty“ (Vrstvy = co ukázat) a v tisku playlistu. Nástroje a jejich zkratky nastavíš v záložce Obsazení.'),
-    h('h3', {}, 'Zkratky v editoru'),
-    h('div', { class: 'cheat' },
-      sg.slice(0, 9).map((s, i) => [h('span', {}, h('kbd', {}, 'Alt'), ' + ', h('kbd', {}, String(i + 1))), h('span', {}, 'označit vybrané řádky: ', h('b', { style: { color: s.color } }, s.name))]),
-      [h('span', {}, h('kbd', {}, 'Alt'), ' + ', h('kbd', {}, '0')), h('span', {}, 'zrušit označení')],
-      [h('span', {}, h('kbd', {}, 'Shift'), ' + klik'), h('span', {}, 'přidat zpěváka k již označeným (duet)')],
-      [h('span', {}, h('kbd', {}, 'Ctrl'), ' + ', h('kbd', {}, 'S')), h('span', {}, 'uložit (ukládá se i automaticky)')],
-      [h('span', {}, 'Klik v náhledu'), h('span', {}, 'po výběru zpěváka (štětec) přiřadí řádek kliknutím')]));
-  modal({ title: 'Jak psát text písně', body, wide: true });
+  // Ukázka vykreslená stejně jako ve čtečce (malá, na černém pozadí)
+  const sample = (text, mus) => {
+    const tpl = Object.assign(Store.template('default'), { fontSize: 22, padX: 14, padY: 10, singerBar: true, barWidth: 5 });
+    const box = h('div', { class: 'stage help-stage' });
+    Render.applyTemplate(box, tpl, 0, 0);
+    box.style.width = ''; box.style.height = '';
+    const map = Store.singerMap();
+    for (const b of filterForView(parseSong(text).blocks, mus || null)) box.appendChild(Render.blockEl(b, tpl, map));
+    return box;
+  };
+  const sg = Store.singers(), ins = Store.instruments();
+  const s0 = sg[0] || { code: 'J', name: 'Já' }, s1 = sg[1] || { code: 'T', name: 'Ty' }, s2 = sg[2] || { code: 'V', name: 'Všichni' };
+  const i0 = ins[0] || { code: 'G', name: 'Kytara' };
+  const step = (title, how, ex) => h('div', { class: 'help-step' },
+    h('div', { class: 'help-txt' }, h('h3', {}, title), ...how.map(t => h('p', {}, t))),
+    ex ? h('div', { class: 'help-ex' }, ex) : null);
+  const k = t => h('kbd', {}, t), b = t => h('b', {}, t);
+
+  const body = h('div', { class: 'help-guide' },
+    step('1. Vlož text písně',
+      [['Zkopíruj text (třeba z webu) a vlož ho do pole ', b('Text písně'), ' (', k('Ctrl'), '+', k('V'), '). Aplikace ho sama uklidí: odstraní zbytečné mezery, rozpozná sloky a refrény a akordy schová pro muzikanty.']]),
+    step('2. Označ, kdo zpívá',
+      [['Myší označ řádky a klikni na tlačítko zpěváka ve skupině ', b('Kdo zpívá'), '. Řádky se obarví.'],
+       ['Nebo klikni na zpěváka a pak klikej přímo na řádky v náhledu vpravo.'],
+       ['Duet: podrž ', k('Shift'), ' a klikni na dalšího zpěváka.']],
+      sample(`@${s0.code} Tenhle řádek zpívá ${s0.name.toLowerCase()}\n@${s1.code} tenhle ${s1.name.toLowerCase()}\n@${s0.code}+${s1.code} a tenhle oba spolu`)),
+    step('3. Sloky a refrén',
+      [['Tlačítko ', b('Sekce'), ' vloží nadpis (Sloka 1, Refrén…).'],
+       ['Refrén napiš jen jednou. Na další místa ho vložíš tlačítkem ', b('Opakovat'), ' – ve čtečce se vypíše celý.']],
+      sample(`## Refrén @${s2.code}\nRefrén zpívají všichni\n\n## Sloka 2\n@${s1.code} Druhá sloka`)),
+    step('4. Zvýraznění',
+      [['Označ slova a použij skupinu ', b('Formát textu'), ': tučně, kurzíva, ', b('Větší'), ' a ', b('Menší'), '.'],
+       ['Tlačítko ', b('Poznámka'), ' přidá malou poznámku (např. „2× a konec“).']],
+      sample(`Normální, **tučně**, *kurzívou* a {+:větší}\n// 2× a konec`)),
+    step('5. Pro muzikanty',
+      [['Akordy, ladění nebo tabulatury přidáš tlačítkem ', b('Pro muzikanty'), '. ', b('Ve čtečce se nikdy nezobrazí'), ' – uvidíš je jen v náhledu po přepnutí na „Pro muzikanty“ a v tisku.']],
+      sample(`%${i0.code} Capo 2\n[G]Zpívám [D]ptákům`, { chords: true, inst: { [i0.code]: true } })),
+    h('div', { class: 'help-tips' },
+      h('h3', {}, 'Dobré vědět'),
+      h('ul', {},
+        h('li', {}, 'Ukládá se samo. Tlačítko ', b('Uložit'), ' (nebo ', k('Ctrl'), '+', k('S'), ') jen uloží hned.'),
+        h('li', {}, 'Krok zpět: ', k('Ctrl'), '+', k('Z'), '.'),
+        h('li', {}, 'Zpěváky a jejich barvy upravíš v záložce ', b('Obsazení'), ', vzhled stránky v ', b('Šablonách'), '.'))),
+    h('details', { class: 'help-adv' }, h('summary', {}, 'Pro pokročilé: co znamenají značky v textu'),
+      h('p', { class: 'help' }, 'Tlačítka vkládají do textu tyto značky. Můžeš je psát i ručně.'),
+      h('div', { class: 'cheat' }, [
+        [`@${s0.code} text`, `řádek zpívá ${s0.name}`],
+        [`@${s0.code}+${s1.code} text`, 'řádek zpívají dva'],
+        [`{${s1.code}:slovo}`, `jen část řádku zpívá ${s1.name}`],
+        ['## Refrén', 'nadpis sekce'],
+        [`## Refrén @${s2.code}`, `celou sekci zpívá ${s2.name}`],
+        ['>> Refrén', 'zopakovat sekci'],
+        ['// text', 'poznámka'],
+        ['**tučně**  *kurzíva*', 'zvýraznění'],
+        ['{+:text}  {-:text}', 'větší / menší písmo'],
+        ['---', 'nová stránka ve čtečce'],
+        ['[Am]slovo', 'akord nad slovem (jen pro muzikanty)'],
+        [`%${i0.code} text`, `poznámka pro nástroj ${i0.name} (jen pro muzikanty)`],
+        [`%%${i0.code} … %%`, 'blok, např. tabulatura (jen pro muzikanty)'],
+      ].map(r => [h('code', {}, r[0]), h('span', {}, r[1])]).flat())));
+  modal({ title: 'Jak psát text písně', body, wide: true, buttons: [{ label: 'Rozumím', value: true, primary: true }] });
 }
 
 async function importTxtFiles(fileList) {

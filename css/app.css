@@ -237,6 +237,16 @@ table.tbl { border-collapse: collapse; width: 100%; background: var(--panel); bo
 .seg .btn + .btn { margin-left: -1px; }
 .seg .btn.on { background: var(--acc-soft); border-color: var(--acc-hi); color: #fff; }
 .print-mus { padding-left: 24px; }
+/* nápověda „Jak psát text písně“ */
+.help-guide { display: flex; flex-direction: column; gap: 14px; }
+.help-step { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 300px); gap: 16px; align-items: start; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.help-step h3, .help-tips h3 { margin: 0 0 6px; color: var(--text); font-size: 13px; }
+.help-step p { margin: 0 0 6px; line-height: 1.5; }
+.stage.help-stage { position: static; display: block; transform: none; width: auto !important; height: auto !important; padding: 10px 14px; border: 1px solid var(--line2); }
+.help-tips ul { margin: 0; padding-left: 18px; line-height: 1.7; }
+.help-adv summary { cursor: pointer; color: var(--dim); }
+.help-adv[open] summary { margin-bottom: 8px; }
+@media (max-width: 820px) { .help-step { grid-template-columns: 1fr; } }
 .cheat { display: grid; grid-template-columns: auto 1fr; gap: 7px 16px; align-items: baseline; }
 .cheat code { white-space: nowrap; }
 details summary { color: var(--text); }
