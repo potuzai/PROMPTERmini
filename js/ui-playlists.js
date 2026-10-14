@@ -25,7 +25,7 @@ const PlaylistsView = {
 
     const pl = plId && Store.playlists.get(plId);
     if (!pl) {
-      content.appendChild(h('div', { class: 'empty' }, h('div', { class: 'big' }, '📋'),
+      content.appendChild(h('div', { class: 'empty' }, h('div', { class: 'empty-ic' }, '📋'),
         'Playlist = seznam písní v pořadí, jak je budete hrát.',
         h('button', { class: 'btn primary big', onclick: () => this.create() }, '＋ Nový playlist')));
       return;

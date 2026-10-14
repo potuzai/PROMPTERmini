@@ -40,7 +40,7 @@ const SongsView = {
     if (song) this.editor = new SongEditor(content, song);
     else {
       this.editor = null;
-      content.appendChild(h('div', { class: 'empty' }, h('div', { class: 'big' }, '🎵'),
+      content.appendChild(h('div', { class: 'empty' }, h('div', { class: 'empty-ic' }, '🎵'),
         h('div', {}, 'Vyber píseň vlevo, nebo vytvoř novou.'),
         h('div', { class: 'row', style: { flex: '0 0 auto' } },
           h('button', { class: 'btn primary big', onclick: () => this.create() }, '＋ Nová píseň'),

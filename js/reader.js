@@ -96,7 +96,7 @@ const Reader = {
     if (!cur) {
       this.wrap.innerHTML = '';
       this.wrap.appendChild(h('div', { class: 'empty', style: { color: '#888', fontSize: '24px' } },
-        h('div', { class: 'big' }, '🎤'), 'Playlist je prázdný.', h('div', { style: { fontSize: '16px' } }, 'Stiskni L nebo prostřední tlačítko pro výběr playlistu, Esc pro návrat.')));
+        h('div', { class: 'empty-ic' }, '🎤'), 'Playlist je prázdný.', h('div', { style: { fontSize: '16px' } }, 'Stiskni L nebo prostřední tlačítko pro výběr playlistu, Esc pro návrat.')));
       this.stage = null;
       return;
     }
