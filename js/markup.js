@@ -163,13 +163,13 @@ function filterForView(blocks, mus) {
 function inlineHtml(text, singerMap) {
   let s = esc(text);
   // {+:větší} {++:ještě větší} {-:menší}
-  s = s.replace(/\{([+-]{1,2}):([^}]*)\}/g, (all, lvl, inner) => `<span class="sz sz${lvl[0] === '+' ? 'p' : 'm'}${lvl.length}">${inner}</span>`);
+  s = s.replace(/\{([+-]{1,2}):([^}]*)\}/g, (all, lvl, inner) => `<span class="sz sz${lvl[0] === '+' ? 'p' : 'm'}${lvl.length}" data-l="${lvl}">${inner}</span>`);
   s = s.replace(/\{([A-Za-z0-9+]+):([^}]*)\}/g, (all, codes, inner) => {
     const list = parseCodes(codes);
     const sg = singerMap[list[0]];
     if (!sg) return inner;
     const st = `color:${sg.color};${sg.bold ? 'font-weight:900;' : ''}${sg.italic ? 'font-style:italic;' : ''}`;
-    return `<span class="sg-in" style="${st}">${inner}</span>`;
+    return `<span class="sg-in" data-c="${list.join('+')}" style="${st}">${inner}</span>`;
   });
   s = s.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
   s = s.replace(/__(.+?)__/g, '<u>$1</u>');

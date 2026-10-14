@@ -119,41 +119,53 @@ class SongEditor {
 
     this.savedInd = h('span', { class: 'saved-ind' }, 'Uloženo ' + fmtDate(song.updatedAt) + (song.updatedBy ? ' · ' + song.updatedBy : ''));
 
-    // Rozložení: vlevo údaje, nástroje a text; vpravo náhled čtečky přes celou výšku
+    // Rozložení: uprostřed text písně (vizuálně, bez značek), vpravo panel s nástroji a náhled čtečky
+    this.mode = Settings.get('editorMode') === 'raw' ? 'raw' : 'visual';
+    this.inTitle.classList.add('title-inp');
+    this.veHost = h('div', { class: 've-wrap' });
+    this.rawPane = h('div', { class: 'pane raw-pane' },
+      h('div', { class: 'pane-title' }, 'Zdrojový text se značkami', h('span', { class: 'grow' }),
+        h('button', { class: 'btn small icon', title: 'Menší písmo editoru', onclick: () => this.efs(-1) }, 'A−'),
+        h('button', { class: 'btn small icon', title: 'Větší písmo editoru', onclick: () => this.efs(1) }, 'A+')),
+      taWrap);
+    this.modeBtn = h('button', { class: 'btn small', onclick: () => this.setMode(this.mode === 'visual' ? 'raw' : 'visual') });
     const ed = h('div', { class: 'song-editor' },
       h('div', { class: 'ed-left' },
-        h('div', { class: 'm-bar' },
+        h('div', { class: 'ed-head' },
           h('button', { class: 'btn m-back', onclick: () => { location.hash = '#/songs'; } }, '◀ Písně'),
-          h('button', { class: 'btn m-meta', onclick: e => { e.currentTarget.closest('.ed-left').classList.toggle('show-meta'); } }, 'Údaje o písni ▾')),
-        h('div', { class: 'meta-row' }, f('Název', this.inTitle), f('Interpret', this.inArtist), f('Tónina', this.inKey), f('Tempo', this.inTempo), f('Štítky (čárkou)', this.inTags), f('Šablona písně', this.inTpl)),
-        tb,
-        h('div', { class: 'pane' },
-          h('div', { class: 'pane-title' }, 'Text písně', this.savedInd, h('span', { class: 'grow' }),
-            h('label', { class: 'chk', title: 'Při vložení (Ctrl+V) automaticky vyčistit text' }, this.chkClean = h('input', { type: 'checkbox', checked: Settings.get('pasteClean') !== false }), 'čistit při vložení'),
-            h('button', { class: 'btn small icon', title: 'Menší písmo editoru', onclick: () => this.efs(-1) }, 'A−'),
-            h('button', { class: 'btn small icon', title: 'Větší písmo editoru', onclick: () => this.efs(1) }, 'A+')),
-          taWrap),
+          this.inTitle, this.savedInd),
+        this.veHost, this.rawPane,
         h('div', { class: 'bottom-actions' },
-        h('button', { class: 'btn primary', title: 'Uložit hned (Ctrl+S) – jinak se ukládá samo', onclick: () => this.save(true) }, '💾 Uložit'),
-        h('button', { class: 'btn', onclick: e => addToPlaylistMenu(e.currentTarget, [this.id]) }, '＋ Do playlistu ▾'),
-        h('button', { class: 'btn', onclick: () => this.duplicate() }, '⧉ Duplikovat'),
-        h('button', { class: 'btn', onclick: () => this.exportTxt() }, '⇩ Export .txt'),
-        h('span', { class: 'grow' }),
-        h('button', { class: 'btn danger icon', title: 'Smazat píseň', 'aria-label': 'Smazat píseň', onclick: () => this.del() }, ic('trash')))),
-      h('div', { class: 'ed-right pane' },
-        h('div', { class: 'pane-title' }, 'Náhled čtečky', this.brushLbl = h('span', {})),
-        h('div', { class: 'preview-bar' },
-          this.viewSeg = h('div', { class: 'seg', title: 'Co ukázat v náhledu' },
-            h('button', { class: 'btn small', 'data-v': 'reader', onclick: () => this.setView(false) }, 'Čtečka'),
-            h('button', { class: 'btn small', 'data-v': 'mus', onclick: () => this.setView(true) }, 'Pro muzikanty')),
-          this.layersBtn = h('button', { class: 'btn small', title: 'Které informace pro muzikanty ukázat', onclick: e => layersPopover(e.currentTarget, () => this.renderPreview()) }, 'Vrstvy ▾'),
-          this.prevTpl),
-        h('div', { class: 'preview-bar' },
-          h('span', { class: 'help' }, 'Stránka'),
-          h('button', { class: 'btn small icon', onclick: () => this.turn(-1), title: 'Předchozí stránka' }, ic('left')), this.pageLbl,
-          h('button', { class: 'btn small icon', onclick: () => this.turn(1), title: 'Další stránka' }, ic('right')),
-          h('button', { class: 'btn small', title: 'Otevřít ve čtečce', onclick: () => this.openReader() }, '▶ Čtečka')),
-        this.prevWrap)
+          h('button', { class: 'btn primary', title: 'Uložit hned (Ctrl+S) – jinak se ukládá samo', onclick: () => this.save(true) }, '💾 Uložit'),
+          h('button', { class: 'btn', onclick: e => addToPlaylistMenu(e.currentTarget, [this.id]) }, '＋ Do playlistu ▾'),
+          h('button', { class: 'btn', onclick: () => this.duplicate() }, '⧉ Duplikovat'),
+          h('button', { class: 'btn', onclick: () => this.exportTxt() }, '⇩ Export .txt'),
+          h('span', { class: 'grow' }),
+          h('button', { class: 'btn danger icon', title: 'Smazat píseň', 'aria-label': 'Smazat píseň', onclick: () => this.del() }, ic('trash')))),
+      h('div', { class: 'ed-side' },
+        this.panel = h('div', { class: 'ed-panel' },
+          this.metaBox = h('details', { class: 'tb-group meta-group', open: Settings.get('metaOpen') !== false },
+            h('summary', { class: 'tb-label', title: 'Rozbalit / sbalit' }, 'Údaje o písni', this.metaSum = h('span', { class: 'meta-sum' })),
+            h('div', { class: 'meta-grid' }, f('Interpret', this.inArtist), f('Tónina', this.inKey), f('Tempo', this.inTempo), f('Štítky (čárkou)', this.inTags), f('Šablona písně', this.inTpl))),
+          tb,
+          h('div', { class: 'tb-group' }, h('div', { class: 'tb-label' }, 'Editor'),
+            h('div', { class: 'tb-btns' },
+              h('label', { class: 'chk', title: 'Při vložení (Ctrl+V) automaticky vyčistit text' }, this.chkClean = h('input', { type: 'checkbox', checked: Settings.get('pasteClean') !== false }), 'čistit vložený text'),
+              this.modeBtn))),
+        h('div', { class: 'ed-right pane' },
+          h('div', { class: 'pane-title' }, 'Náhled čtečky', this.brushLbl = h('span', {})),
+          h('div', { class: 'preview-bar' },
+            this.viewSeg = h('div', { class: 'seg', title: 'Co ukázat v náhledu' },
+              h('button', { class: 'btn small', 'data-v': 'reader', onclick: () => this.setView(false) }, 'Čtečka'),
+              h('button', { class: 'btn small', 'data-v': 'mus', onclick: () => this.setView(true) }, 'Pro muzikanty')),
+            this.layersBtn = h('button', { class: 'btn small', title: 'Které informace pro muzikanty ukázat', onclick: e => layersPopover(e.currentTarget, () => this.renderPreview()) }, 'Vrstvy ▾'),
+            this.prevTpl),
+          h('div', { class: 'preview-bar' },
+            h('span', { class: 'help' }, 'Stránka'),
+            h('button', { class: 'btn small icon', onclick: () => this.turn(-1), title: 'Předchozí stránka' }, ic('left')), this.pageLbl,
+            h('button', { class: 'btn small icon', onclick: () => this.turn(1), title: 'Další stránka' }, ic('right')),
+            h('button', { class: 'btn small', title: 'Otevřít ve čtečce', onclick: () => this.openReader() }, '▶ Čtečka')),
+          this.prevWrap))
     );
     this.root.innerHTML = '';
     this.root.appendChild(ed);
@@ -168,12 +180,19 @@ class SongEditor {
     this.ta.addEventListener('paste', e => this.onPaste(e));
     this.ta.addEventListener('keyup', () => this.followCursor());
     this.ta.addEventListener('click', () => this.followCursor());
+    this.metaBox.addEventListener('toggle', () => Settings.set('metaOpen', this.metaBox.open));
+    const paintMetaSum = () => { this.metaSum.textContent = [this.inArtist.value, this.inKey.value, this.inTempo.value].map(x => x.trim()).filter(Boolean).join(' · '); };
+    [this.inArtist, this.inKey, this.inTempo].forEach(i => i.addEventListener('input', paintMetaSum));
+    paintMetaSum();
+    // tlačítka panelu nesmí vzít editoru kurzor ani výběr
+    this.panel.addEventListener('mousedown', e => { if (this.vis && e.target.closest('button')) e.preventDefault(); });
     this.chkClean.addEventListener('change', () => Settings.set('pasteClean', this.chkClean.checked));
     this.prevTpl.addEventListener('change', () => { this.page = 0; this.renderPreview(); });
     this.prevWrap.addEventListener('click', e => this.onPreviewClick(e));
-    this.ro = new ResizeObserver(() => { this.syncBackWidth(); this.fitPreview(); });
+    this.ro = new ResizeObserver(() => { if (this.mode === 'raw') this.syncBackWidth(); this.fitPreview(); });
     this.ro.observe(this.ta); this.ro.observe(this.prevWrap);
     this.fillTplSelect();
+    this.setMode(this.mode, true);
     this.paintViewSeg();
     this.style = song.style || null;
     this.paintFontBtn();
@@ -182,6 +201,20 @@ class SongEditor {
     this.updateBrushLbl();
   }
 
+  setMode(m, initial) {
+    if (!initial && this.mode === 'visual' && this.ve) this.ve.onInput();
+    this.mode = m;
+    if (!initial) Settings.set('editorMode', m);
+    this.veHost.hidden = m !== 'visual';
+    this.rawPane.hidden = m !== 'raw';
+    this.modeBtn.textContent = m === 'visual' ? 'Zobrazit zdrojový text (značky)' : 'Zpět na vizuální úpravy';
+    this.modeBtn.title = m === 'visual' ? 'Pro pokročilé: text se značkami, jak se ukládá' : 'Úpravy bez značek';
+    if (m === 'visual') {
+      if (!this.ve) this.ve = new VisualEditor(this.veHost, this);
+      else this.ve.render(this.ta.value);
+    } else { this.paintBack(); this.syncBackWidth(); }
+  }
+  get vis() { return this.mode === 'visual' && this.ve; }
   fillTplSelect() {
     const cur = this.inTpl.value || Settings.get('defaultTemplate');
     this.prevTpl.innerHTML = '';
@@ -255,6 +288,7 @@ class SongEditor {
     if (out !== text) this.replaceRange(start, end, out);
   }
   assign(code, mode) {
+    if (this.vis) { this.brush = mode === 'clear' ? null : code; this.brushMode = mode; this.updateBrushLbl(); return this.ve.assignSinger(code, mode === 'set' ? 'force' : mode); }
     this.brush = mode === 'clear' ? null : code;
     this.brushMode = mode;
     this.updateBrushLbl();
@@ -266,10 +300,12 @@ class SongEditor {
     this.brushLbl.innerHTML = s ? `· štětec: <b style="color:${s.color}">${esc(s.name)}</b> (klikej na řádky)` : '· klikni na řádek = vybrat v textu';
   }
   insertText(t) {
+    if (this.vis && t.includes('---')) return this.ve.insertLines(['---', ''], { focusOffset: 1 });
     const s = this.ta.selectionStart, e = this.ta.selectionEnd;
     this.replaceRange(s, e, t, false);
   }
   insertLinePrefix(prefix) {
+    if (this.vis) return this.ve.insertLines([prefix]);
     const { start, end, text } = this.selLines();
     if (text.trim() === '') this.replaceRange(start, end, prefix, false);
     else this.editLines(l => l.trim() ? (l.startsWith(prefix) ? l.slice(prefix.length) : prefix + l) : l);
@@ -277,8 +313,10 @@ class SongEditor {
   async insertSection() {
     const parsed = parseSong(this.ta.value);
     const n = parsed.blocks.filter(b => b.type === 'section' && /^sloka/i.test(b.text)).length;
+    const keep = this.vis ? this.ve.saveSel() : null; // okno s volbou názvu vezme editoru kurzor
     const name = await pickSectionName(n + 1);
     if (!name) return;
+    if (this.vis) { this.ve.el.focus(); this.ve.restoreSel(keep); return this.ve.insertLines(['## ' + name], { before: true }); }
     const { start } = this.selLines();
     const v = this.ta.value;
     const pre = start > 0 && v[start - 2] !== '\n' && start > 1 ? '\n' : '';
@@ -287,6 +325,7 @@ class SongEditor {
   insertRepeat(anchor) {
     const secs = [...new Set(parseSong(this.ta.value).blocks.filter(b => b.type === 'section' && !b.repeat).map(b => b.text))];
     if (!secs.length) return toast('Nejdřív napiš sekci (např. „## Refrén“), kterou chceš opakovat.', 'warn');
+    if (this.vis) return popupMenu(anchor, secs.map(name => ({ label: '↻ ' + name, action: () => this.ve.insertLines(['>> ' + name]) })));
     popupMenu(anchor, secs.map(name => ({ label: '>> ' + name, action: () => {
       const { start, end, text } = this.selLines();
       const ins = (text.trim() ? text + '\n' : '') + '>> ' + name;
@@ -294,6 +333,7 @@ class SongEditor {
     } })));
   }
   wrapSel(mark) {
+    if (this.vis) return mark === '**' ? this.ve.bold() : this.ve.italic();
     const s = this.ta.selectionStart, e = this.ta.selectionEnd;
     if (s === e) return;
     const t = this.ta.value.slice(s, e);
@@ -302,6 +342,7 @@ class SongEditor {
   }
   /* Vybraný text větší / menší: {+:text}, {++:text}, {-:text} */
   sizeSel(dir) {
+    if (this.vis) return this.ve.size(dir);
     const s = this.ta.selectionStart, e = this.ta.selectionEnd;
     if (s === e) return toast('Nejdřív označ text, který má být větší nebo menší.', 'warn');
     let t = this.ta.value.slice(s, e);
@@ -356,6 +397,13 @@ class SongEditor {
     this.fontBtn.title = on ? 'Tato píseň má vlastní písmo (klikni pro úpravu)' : 'Písmo, velikost a zarovnání jen pro tuto píseň (jinak platí šablona)';
   }
   caseMenu() {
+    if (this.vis) {
+      return popupMenu($('.toolbar', this.root), [
+        { label: 'VELKÁ PÍSMENA', action: () => this.ve.replaceSelText(t => t.toLocaleUpperCase('cs')) },
+        { label: 'malá písmena', action: () => this.ve.replaceSelText(t => t.toLocaleLowerCase('cs')) },
+        { label: 'První písmeno velké', action: () => this.ve.replaceSelText(t => t.replace(/(^|\n)(\s*)(\p{L})/gu, (a, b, c, d) => b + c + d.toLocaleUpperCase('cs'))) },
+      ]);
+    }
     const s = this.ta.selectionStart, e = this.ta.selectionEnd;
     if (s === e) return toast('Nejdřív označ text.', 'warn');
     const t = this.ta.value.slice(s, e);
@@ -378,6 +426,20 @@ class SongEditor {
     this.layersBtn.disabled = !on;
   }
   musMenu(anchor) {
+    if (this.vis) {
+      const vitems = [{ label: 'Akord na místo kurzoru…', action: async () => {
+        const sel = window.getSelection(); const saved = sel.rangeCount ? sel.getRangeAt(0).cloneRange() : null;
+        const name = await promptDlg('Akord (např. Am, C, G7)', '');
+        if (!name) return;
+        if (saved) { this.ve.el.focus(); sel.removeAllRanges(); sel.addRange(saved); }
+        this.ve.insertChord(name);
+      } }];
+      for (const ins of Store.instruments()) {
+        vitems.push({ label: `${ins.name} – poznámka (ladění, rytmus…)`, action: () => this.ve.insertLines([`%${ins.code} `]) });
+        vitems.push({ label: `${ins.name} – tabulatura / blok`, action: () => this.ve.insertLines([`%%${ins.code} Tabulatura`, 'e|-----------------|', 'B|-----------------|', 'G|-----------------|', 'D|-----------------|', 'A|-----------------|', 'E|-----------------|', '%%']) });
+      }
+      return popupMenu(anchor, vitems);
+    }
     const items = [{ label: '[Am] Akord na místo kurzoru', action: () => {
       const s = this.ta.selectionStart, e = this.ta.selectionEnd;
       const sel = this.ta.value.slice(s, e);
@@ -410,6 +472,7 @@ class SongEditor {
         .map(([k, l]) => h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: true, onchange: e => { o[k] = e.target.checked; } }), l)));
     const ok = await modal({ title: '🧹 Vyčistit text', body: box, buttons: [{ label: 'Zrušit', value: false }, { label: 'Vyčistit', value: true, primary: true }] });
     if (!ok) return;
+    if (this.vis) { this.ve.setText(cleanText(this.ta.value, o)); toast('Text vyčištěn (Ctrl+Z vrátí zpět)', 'ok'); return; }
     let s = this.ta.selectionStart, e = this.ta.selectionEnd;
     if (s === e) { s = 0; e = this.ta.value.length; }
     this.replaceRange(s, e, cleanText(this.ta.value.slice(s, e), o), false);
@@ -493,6 +556,12 @@ class SongEditor {
   }
   fitPreview() { if (this.stage) Render.fit(this.stage, this.prevWrap, Settings.get('screenW'), Settings.get('screenH'), 'none'); }
   turn(d) { this.page += d; this.renderPreview(); }
+  followCursorVisual() {
+    if (!this.lay || this.lay.pages.length < 2 || !this.ve) return;
+    const line = this.ve.currentLine();
+    const pg = this.lay.pages.findIndex(p => p.flat().some(i => this.lay.blocks[i].src === line && !this.lay.blocks[i].repeat));
+    if (pg >= 0 && pg !== this.page) { this.page = pg; this.renderPreview(); }
+  }
   followCursor() {
     // přepne náhled na stránku, kde je kurzor
     if (!this.lay || this.lay.pages.length < 2) return;
@@ -504,6 +573,14 @@ class SongEditor {
     const el = e.target.closest('[data-src]');
     if (!el) return;
     const line = +el.dataset.src;
+    if (this.vis) {
+      if (this.brush) {
+        const lines = this.ta.value.split('\n');
+        lines[line] = applySingerToLine(lines[line], this.brush, e.shiftKey ? 'toggle' : 'force');
+        this.ve.setText(lines.join('\n'));
+      } else this.ve.focusLine(line);
+      return;
+    }
     const v = this.ta.value;
     let start = 0;
     for (let i = 0; i < line; i++) { start = v.indexOf('\n', start) + 1; if (start === 0) return; }

@@ -124,8 +124,8 @@ async function browserMember(browser) {
   assert(!lsRaw.includes('heslo123'), 'prohlížeč: heslo není v úložišti čitelně');
   // úprava v prohlížeči přes editor → program ji uvidí
   await D.p.evaluate(() => { location.hash = '#/songs/zluty'; });
-  await D.p.waitForSelector('.ta');
-  await D.p.click('.ta'); await D.p.keyboard.press('Control+End'); await D.p.keyboard.type('\n@V z prohlížeče');
+  await D.p.waitForSelector('.ve');
+  await D.p.click('.ve .ve-line >> nth=-1'); await D.p.keyboard.press('Control+End'); await D.p.keyboard.press('Enter'); await D.p.keyboard.type('z prohlížeče');
   await D.p.keyboard.press('Control+S');
   await D.p.waitForFunction(() => Store.pendingCount() === 0 && Sync.state === 'idle', null, { timeout: 20000 });
   await A.w.evaluate(() => Sync.run());

@@ -47,7 +47,15 @@ Monitor čtečky během běhu programu neusne. Program se po případném pádu 
 
 ### Psaní textu
 
-Vlož text (Ctrl+V). Akordy, zbytečné mezery a prázdné řádky se automaticky vyčistí a sloky a refrény se rozpoznají. Pak označ řádky a klikni na zpěváka (nebo použij **Alt+1 / Alt+2 / Alt+3**). Případně vyber zpěváka a klikej přímo na řádky v náhledu vpravo.
+Text se píše a upravuje přímo tak, jak vypadá ve čtečce: barvy zpěváků, nadpisy slok i akordy jsou vidět rovnou, bez značek. Všechny nástroje jsou v pravém panelu.
+
+1. Vlož text (Ctrl+V). Akordy, zbytečné mezery a prázdné řádky se automaticky vyčistí a sloky a refrény se rozpoznají.
+2. Klikni do řádku (nebo označ víc řádků) a v panelu zvol **Kdo zpívá** (nebo **Alt+1 / Alt+2 / Alt+3**). Když označíš jen pár slov, obarví se jen ta.
+3. **Struktura**: vložit nadpis sekce, opakování refrénu, poznámku nebo novou stránku. Opakování a nová stránka se v textu ukážou jako štítek s křížkem na odebrání.
+4. **Formát textu**: tučně, kurzíva, větší / menší písmo, velká / malá písmena. Ctrl+Z vrátí jakoukoli úpravu.
+5. Akordy jsou vidět nad slovy. Kliknutím na akord ho změníš nebo smažeš. Další informace pro muzikanty přidáš přes **Pro muzikanty ▾**.
+
+Pokročilí si můžou v panelu **Editor** přepnout na **Zdrojový text (značky)**, tedy text tak, jak se ukládá:
 
 | Zápis | Význam |
 |---|---|

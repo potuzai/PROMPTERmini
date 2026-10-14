@@ -4,7 +4,7 @@ const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode
   const b = await chromium.launch();
   const ctx = await b.newContext({ viewport: { width: 1400, height: 850 } });
   await ctx.grantPermissions(['clipboard-read', 'clipboard-write']);
-  await ctx.addInitScript(() => { if (!localStorage.getItem('prompter-settings')) localStorage.setItem('prompter-settings', JSON.stringify({ welcomed: true })); });
+  await ctx.addInitScript(() => { if (!localStorage.getItem('prompter-settings')) localStorage.setItem('prompter-settings', JSON.stringify({ welcomed: true, editorMode: 'raw' })); });
   const p = await ctx.newPage();
   p.on('pageerror', e => console.log('PAGEERR', e.message));
   await p.goto('http://localhost:8123/index.html#/songs');
