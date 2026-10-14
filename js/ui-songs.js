@@ -79,28 +79,34 @@ class SongEditor {
     this.inTpl = h('select', { class: 'inp' }, h('option', { value: '' }, '— výchozí / dle playlistu —'),
       [...Store.templates.values()].map(t => h('option', { value: t.id, selected: t.id === song.templateId }, t.name)));
 
-    const tb = h('div', { class: 'toolbar' });
-    tb.appendChild(h('span', { class: 'help' }, 'Kdo zpívá:'));
+    // Lišta nástrojů – pojmenované skupiny, zalamují se vcelku (přehledné i na úzkém displeji)
     this.sgButtons = singers.map((s, i) => {
       const b = h('button', { class: 'btn small sg-btn', style: { '--c': s.color }, title: `Označit vybrané řádky: ${s.name} (Alt+${i + 1}). Shift+klik = přidat k ostatním. Pak lze klikat i na řádky v náhledu.` },
         h('b', { style: { color: s.color } }, s.code), ' ', s.name);
       b.addEventListener('click', e => this.assign(s.code, e.shiftKey ? 'toggle' : 'set'));
       return b;
     });
-    tb.append(...this.sgButtons,
-      h('button', { class: 'btn small', title: 'Zrušit označení (Alt+0)', onclick: () => this.assign(null, 'clear') }, '✕ nikdo'),
-      h('span', { class: 'sep' }),
-      h('button', { class: 'btn small', title: 'Vložit nadpis sekce', onclick: () => this.insertSection() }, '## Sekce'),
-      h('button', { class: 'btn small', title: 'Zopakovat dříve napsanou sekci (např. refrén)', onclick: e => this.insertRepeat(e.currentTarget) }, '>> Opakovat ▾'),
-      h('button', { class: 'btn small', title: 'Poznámka (malým písmem, lze skrýt v šabloně)', onclick: () => this.insertLinePrefix('// ') }, '// Poznámka'),
-      h('button', { class: 'btn small', title: 'Vynutit novou stránku', onclick: () => this.insertText('\n---\n') }, '⤓ Stránka'),
-      h('button', { class: 'btn small', title: 'Akordy, ladění, tabulatury… – jen pro muzikanty, ve čtečce se nezobrazí', onclick: e => this.musMenu(e.currentTarget) }, '🎸 Muzikanti ▾'),
-      h('button', { class: 'btn small', title: 'Tučně (Ctrl+B)', onclick: () => this.wrapSel('**') }, h('b', {}, 'B')),
-      h('button', { class: 'btn small', title: 'Kurzíva (Ctrl+I)', onclick: () => this.wrapSel('*') }, h('i', {}, 'I')),
-      h('span', { class: 'sep' }),
-      h('button', { class: 'btn small', title: 'Odstranit akordy, sjednotit mezery, rozpoznat sloky/refrény', onclick: () => this.cleanDialog() }, '🧹 Vyčistit text'),
-      h('button', { class: 'btn small', title: 'Velká/malá písmena vybraného textu', onclick: () => this.caseMenu() }, 'Aa'),
-      h('button', { class: 'btn small', title: 'Nápověda ke značkám', onclick: () => showMarkupHelp() }, '?'));
+    const group = (label, ...btns) => h('div', { class: 'tb-group' }, h('div', { class: 'tb-label' }, label), h('div', { class: 'tb-btns' }, ...btns));
+    const btn = (label, title, onclick) => h('button', { class: 'btn small', title, onclick }, label);
+    const tb = h('div', { class: 'toolbar' },
+      group('Kdo zpívá', ...this.sgButtons,
+        btn('✕ Nikdo', 'Zrušit označení zpěváka (Alt+0)', () => this.assign(null, 'clear'))),
+      group('Struktura',
+        btn('Sekce', 'Vložit nadpis sloky, refrénu… (zápis ## Název)', () => this.insertSection()),
+        btn('Opakovat ▾', 'Zopakovat dříve napsanou sekci, např. refrén (zápis >> Název)', e => this.insertRepeat(e.currentTarget)),
+        btn('Poznámka', 'Poznámka malým písmem, v šabloně jde skrýt (zápis // text)', () => this.insertLinePrefix('// ')),
+        btn('⤓ Nová stránka', 'Ve čtečce začít novou stránku (zápis ---)', () => this.insertText('\n---\n'))),
+      group('Formát textu',
+        btn(h('b', {}, 'B'), 'Tučně (Ctrl+B)', () => this.wrapSel('**')),
+        btn(h('i', {}, 'I'), 'Kurzíva (Ctrl+I)', () => this.wrapSel('*')),
+        btn('Větší', 'Vybraný text větším písmem (opakovaně ještě větší)', () => this.sizeSel('+')),
+        btn('Menší', 'Vybraný text menším písmem', () => this.sizeSel('-')),
+        btn('Aa ▾', 'Velká / malá písmena vybraného textu', () => this.caseMenu())),
+      group('Celá píseň',
+        this.fontBtn = btn('Písmo ▾', 'Písmo, velikost a zarovnání jen pro tuto píseň (jinak platí šablona)', e => this.fontPopover(e.currentTarget)),
+        btn('🎸 Pro muzikanty ▾', 'Akordy, ladění, tabulatury… – ve čtečce se nezobrazí', e => this.musMenu(e.currentTarget)),
+        btn('🧹 Vyčistit', 'Vyčistit vložený text: akordy, mezery, sloky a refrény', () => this.cleanDialog()),
+        btn('?', 'Nápověda – jak psát text písně', () => showMarkupHelp())));
 
     this.ta = h('textarea', { class: 'ta', spellcheck: 'false', placeholder: 'Sem vlož nebo napiš text písně…\n\nTip: označ řádky a klikni na zpěváka nahoře (nebo Alt+1, Alt+2…).' });
     this.ta.value = song.text || '';
@@ -136,12 +142,14 @@ class SongEditor {
         h('button', { class: 'btn danger icon', title: 'Smazat píseň', 'aria-label': 'Smazat píseň', onclick: () => this.del() }, ic('trash')))),
       h('div', { class: 'ed-right pane' },
         h('div', { class: 'pane-title' }, 'Náhled čtečky', this.brushLbl = h('span', {})),
-        h('div', { class: 'preview-bar' }, this.prevTpl,
+        h('div', { class: 'preview-bar' },
           this.viewSeg = h('div', { class: 'seg', title: 'Co ukázat v náhledu' },
             h('button', { class: 'btn small', 'data-v': 'reader', onclick: () => this.setView(false) }, 'Čtečka'),
             h('button', { class: 'btn small', 'data-v': 'mus', onclick: () => this.setView(true) }, 'Pro muzikanty')),
           this.layersBtn = h('button', { class: 'btn small', title: 'Které informace pro muzikanty ukázat', onclick: e => layersPopover(e.currentTarget, () => this.renderPreview()) }, 'Vrstvy ▾'),
-          h('span', { class: 'grow' }),
+          this.prevTpl),
+        h('div', { class: 'preview-bar' },
+          h('span', { class: 'help' }, 'Stránka'),
           h('button', { class: 'btn small icon', onclick: () => this.turn(-1), title: 'Předchozí stránka' }, ic('left')), this.pageLbl,
           h('button', { class: 'btn small icon', onclick: () => this.turn(1), title: 'Další stránka' }, ic('right')),
           h('button', { class: 'btn small', title: 'Otevřít ve čtečce', onclick: () => this.openReader() }, '▶ Čtečka')),
@@ -167,6 +175,8 @@ class SongEditor {
     this.ro.observe(this.ta); this.ro.observe(this.prevWrap);
     this.fillTplSelect();
     this.paintViewSeg();
+    this.style = song.style || null;
+    this.paintFontBtn();
     this.paintBack();
     this.renderPreview();
     this.updateBrushLbl();
@@ -197,6 +207,7 @@ class SongEditor {
       tags: this.inTags.value.split(',').map(t => t.trim()).filter(Boolean),
       templateId: this.inTpl.value,
       text: this.ta.value,
+      style: this.style === undefined ? (old.style || null) : this.style,
     });
   }
   markDirty() {
@@ -288,6 +299,61 @@ class SongEditor {
     const t = this.ta.value.slice(s, e);
     const un = t.startsWith(mark) && t.endsWith(mark) && t.length >= mark.length * 2;
     this.replaceRange(s, e, un ? t.slice(mark.length, t.length - mark.length) : mark + t + mark);
+  }
+  /* Vybraný text větší / menší: {+:text}, {++:text}, {-:text} */
+  sizeSel(dir) {
+    const s = this.ta.selectionStart, e = this.ta.selectionEnd;
+    if (s === e) return toast('Nejdřív označ text, který má být větší nebo menší.', 'warn');
+    let t = this.ta.value.slice(s, e);
+    const m = /^\{([+-]{1,2}):([\s\S]*)\}$/.exec(t);
+    let level = m ? (m[1][0] === '+' ? m[1].length : -m[1].length) : 0;
+    if (m) t = m[2];
+    level = Math.max(-2, Math.min(2, level + (dir === '+' ? 1 : -1)));
+    const out = level === 0 ? t : `{${(level > 0 ? '+' : '-').repeat(Math.abs(level))}:${t}}`;
+    this.replaceRange(s, e, out);
+  }
+  fontPopover(anchor) {
+    $$('.menu').forEach(m => m.remove());
+    const song = this.collect();
+    const st = Object.assign({}, song.style || {});
+    const base = Store.template(this.prevTpl.value);
+    const apply = () => {
+      const clean = {};
+      for (const [k, v] of Object.entries(st)) if (v !== '' && v != null && !(k === 'sizePct' && +v === 100)) clean[k] = v;
+      this.style = Object.keys(clean).length ? clean : null;
+      this.markDirty(); this.schedulePreview(); this.paintFontBtn();
+    };
+    const f = (label, el) => h('label', { class: 'f' }, h('span', {}, label), el);
+    const fontSel = h('select', { class: 'inp' }, h('option', { value: '' }, `dle šablony (${base.fontFamily})`), FONTS.map(x => h('option', { value: x, selected: st.fontFamily === x }, x)));
+    fontSel.onchange = () => { st.fontFamily = fontSel.value; apply(); };
+    const sizeLbl = h('b', {}, (st.sizePct || 100) + ' %');
+    const size = h('input', { type: 'range', min: 50, max: 200, step: 5, value: st.sizePct || 100 });
+    size.oninput = () => { st.sizePct = +size.value; sizeLbl.textContent = size.value + ' %'; apply(); };
+    const wSel = h('select', { class: 'inp' }, [['', 'dle šablony'], [400, 'normální'], [600, 'polotučné'], [700, 'tučné'], [900, 'extra tučné']].map(([v, l]) => h('option', { value: v, selected: String(st.fontWeight || '') === String(v) }, l)));
+    wSel.onchange = () => { st.fontWeight = wSel.value ? +wSel.value : ''; apply(); };
+    const lhSel = h('select', { class: 'inp' }, [['', 'dle šablony'], [1.05, 'těsné'], [1.2, 'normální'], [1.4, 'volnější'], [1.6, 'volné']].map(([v, l]) => h('option', { value: v, selected: String(st.lineHeight || '') === String(v) }, l)));
+    lhSel.onchange = () => { st.lineHeight = lhSel.value ? +lhSel.value : ''; apply(); };
+    const alSel = h('select', { class: 'inp' }, [['', 'dle šablony'], ['left', 'vlevo'], ['center', 'na střed'], ['right', 'vpravo']].map(([v, l]) => h('option', { value: v, selected: (st.align || '') === v }, l)));
+    alSel.onchange = () => { st.align = alSel.value; apply(); };
+    const m = h('div', { class: 'menu menu-form' },
+      h('div', { class: 'menu-head' }, 'Písmo jen pro tuto píseň'),
+      f('Font', fontSel),
+      h('label', { class: 'f' }, h('span', {}, 'Velikost: ', sizeLbl, ` (šablona ${base.fontSize} px)`), size),
+      h('div', { class: 'grid2' }, f('Tloušťka', wSel), f('Řádkování', lhSel)),
+      f('Zarovnání', alSel),
+      h('div', { class: 'row', style: { marginTop: '6px' } },
+        h('button', { class: 'btn small nogrow', onclick: () => { for (const k of Object.keys(st)) delete st[k]; apply(); m.remove(); } }, 'Zpět na šablonu'),
+        h('span', { class: 'help' }, 'Pro všechny písně najednou se písmo nastavuje v Šablonách.')));
+    document.body.appendChild(m);
+    const r = anchor.getBoundingClientRect();
+    m.style.left = Math.max(8, Math.min(r.left, innerWidth - m.offsetWidth - 8)) + 'px';
+    m.style.top = Math.min(r.bottom + 4, innerHeight - m.offsetHeight - 8) + 'px';
+    setTimeout(() => document.addEventListener('mousedown', function off(e) { if (!m.contains(e.target) && e.target !== anchor) { m.remove(); document.removeEventListener('mousedown', off); } }), 0);
+  }
+  paintFontBtn() {
+    const on = !!(this.style && Object.keys(this.style).length);
+    this.fontBtn.classList.toggle('on', on);
+    this.fontBtn.title = on ? 'Tato píseň má vlastní písmo (klikni pro úpravu)' : 'Písmo, velikost a zarovnání jen pro tuto píseň (jinak platí šablona)';
   }
   caseMenu() {
     const s = this.ta.selectionStart, e = this.ta.selectionEnd;
@@ -411,8 +477,8 @@ class SongEditor {
   schedulePreview() { clearTimeout(this.pvT); this.pvT = setTimeout(() => this.renderPreview(), 180); }
   renderPreview() {
     const W = Settings.get('screenW'), H = Settings.get('screenH');
-    const tpl = Store.template(this.prevTpl.value);
     const song = this.collect();
+    const tpl = applySongStyle(Store.template(this.prevTpl.value), song);
     this.lay = Render.layout(song, tpl, W, H, musViewOpts());
     if (this.page >= this.lay.pages.length) this.page = this.lay.pages.length - 1;
     if (this.page < 0) this.page = 0;
@@ -558,6 +624,7 @@ function showMarkupHelp() {
     ['>> Refrén', 'zopakuje celou sekci „Refrén“ (nemusíš ji psát znovu)'],
     ['// 2× opakovat', 'poznámka malým písmem (v šabloně jde skrýt)'],
     ['**tučně**  *kurzíva*  __podtržení__', 'zvýraznění'],
+    ['{+:slova}  {++:slova}  {-:slova}', 'větší / ještě větší / menší písmo (tlačítka Větší, Menší)'],
     ['---', 'vynutí novou stránku ve čtečce'],
     ['(prázdný řádek)', 'mezera mezi slokami'],
   ];

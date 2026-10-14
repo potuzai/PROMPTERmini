@@ -7,6 +7,7 @@
   ---                     nová stránka
   {KÓD:slova}             zpěvák uvnitř řádku
   **tučně**  *kurzíva*  __podtržení__
+  {+:slova}  {-:slova}    větší / menší písmo (++ ještě větší)
   (prázdný řádek)         mezera mezi slokami
 
   Pro muzikanty (ve čtečce se NIKDY nezobrazí, jen v náhledu „Pro muzikanty“ a v tisku):
@@ -161,6 +162,8 @@ function filterForView(blocks, mus) {
 /* Inline formátování → HTML */
 function inlineHtml(text, singerMap) {
   let s = esc(text);
+  // {+:větší} {++:ještě větší} {-:menší}
+  s = s.replace(/\{([+-]{1,2}):([^}]*)\}/g, (all, lvl, inner) => `<span class="sz sz${lvl[0] === '+' ? 'p' : 'm'}${lvl.length}">${inner}</span>`);
   s = s.replace(/\{([A-Za-z0-9+]+):([^}]*)\}/g, (all, codes, inner) => {
     const list = parseCodes(codes);
     const sg = singerMap[list[0]];

@@ -78,7 +78,7 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   // nadpis sekce přes tlačítko
   await p.click('.ta'); await p.keyboard.press('Control+End');
   await p.keyboard.press('Enter');
-  await p.click('text=## Sekce');
+  await p.click('.tb-group button:has-text("Sekce")');
   await p.click('.modal button:has-text("Bridge")');
   await p.keyboard.press('Enter');
   await sleep(200);
@@ -261,6 +261,25 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   await p.emulateMedia({ media: 'screen' });
   await p.evaluate(() => { const o = Object.assign({}, Settings.get('printOpts'), { what: 'texts', color: false }); printDocument(buildPrintPlaylist(Store.playlists.get('pl1'), o)); });
   assert(await p.evaluate(() => !document.querySelector('#print-root .pr-setlist') && !!document.querySelector('#print-root .pr-bw')), 'černobílý tisk jen textů');
+
+  /* ---------- Písmo písně a větší/menší text ---------- */
+  await p.evaluate(async () => { await Store.put('songs', { id: 'fnt', title: 'Písmo', text: '@J Malý a velký text' }); location.hash = '#/songs/fnt'; }); await sleep(600);
+  await p.evaluate(() => { const ta = document.querySelector('.ta'); const i = ta.value.indexOf('velký'); ta.focus(); ta.setSelectionRange(i, i + 5); });
+  await p.click('button:has-text("Větší")'); await sleep(300);
+  assert((await p.inputValue('.ta')).includes('{+:velký}'), 'tlačítko Větší obalí vybraný text');
+  await p.click('button:has-text("Větší")'); await sleep(300);
+  assert((await p.inputValue('.ta')).includes('{++:velký}'), 'opakované Větší = ještě větší');
+  assert(await p.isVisible('.ed-right .szp2'), 'náhled ukáže větší text');
+  await p.click('button:has-text("Písmo")'); await sleep(200);
+  await p.locator('.menu-form input[type=range]').fill('150'); await sleep(300);
+  await p.locator('.menu-form select >> nth=0').selectOption('Roboto Condensed'); await sleep(400);
+  await p.mouse.click(5, 5); await sleep(1800);
+  const fst = await p.evaluate(() => ({ style: Store.songs.get('fnt').style, base: Store.template(Settings.get('defaultTemplate')).fontSize, fs: document.querySelector('.ed-right .stage').style.getPropertyValue('--fs'), ff: document.querySelector('.ed-right .stage').style.fontFamily }));
+  const want = Math.round(fst.base * 1.5);
+  assert(fst.style && fst.style.sizePct === 150 && fst.style.fontFamily === 'Roboto Condensed', 'písmo písně se uloží do písně');
+  assert(fst.fs === want + 'px' && fst.ff.includes('Roboto Condensed'), 'náhled použije písmo písně (' + fst.fs + ')');
+  assert(await p.evaluate(w => { Reader.plId = null; const t = Reader.tplFor(Store.songs.get('fnt')); return t.fontSize === w && t.fontFamily === 'Roboto Condensed'; }, want), 'čtečka použije písmo písně');
+  assert(await p.evaluate(w => Reader.tplFor(Store.songs.get('long')).fontSize !== w, want), 'ostatní písně zůstanou podle šablony');
 
   /* ---------- Vrstvy pro muzikanty ---------- */
   const musTxt = '%G Capo 2\n[D] [G]\n## Sloka @J\n[D]Zpívám [G]ptákům\n%%G Tab\ne|--0--|\nB|--1--|\n%%\n%B walking bass';

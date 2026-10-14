@@ -212,6 +212,19 @@ const Render = {
   },
 };
 
+/* Vlastní písmo konkrétní písně (přepíše šablonu jen pro tuto píseň) */
+function applySongStyle(tpl, song) {
+  const st = song && song.style;
+  if (!st) return tpl;
+  const t = Object.assign({}, tpl);
+  if (st.fontFamily) t.fontFamily = st.fontFamily;
+  if (st.sizePct && st.sizePct !== 100) t.fontSize = Math.round(t.fontSize * st.sizePct / 100);
+  if (st.fontWeight) t.fontWeight = st.fontWeight;
+  if (st.lineHeight) t.lineHeight = st.lineHeight;
+  if (st.align) t.align = st.align;
+  return t;
+}
+
 function dimLabel(W, H) {
   return h('div', { class: 'preview-dim' }, `monitor ${W}×${H} · ${H >= W ? 'na výšku' : 'na šířku'}`);
 }
