@@ -184,7 +184,7 @@ const Render = {
     const page = lay.pages[pageIdx] || [];
     cols.forEach((col, ci) => {
       col.innerHTML = '';
-      for (const i of (page[ci] || [])) col.appendChild(this.blockEl(lay.blocks[i], tpl, lay.singerMap));
+      for (const i of (page[ci] || [])) { const el = this.blockEl(lay.blocks[i], tpl, lay.singerMap); el.dataset.bi = i; col.appendChild(el); }
     });
     const hl = $('.st-h-left', stage), hr = $('.st-h-right', stage), fl = $('.st-f-left', stage), fr = $('.st-f-right', stage);
     hl.innerHTML = `<b>${esc(info.title || '')}</b>${info.artist ? ' <span class="dim">– ' + esc(info.artist) + '</span>' : ''}`;

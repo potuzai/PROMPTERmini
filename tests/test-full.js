@@ -9,7 +9,7 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
 (async () => {
   const b = await chromium.launch();
   const ctx = await b.newContext({ viewport: { width: 1500, height: 900 }, acceptDownloads: true });
-  await ctx.addInitScript(() => { if (!localStorage.getItem('prompter-settings')) localStorage.setItem('prompter-settings', JSON.stringify({ welcomed: true, editorMode: 'raw' })); });
+  await ctx.addInitScript(() => { if (!localStorage.getItem('prompter-settings')) localStorage.setItem('prompter-settings', JSON.stringify({ welcomed: true })); });
   const p = await ctx.newPage();
   const errors = [];
   p.on('pageerror', e => errors.push(e.message));
@@ -66,34 +66,39 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   const hid = await p.evaluate(() => Store.sortedSongs().find(s => s.title === 'Holubí dům').id);
   await p.evaluate(id => { location.hash = '#/songs/' + id; }, hid);
   await sleep(500);
+  const src = () => p.evaluate(() => SongsView.editor.src);
+  const more = async label => { await p.click('.ep-actions button[title="Další akce"]'); await p.click(`.menu div:has-text("${label}")`); };
   const dl = p.waitForEvent('download');
-  await p.click('button:has-text("Export .txt")');
+  await more('Export .txt');
   const d = await dl; const dpath = path.join(tmp, 'exp.txt'); await d.saveAs(dpath);
   assert(fs.readFileSync(dpath, 'utf8').startsWith('# Holubí dům'), 'export písně do .txt');
-  await p.click('button:has-text("Duplikovat")');
+  await more('Duplikovat');
   await sleep(500);
   assert(await p.evaluate(() => Store.sortedSongs().some(s => s.title === 'Holubí dům (kopie)')), 'duplikace písně');
   await p.evaluate(id => { location.hash = '#/songs/' + id; }, hid);
   await sleep(500);
-  // nadpis sekce přes tlačítko
-  await p.click('.ta'); await p.keyboard.press('Control+End');
-  await p.keyboard.press('Enter');
-  await p.click('.tb-group button:has-text("Sekce")');
+  // nadpis sekce přes tlačítko v panelu (před poslední řádek)
+  await p.focus('.se-wrap'); await p.keyboard.press('End');
+  await p.click('.ed-panel button:has-text("Sekce")');
   await p.click('.modal button:has-text("Bridge")');
   await p.keyboard.press('Enter');
   await sleep(200);
-  assert((await p.inputValue('.ta')).includes('## Bridge'), 'vložení sekce tlačítkem');
+  assert((await src()).includes('## Bridge'), 'vložení sekce tlačítkem');
+  await p.click('.ed-panel button:has-text("Řádek")');
   await p.keyboard.type('text mostu');
-  await p.click('button:has-text("Opakovat")');
+  await p.keyboard.press('Escape');
+  await sleep(100);
+  assert(/## Bridge\ntext mostu/.test(await src()), 'nový řádek pod sekcí a psaní');
+  await p.click('.ed-panel button:has-text("Opakovat")');
   await p.click('.menu div:has-text("Refrén")');
   await sleep(200);
-  assert((await p.inputValue('.ta')).includes('>> Refrén'), 'opakování sekce z nabídky');
-  // tučně
-  await p.evaluate(() => { const ta = document.querySelector('.ta'); const i = ta.value.indexOf('text mostu'); ta.focus(); ta.setSelectionRange(i, i + 4); });
+  assert(/text mostu\n>> Refrén/.test(await src()), 'opakování sekce z nabídky');
+  // tučně celý řádek
+  await p.keyboard.press('ArrowUp');
   await p.keyboard.press('Control+B');
-  assert((await p.inputValue('.ta')).includes('**text** mostu'), 'Ctrl+B tučně');
+  assert((await src()).includes('**text mostu**'), 'Ctrl+B tučně');
   await p.keyboard.press('Control+S'); await sleep(300);
-  assert(await p.evaluate(id => Store.songs.get(id).text.includes('**text**'), hid), 'Ctrl+S uloží');
+  assert(await p.evaluate(id => Store.songs.get(id).text.includes('**text mostu**'), hid), 'Ctrl+S uloží');
 
   /* ---------- Playlist + smazání písně z něj ---------- */
   const plId = await p.evaluate(async id => (await Store.put('playlists', { id: 'pl1', name: 'Koncert', date: '2026-10-20', templateId: '', note: '', items: [id] })).id, hid);
@@ -101,7 +106,7 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   await p.evaluate(async id => { const pl = Store.playlists.get('pl1'); pl.items.push(id); await Store.put('playlists', pl); }, copyId);
   await p.evaluate(id => { location.hash = '#/songs/' + id; }, copyId);
   await sleep(400);
-  await p.click('button[title="Smazat píseň"]');
+  await more('Smazat píseň');
   await p.click('.modal button:has-text("Smazat")');
   await sleep(400);
   assert(await p.evaluate(id => !Store.songs.has(id) && !Store.playlists.get('pl1').items.includes(id), copyId), 'smazaná píseň zmizí i z playlistu');
@@ -264,17 +269,26 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
 
   /* ---------- Písmo písně a větší/menší text ---------- */
   await p.evaluate(async () => { await Store.put('songs', { id: 'fnt', title: 'Písmo', text: '@J Malý a velký text' }); location.hash = '#/songs/fnt'; }); await sleep(600);
-  await p.evaluate(() => { const ta = document.querySelector('.ta'); const i = ta.value.indexOf('velký'); ta.focus(); ta.setSelectionRange(i, i + 5); });
-  await p.click('button:has-text("Větší")'); await sleep(300);
-  assert((await p.inputValue('.ta')).includes('{+:velký}'), 'tlačítko Větší obalí vybraný text');
-  await p.click('button:has-text("Větší")'); await sleep(300);
-  assert((await p.inputValue('.ta')).includes('{++:velký}'), 'opakované Větší = ještě větší');
-  assert(await p.isVisible('.ed-right .szp2'), 'náhled ukáže větší text');
-  await p.click('button:has-text("Písmo")'); await sleep(200);
+  const fsrc = () => p.evaluate(() => SongsView.editor.src);
+  await p.click('.se-wrap .b-line:has-text("velký")'); await p.click('.se-wrap .b-line:has-text("velký")'); await sleep(200);
+  const selWord = () => p.evaluate(() => {
+    const el = document.querySelector('.is-edit'); const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); let n;
+    while ((n = w.nextNode())) { const i = n.data.indexOf('velký'); if (i >= 0) { const r = document.createRange(); r.setStart(n, i); r.setEnd(n, i + 5); const s = getSelection(); s.removeAllRanges(); s.addRange(r); return true; } }
+    return false;
+  });
+  await selWord();
+  await p.click('.ed-panel button:has-text("A+")'); await sleep(300);
+  assert((await fsrc()).includes('{+:velký}'), 'tlačítko A+ obalí vybraný text');
+  await p.click('.ed-panel button:has-text("A+")'); await sleep(300);
+  assert((await fsrc()).includes('{++:velký}'), 'opakované A+ = ještě větší');
+  await p.keyboard.press('Escape'); await sleep(200);
+  assert(await p.isVisible('.se-wrap .szp2'), 'stránka ukáže větší text');
+  if (!(await p.isVisible('.ed-panel button:has-text("Písmo písně")'))) await p.click('.ed-panel summary:has-text("Celá píseň")');
+  await p.click('.ed-panel button:has-text("Písmo písně")'); await sleep(200);
   await p.locator('.menu-form input[type=range]').fill('150'); await sleep(300);
   await p.locator('.menu-form select >> nth=0').selectOption('Roboto Condensed'); await sleep(400);
   await p.mouse.click(5, 5); await sleep(1800);
-  const fst = await p.evaluate(() => ({ style: Store.songs.get('fnt').style, base: Store.template(Settings.get('defaultTemplate')).fontSize, fs: document.querySelector('.ed-right .stage').style.getPropertyValue('--fs'), ff: document.querySelector('.ed-right .stage').style.fontFamily }));
+  const fst = await p.evaluate(() => ({ style: Store.songs.get('fnt').style, base: Store.template(Settings.get('defaultTemplate')).fontSize, fs: document.querySelector('.se-wrap .stage').style.getPropertyValue('--fs'), ff: document.querySelector('.se-wrap .stage').style.fontFamily }));
   const want = Math.round(fst.base * 1.5);
   assert(fst.style && fst.style.sizePct === 150 && fst.style.fontFamily === 'Roboto Condensed', 'písmo písně se uloží do písně');
   assert(fst.fs === want + 'px' && fst.ff.includes('Roboto Condensed'), 'náhled použije písmo písně (' + fst.fs + ')');
@@ -305,16 +319,16 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   assert(mres.merged === '[Am]Zpívám [C]ptákům', 'vložený text: akordy nad řádkem převedeny do textu (' + mres.merged + ')');
   // přepínač v náhledu editoru
   await p.evaluate(async t => { await Store.put('songs', { id: 'musx', title: 'Muzikanti', text: t }); location.hash = '#/songs/musx'; }, musTxt); await sleep(600);
-  assert(!(await p.isVisible('.ed-right .b-mus')), 'náhled ve výchozím stavu = čtečka');
+  assert(!(await p.isVisible('.se-wrap .b-mus')), 'stránka ve výchozím stavu = čtečka');
   assert(!(await p.isVisible('.btn.m-back')), 'mobilní tlačítka se na počítači nezobrazují');
   await p.click('.seg button:has-text("Pro muzikanty")'); await sleep(400);
-  assert(await p.isVisible('.ed-right .b-mus') && await p.isVisible('.ed-right .ch'), 'náhled pro muzikanty ukáže akordy a poznámky');
+  assert(await p.isVisible('.se-wrap .b-mus') && await p.isVisible('.se-wrap .ch'), 'náhled pro muzikanty ukáže akordy a poznámky');
   await p.click('button:has-text("Vrstvy")'); await sleep(150);
   await p.click('.menu-layers label:has-text("Kytara") input'); await sleep(300);
-  assert(!(await p.isVisible('.ed-right .b-musblock')) && await p.isVisible('.ed-right .b-mus'), 'vypnutí kytary skryje jen její vrstvy');
+  assert(!(await p.isVisible('.se-wrap .b-musblock')) && await p.isVisible('.se-wrap .b-mus'), 'vypnutí kytary skryje jen její vrstvy');
   await p.mouse.click(5, 5);
   await p.click('.seg button:has-text("Čtečka")'); await sleep(300);
-  assert(!(await p.isVisible('.ed-right .b-mus')), 'zpět na pohled čtečky');
+  assert(!(await p.isVisible('.se-wrap .b-mus')), 'zpět na pohled čtečky');
   // stránka Obsazení – nástroje
   await p.evaluate(() => { location.hash = '#/singers'; }); await sleep(400);
   assert(await p.isVisible('h2:has-text("Nástroje")') && await p.isVisible('table.tbl >> nth=1'), 'tabulka nástrojů v Obsazení');

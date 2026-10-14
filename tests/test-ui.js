@@ -4,7 +4,7 @@ const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode
   const b = await chromium.launch();
   const ctx = await b.newContext({ viewport: { width: 1400, height: 850 } });
   await ctx.grantPermissions(['clipboard-read', 'clipboard-write']);
-  await ctx.addInitScript(() => { if (!localStorage.getItem('prompter-settings')) localStorage.setItem('prompter-settings', JSON.stringify({ welcomed: true, editorMode: 'raw' })); });
+  await ctx.addInitScript(() => { if (!localStorage.getItem('prompter-settings')) localStorage.setItem('prompter-settings', JSON.stringify({ welcomed: true })); });
   const p = await ctx.newPage();
   p.on('pageerror', e => console.log('PAGEERR', e.message));
   await p.goto('http://localhost:8123/index.html#/songs');
@@ -13,32 +13,33 @@ const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode
   await p.click('button:has-text("Nová píseň")');
   await p.fill('.modal input', 'Testovací');
   await p.keyboard.press('Enter');
-  await p.waitForSelector('.ta');
+  await p.waitForSelector('.se-wrap .edit-stage');
   await p.waitForTimeout(300);
+  const src = () => p.evaluate(() => SongsView.editor.src);
   const raw = 'Am        C\n1. První řádek sloky\nDruhý   řádek\n\n\n\nRef: Refrén první\nrefrén druhý\n\n2. Sloka dvě\nG D\nřádek\n\nR:\n';
   await p.evaluate(t => navigator.clipboard.writeText(t), raw);
-  await p.focus('.ta');
+  await p.focus('.se-wrap');
   await p.keyboard.press('Control+V');
   await p.waitForTimeout(300);
-  const v = await p.inputValue('.ta');
+  const v = await src();
   console.log(v);
   assert(v.includes('## Sloka 1') && v.includes('## Refrén') && v.includes('>> Refrén') && v.includes('[Am] [C]') && !/^Am\s/m.test(v), 'čištění vloženého textu (akordy převedeny pro muzikanty)');
-  // označit řádky 2-3 jako J
-  await p.evaluate(() => { const ta = document.querySelector('.ta'); const i = ta.value.indexOf('První'); ta.setSelectionRange(i, ta.value.indexOf('řádek', i + 10)); });
+  // označit 2 řádky jako J (klik + Shift+klik, Alt+1)
+  await p.click('.se-wrap .b-line:has-text("První řádek")');
+  await p.click('.se-wrap .b-line:has-text("Druhý řádek")', { modifiers: ['Shift'] });
   await p.keyboard.press('Alt+1');
   await p.waitForTimeout(200);
-  const v2 = await p.inputValue('.ta');
-  assert(v2.includes('@J První řádek sloky\n@J Druhý řádek'), 'Alt+1 označí vybrané řádky');
+  assert((await src()).includes('@J První řádek sloky\n@J Druhý řádek'), 'Alt+1 označí vybrané řádky');
   await p.keyboard.press('Control+Z');
   await p.waitForTimeout(100);
-  assert(!(await p.inputValue('.ta')).includes('@J'), 'Ctrl+Z vrátí označení');
+  assert(!(await src()).includes('@J'), 'Ctrl+Z vrátí označení');
   await p.keyboard.press('Control+Y');
-  // štětec: klik v náhledu
-  await p.click('.sg-btn >> nth=1'); // T – zároveň štětec
-  await p.waitForTimeout(400);
-  await p.click('.preview-wrap .b-line:has-text("refrén druhý")');
+  assert((await src()).includes('@J'), 'Ctrl+Y znovu');
+  // tlačítko zpěváka v panelu
+  await p.click('.se-wrap .b-line:has-text("refrén druhý")');
+  await p.click('.ed-panel .sg-btn >> nth=1');
   await p.waitForTimeout(300);
-  assert((await p.inputValue('.ta')).includes('@T refrén druhý'), 'klik v náhledu přiřadí zpěváka');
+  assert((await src()).includes('@T refrén druhý'), 'tlačítko zpěváka obarví vybraný řádek');
   await p.waitForTimeout(1800); // autosave
   const saved = await p.evaluate(() => [...Store.songs.values()].find(s => s.title === 'Testovací').text);
   assert(saved.includes('@T refrén druhý'), 'automatické uložení');

@@ -47,18 +47,23 @@ Monitor čtečky během běhu programu neusne. Program se po případném pádu 
 
 ### Psaní textu
 
-Text se píše přímo do plochy, která vypadá jako čtečka: stejné písmo, barvy, pozadí a šířka monitoru podle šablony. Značky nejsou vidět. Červená přerušovaná čára ukazuje, kde ve čtečce začne další stránka, a u názvu písně je vidět počet stránek.
+Uprostřed editoru je přesně stránka čtečky: celý rozměr monitoru včetně záhlaví (název, interpret, tónina, BPM a pořadí v playlistu). Text se upravuje přímo v ní, bez značek. Všechny další nástroje jsou v pravém panelu.
 
-- **Lišta nad textem**: Kdo zpívá, Struktura (sekce, opakování, poznámka, nová stránka), Formát textu a Vyčistit.
-- **Bublina u výběru**: když označíš slova, objeví se u nich zpěváci a tučné / kurzíva / větší / menší písmo.
-- **Pravý panel**: údaje o písni, šablona a písmo písně, informace pro muzikanty (přidat akordy a tabulatury, přepnout pohled Čtečka / Pro muzikanty).
+**Ovládání jen šipkami a OK (airmouse):**
 
-1. Vlož text (Ctrl+V). Akordy, zbytečné mezery a prázdné řádky se automaticky vyčistí a sloky a refrény se rozpoznají.
-2. Klikni do řádku nebo označ text a zvol zpěváka (nebo **Alt+1 / Alt+2 / Alt+3**). Když označíš jen pár slov, obarví se jen ta.
-3. Opakování a nová stránka se v textu ukážou jako štítek s křížkem na odebrání. Ctrl+Z vrátí jakoukoli úpravu.
-4. Akordy uvidíš nad slovy po přepnutí na **Pro muzikanty**. Kliknutím na akord ho změníš nebo smažeš.
+| Tlačítko | Co udělá |
+|---|---|
+| ↑ ↓ | vybere řádek (na konci stránky přejde na další) |
+| ← → | kdo řádek zpívá (dokola: nikdo → Já → Ty → Všichni) |
+| OK (Enter) | nabídka: upravit text, písmo, vložit sekci / opakování / poznámku / novou stránku, smazat… (šipkami vybrat, OK potvrdit, ← zpět) |
+| psaní | upravuje vybraný řádek, Enter = nový řádek, Esc = hotovo |
+| PgUp / PgDn | předchozí / další stránka |
 
-Pokročilí si můžou v panelu **Editor** přepnout na **Zdrojový text (značky)**, tedy text tak, jak se ukládá:
+Myší: klik vybere řádek, druhý klik začne psaní, pravé tlačítko otevře nabídku. Shift + klik nebo Shift + ↓ vybere víc řádků najednou.
+
+**Pravý panel:** údaje o písni, „Ukázat jako v playlistu“ (pořadí x/y a šablona playlistu), stránky, přepínač Čtečka / Pro muzikanty, vybraný řádek (zpěvák, písmo, vložit…), celá píseň (písmo písně, vyčištění textu, zdrojový text) a uložení.
+
+Pokročilí můžou v panelu **Celá píseň → Zdrojový text…** upravit text tak, jak se ukládá (se značkami):
 
 | Zápis | Význam |
 |---|---|
