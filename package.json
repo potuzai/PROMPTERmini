@@ -1,7 +1,7 @@
 {
   "name": "prompter-pisni",
   "productName": "Prompter",
-  "version": "1.9.0",
+  "version": "1.9.1",
   "description": "Čtečka a editor textů písní pro kapelu",
   "main": "electron/main.js",
   "private": true,

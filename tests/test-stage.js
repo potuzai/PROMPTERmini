@@ -99,6 +99,17 @@ const SHOTS = process.env.SHOTS || '/tmp/claude-0/shots';
   assert(await p.isVisible('.edit-stage .is-edit'), 'klik na vybraný řádek = psaní');
   await key('Escape');
 
+  // zpěvák jen pro slova: jde měnit opakovaně a zrušit
+  await p.click('.edit-stage .b-line:has-text("refrén druhý")'); await p.click('.edit-stage .b-line:has-text("refrén druhý")'); await sleep(150);
+  await p.evaluate(() => { const el = document.querySelector('.is-edit'); const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); let n; while ((n = w.nextNode())) { const i = n.data.indexOf('druhý'); if (i >= 0) { const r = document.createRange(); r.setStart(n, i); r.setEnd(n, i + 5); getSelection().removeAllRanges(); getSelection().addRange(r); return; } } });
+  await p.click('.ed-panel .sg-btn >> nth=0'); await sleep(150);
+  assert(/refrén \{J:druhý\}/.test(await src()), 'zpěvák pro označené slovo');
+  await p.click('.ed-panel .sg-btn >> nth=1'); await sleep(150);
+  assert(/refrén \{T:druhý\}/.test(await src()) && !/\{J:/.test(await src()), 'barvu slova jde změnit znovu (bez vnoření)');
+  await p.click('.ed-panel button:has-text("Nikdo")'); await sleep(150);
+  assert(/^refrén druhý$/m.test(await src()), '„Nikdo“ barvu slova zruší');
+  await key('Escape');
+
   // pravý panel: zpěvák, sekce, poznámka, nová stránka
   await p.click('.ed-panel .sg-btn >> nth=2');
   assert(/^@V refrén druhý/m.test(await src()), 'tlačítko zpěváka v panelu');

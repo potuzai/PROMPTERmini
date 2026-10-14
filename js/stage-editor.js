@@ -591,12 +591,10 @@ class StageEditor {
   assignSinger(code, mode = 'force') {
     if (this.editing && this.editEl) {
       const sel = window.getSelection();
-      if (code && sel.rangeCount && !sel.isCollapsed && this.editEl.contains(sel.anchorNode) && sel.toString().trim()
-        && sel.toString().trim() !== this.editEl.textContent.replace(/​/g, '').trim()) {
-        // zpěvák jen pro označená slova
-        const span = h('span', { class: 'sg-in', 'data-c': code, style: { color: (Store.singerMap()[code] || {}).color || '' } });
-        const r = sel.getRangeAt(0);
-        try { span.appendChild(r.extractContents()); r.insertNode(span); } catch (e) { return; }
+      if (sel.rangeCount && !sel.isCollapsed && this.editEl.contains(sel.anchorNode) && sel.toString().trim()
+        && sel.toString().trim() !== this.editEl.textContent.replace(/\u200b/g, '').trim()) {
+        // zpěvák jen pro označená slova (jde měnit opakovaně, „Nikdo“ ho zruší)
+        this.wordSinger(sel.getRangeAt(0), code);
         this.syncEdit(); this.pushHist();
         return;
       }
@@ -612,6 +610,40 @@ class StageEditor {
     const ls = this.lines();
     for (const i of this.srcLinesOf(targets)) ls[i] = applySingerToLine(ls[i], code, code ? mode : 'clear');
     this.commit(ls.join('\n'));
+  }
+  /* Zpěvák pro označená slova: stávající barvu nahradí (nevnořuje), code = null barvu zruší */
+  wordSinger(r, code) {
+    const el = this.editEl;
+    const color = code ? (Store.singerMap()[code] || {}).color || '' : '';
+    const anc = r.commonAncestorContainer.nodeType === 1 ? r.commonAncestorContainer : r.commonAncestorContainer.parentNode;
+    const host = anc.closest('.sg-in');
+    const hostIn = host && el.contains(host) ? host : null;
+    // označený je přesně celý úsek s barvou → jen změnit barvu
+    if (hostIn && hostIn.textContent.trim() === r.toString().trim()) {
+      if (code) { hostIn.dataset.c = code; hostIn.style.color = color; selectContents(hostIn); }
+      else hostIn.replaceWith(...hostIn.childNodes);
+      return;
+    }
+    const frag = r.extractContents();
+    for (const s of [...frag.querySelectorAll('.sg-in')]) s.replaceWith(...s.childNodes);
+    const node = code ? h('span', { class: 'sg-in', 'data-c': code, style: { color } }, frag) : frag;
+    const first = code ? node : node.firstChild, last = code ? node : node.lastChild;
+    if (hostIn) {
+      // rozdělit původní barevný úsek: [před][nové][za]
+      const tail = document.createRange();
+      tail.setStart(r.startContainer, r.startOffset);
+      tail.setEnd(hostIn, hostIn.childNodes.length);
+      const after = hostIn.cloneNode(false);
+      after.appendChild(tail.extractContents());
+      hostIn.after(after);
+      hostIn.after(node);
+      if (!hostIn.textContent) hostIn.remove();
+      if (!after.textContent) after.remove();
+    } else r.insertNode(node);
+    if (first && last) {
+      const nr = document.createRange(); nr.setStartBefore(first); nr.setEndAfter(last);
+      const s = window.getSelection(); s.removeAllRanges(); s.addRange(nr);
+    }
   }
   singerByNumber(n, shift) {
     if (n === 0) return this.assignSinger(null, 'clear');
