@@ -73,7 +73,7 @@ function readFileText(file) {
       // Pokus o UTF-8, jinak Windows-1250 (staré české .txt soubory)
       const buf = new Uint8Array(r.result);
       let txt = new TextDecoder('utf-8').decode(buf);
-      if (txt.includes('�')) {
+      if (txt.includes('\uFFFD')) {
         try { txt = new TextDecoder('windows-1250').decode(buf); } catch (e) { /* nic */ }
       }
       res(txt.replace(/^﻿/, ''));
