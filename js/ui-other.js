@@ -1,13 +1,15 @@
 'use strict';
 /* ===== Šablony ===== */
-const FONTS = ['Arial', 'Arial Black', 'Segoe UI', 'Segoe UI Semibold', 'Calibri', 'Verdana', 'Tahoma', 'Trebuchet MS', 'Georgia', 'Times New Roman', 'Cambria', 'Consolas', 'Impact', 'Franklin Gothic Medium', 'Lucida Sans Unicode'];
+const FONTS = ['Roboto', 'Roboto Condensed', 'Arial', 'Arial Black', 'Segoe UI', 'Segoe UI Semibold', 'Calibri', 'Verdana', 'Tahoma', 'Trebuchet MS', 'Georgia', 'Times New Roman', 'Cambria', 'Consolas', 'Impact', 'Franklin Gothic Medium', 'Lucida Sans Unicode'];
 const TPL_FIELDS = [
   { g: 'Písmo' },
   { k: 'fontFamily', l: 'Font', t: 'select', o: FONTS.map(f => [f, f]) },
   { k: 'fontSize', l: 'Velikost písma (px)', t: 'range', min: 20, max: 160, step: 1 },
   { k: 'fontWeight', l: 'Tloušťka', t: 'select', o: [[400, 'normální'], [600, 'polotučné'], [700, 'tučné'], [900, 'extra tučné']] },
   { k: 'lineHeight', l: 'Řádkování', t: 'range', min: 0.9, max: 2.2, step: 0.02 },
-  { k: 'letterSpacing', l: 'Prostrkání písmen (em)', t: 'range', min: -0.05, max: 0.2, step: 0.005 },
+  { k: 'letterSpacing', l: 'Rozestup písmen', t: 'range', min: -0.05, max: 0.2, step: 0.005,
+    fmt: x => +x === 0 ? 'normální' : (x > 0 ? 'širší o ' : 'užší o ') + Math.round(Math.abs(x) * 100) + ' % výšky písma',
+    help: 'Vzdálenost mezi jednotlivými písmeny. Trochu širší rozestup pomáhá čitelnosti z dálky, užší dostane víc textu na řádek.' },
   { k: 'align', l: 'Zarovnání', t: 'select', o: [['left', 'vlevo'], ['center', 'na střed'], ['right', 'vpravo']] },
   { k: 'uppercase', l: 'VŠE VELKÝMI PÍSMENY', t: 'check' },
   { g: 'Barvy' },
@@ -52,7 +54,7 @@ const TemplatesView = {
       list.innerHTML = '';
       for (const t of [...Store.templates.values()].sort((a, b) => a.name.localeCompare(b.name, 'cs'))) {
         list.appendChild(h('div', { class: 'item' + (t.id === tplId ? ' active' : ''), onclick: () => { location.hash = '#/templates/' + t.id; } },
-          h('div', { style: { width: '26px', height: '18px', borderRadius: '4px', background: t.bgColor, border: '1px solid #555', flex: '0 0 auto' } }),
+          h('div', { style: { width: '26px', height: '18px', background: t.bgColor, border: '1px solid #555', flex: '0 0 auto' } }),
           h('div', { class: 't' }, h('b', {}, t.name), t.id === Settings.get('defaultTemplate') ? h('small', {}, '★ výchozí') : null)));
       }
     };
@@ -98,11 +100,11 @@ const TemplatesView = {
         c.oninput = () => { t[f.k] = c.value; upd(); };
         ctl = h('label', { class: 'chk' }, c, f.l);
       } else if (f.t === 'range') {
-        const fmt = x => f.pct ? Math.round(x * 100) + ' %' : String(+(+x).toFixed(3));
+        const fmt = f.fmt || (x => f.pct ? Math.round(x * 100) + ' %' : String(+(+x).toFixed(3)));
         const lab = h('b', {}, fmt(v));
         const r = h('input', { type: 'range', min: f.min, max: f.max, step: f.step, value: v });
         r.oninput = () => { t[f.k] = +r.value; lab.textContent = fmt(r.value); upd(); };
-        ctl = h('label', { class: 'f' }, h('span', {}, f.l, ': ', lab), r);
+        ctl = h('label', { class: 'f' }, h('span', {}, f.l, ': ', lab), r, f.help ? h('span', { class: 'help field-help' }, f.help) : null);
       }
       fs.appendChild(h('div', { style: { marginBottom: '8px' } }, ctl));
     }
@@ -215,7 +217,7 @@ async function renameSingerCode(oldC, newC) {
 /* ===== Nastavení ===== */
 const SettingsView = {
   render(main) {
-    const c = h('div', { class: 'content', style: { maxWidth: '980px' } });
+    const c = h('div', { class: 'content' });
     main.appendChild(h('div', { class: 'view' }, c));
     const S = Settings.data;
     const chk = (k, label, help) => h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: !!S[k], onchange: e => { Settings.set(k, e.target.checked); } }), label, help ? h('span', { class: 'help' }, ' – ' + help) : null);
@@ -278,6 +280,7 @@ const SettingsView = {
 
     c.append(
       h('h2', {}, 'Nastavení'),
+      h('div', { class: 'settings-grid' },
       h('fieldset', {}, h('legend', {}, '🖥 Monitor čtečky'),
         h('p', { class: 'help' }, 'Zadej rozlišení monitoru čtečky. Stránka se navrhuje přesně pro tento rozměr – náhled v editoru pak odpovídá tomu, co uvidíš na pódiu. Nastavení se sdílí s celou kapelou, takže náhled sedí i na ostatních počítačích.'),
         h('div', { class: 'row' },
@@ -303,18 +306,18 @@ const SettingsView = {
       h('fieldset', {}, h('legend', {}, '👤 Uživatel a zabezpečení'),
         h('div', { class: 'row', style: { maxWidth: '640px' } }, h('label', { class: 'f' }, h('span', {}, 'Moje jméno (u změn)'), nameIn), h('div', { class: 'nogrow' }, pinBtn)),
         h('p', { class: 'help' }, 'PIN chrání úpravy na tomto počítači (např. na čtečce, aby nikdo omylem nic nezměnil). Čtečka funguje i bez PINu. Kdo smí vidět a upravovat sdílené písně, určuješ přes GitHub níže.')),
-      this.shareBlock(),
+      this.shareBlock('span2'),
       h('fieldset', {}, h('legend', {}, '💾 Záloha a import'),
         h('div', { class: 'row' },
           h('button', { class: 'btn nogrow', onclick: () => exportBackup() }, '⇩ Stáhnout zálohu (vše)'),
           h('button', { class: 'btn nogrow', onclick: () => pickFile('.json').then(f => f && importBackup(f)) }, '⇪ Obnovit ze zálohy'),
           h('button', { class: 'btn nogrow', onclick: () => importTxtFiles() }, '⇪ Import písní z .txt')),
         h('p', { class: 'help' }, 'Záloha je jeden soubor .json se všemi písněmi, playlisty, šablonami a zpěváky. Obnova je slučovací – nic nesmaže, jen doplní/přepíše stejné položky.'),
-        window.native ? h('p', { class: 'help' }, 'Data čtečky jsou uložena jako soubory ve složce: ', h('code', {}, window.native.dataDir), ' ', h('button', { class: 'btn small', onclick: () => window.native.openDataDir() }, 'Otevřít složku')) : null),
+        window.native ? h('p', { class: 'help' }, 'Data čtečky jsou uložena jako soubory ve složce: ', h('code', {}, window.native.dataDir), ' ', h('button', { class: 'btn small', onclick: () => window.native.openDataDir() }, 'Otevřít složku')) : null),),
       h('p', { class: 'help' }, 'Verze ' + APP_VERSION + (window.native ? ' · program pro Windows' : ' · webová verze')));
   },
 
-  shareBlock() {
+  shareBlock(cls) {
     const mode = Sync.mode();
     const names = { github: 'GitHub', mega: 'Mega', folder: 'sdílenou složku' };
     const top = h('div', { style: { marginBottom: '12px' } });
@@ -380,7 +383,7 @@ const SettingsView = {
         : 'jen v programu Prompter.exe', !window.native),
       detail);
     paint(cur);
-    return h('fieldset', {}, h('legend', {}, '☁ Sdílení s kapelou'), top, body,
+    return h('fieldset', { class: cls }, h('legend', {}, '☁ Sdílení s kapelou'), top, body,
       h('label', { class: 'chk', style: { marginTop: '10px' } }, h('input', { type: 'checkbox', checked: Settings.get('autoSync'), onchange: e => Settings.set('autoSync', e.target.checked) }), 'Synchronizovat automaticky'));
   },
 

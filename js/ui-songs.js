@@ -112,29 +112,31 @@ class SongEditor {
 
     this.savedInd = h('span', { class: 'saved-ind' }, 'Uloženo ' + fmtDate(song.updatedAt) + (song.updatedBy ? ' · ' + song.updatedBy : ''));
 
+    // Rozložení: vlevo údaje, nástroje a text; vpravo náhled čtečky přes celou výšku
     const ed = h('div', { class: 'song-editor' },
-      h('div', { class: 'meta-row' }, f('Název', this.inTitle), f('Interpret', this.inArtist), f('Tónina', this.inKey), f('Tempo', this.inTempo), f('Štítky (čárkou)', this.inTags), f('Šablona písně', this.inTpl)),
-      tb,
-      h('div', { class: 'split' },
+      h('div', { class: 'ed-left' },
+        h('div', { class: 'meta-row' }, f('Název', this.inTitle), f('Interpret', this.inArtist), f('Tónina', this.inKey), f('Tempo', this.inTempo), f('Štítky (čárkou)', this.inTags), f('Šablona písně', this.inTpl)),
+        tb,
         h('div', { class: 'pane' },
-          h('div', { class: 'pane-title' }, 'Text písně', h('span', { class: 'grow' }),
+          h('div', { class: 'pane-title' }, 'Text písně', this.savedInd, h('span', { class: 'grow' }),
             h('label', { class: 'chk', title: 'Při vložení (Ctrl+V) automaticky vyčistit text' }, this.chkClean = h('input', { type: 'checkbox', checked: Settings.get('pasteClean') !== false }), 'čistit při vložení'),
             h('button', { class: 'btn small icon', title: 'Menší písmo editoru', onclick: () => this.efs(-1) }, 'A−'),
             h('button', { class: 'btn small icon', title: 'Větší písmo editoru', onclick: () => this.efs(1) }, 'A+')),
           taWrap),
-        h('div', { class: 'pane' },
-          h('div', { class: 'pane-title' }, 'Náhled čtečky', this.brushLbl = h('span', {}), h('span', { class: 'grow' }), this.prevTpl,
-            h('button', { class: 'btn small icon', onclick: () => this.turn(-1), title: 'Předchozí stránka' }, ic('left')), this.pageLbl,
-            h('button', { class: 'btn small icon', onclick: () => this.turn(1), title: 'Další stránka' }, ic('right')),
-            h('button', { class: 'btn small', title: 'Otevřít ve čtečce', onclick: () => this.openReader() }, '▶ Čtečka')),
-          this.prevWrap)),
-      h('div', { class: 'bottom-actions' },
+        h('div', { class: 'bottom-actions' },
         h('button', { class: 'btn primary', onclick: () => this.save(true) }, '💾 Uložit (Ctrl+S)'),
         h('button', { class: 'btn', onclick: e => addToPlaylistMenu(e.currentTarget, [this.id]) }, '＋ Do playlistu ▾'),
         h('button', { class: 'btn', onclick: () => this.duplicate() }, '⧉ Duplikovat'),
         h('button', { class: 'btn', onclick: () => this.exportTxt() }, '⇩ Export .txt'),
-        h('span', { class: 'grow' }), this.savedInd,
-        h('button', { class: 'btn danger', onclick: () => this.del() }, '🗑 Smazat'))
+        h('span', { class: 'grow' }),
+        h('button', { class: 'btn danger icon', title: 'Smazat píseň', 'aria-label': 'Smazat píseň', onclick: () => this.del() }, ic('trash')))),
+      h('div', { class: 'ed-right pane' },
+        h('div', { class: 'pane-title' }, 'Náhled čtečky', this.brushLbl = h('span', {})),
+        h('div', { class: 'preview-bar' }, this.prevTpl, h('span', { class: 'grow' }),
+          h('button', { class: 'btn small icon', onclick: () => this.turn(-1), title: 'Předchozí stránka' }, ic('left')), this.pageLbl,
+          h('button', { class: 'btn small icon', onclick: () => this.turn(1), title: 'Další stránka' }, ic('right')),
+          h('button', { class: 'btn small', title: 'Otevřít ve čtečce', onclick: () => this.openReader() }, '▶ Čtečka')),
+        this.prevWrap)
     );
     this.root.innerHTML = '';
     this.root.appendChild(ed);

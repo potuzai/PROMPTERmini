@@ -99,7 +99,7 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   await p.evaluate(async id => { const pl = Store.playlists.get('pl1'); pl.items.push(id); await Store.put('playlists', pl); }, copyId);
   await p.evaluate(id => { location.hash = '#/songs/' + id; }, copyId);
   await sleep(400);
-  await p.click('button:has-text("Smazat")');
+  await p.click('button[title="Smazat píseň"]');
   await p.click('.modal button:has-text("Smazat")');
   await sleep(400);
   assert(await p.evaluate(id => !Store.songs.has(id) && !Store.playlists.get('pl1').items.includes(id), copyId), 'smazaná píseň zmizí i z playlistu');
