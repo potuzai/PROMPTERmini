@@ -146,6 +146,10 @@ const PlaylistsView = {
   },
   async print(pl) {
     const o = Object.assign({ what: 'both', bigList: false, color: true, pageBreak: true, size: 'm', cols: 1, notes: true, sections: true }, Settings.get('printOpts') || {});
+    const md = musDefaults();
+    o.mus = Object.assign({ on: md.on, chords: md.chords }, o.mus || {});
+    o.mus.inst = Object.assign({}, md.inst, (o.mus && o.mus.inst) || {});
+    const musChk = (label, color, get, set) => h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: get(), onchange: e => set(e.target.checked) }), h('span', { class: 'led', style: { background: color } }), label);
     const radio = (name, val, label, help) => h('label', { class: 'chk' }, h('input', { type: 'radio', name, checked: o[name] === val, onchange: () => { o[name] = val; } }), h('span', {}, label, help ? h('span', { class: 'help' }, ' – ' + help) : null));
     const chk = (k, label) => h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: !!o[k], onchange: e => { o[k] = e.target.checked; } }), label);
     const body = h('div', { class: 'print-dlg' },
@@ -163,6 +167,11 @@ const PlaylistsView = {
           chk('pageBreak', 'Každá píseň na novou stránku'),
           chk('sections', 'Nadpisy slok a refrénů'),
           chk('notes', 'Poznámky (//)'),
+          h('h3', {}, 'Pro muzikanty'),
+          musChk('Tisknout informace pro muzikanty', '#888', () => o.mus.on, v => { o.mus.on = v; }),
+          h('div', { class: 'print-mus' },
+            musChk('Akordy', CHORD_COLOR, () => o.mus.chords, v => { o.mus.chords = v; }),
+            ...Store.instruments().map(i => musChk(i.name, i.color, () => !!o.mus.inst[i.code], v => { o.mus.inst[i.code] = v; }))),
           h('div', { class: 'row', style: { marginTop: '8px' } },
             h('label', { class: 'f' }, h('span', {}, 'Velikost písma'), (() => { const s = h('select', { class: 'inp' }, [['s', 'malé'], ['m', 'střední'], ['l', 'velké']].map(([v, l]) => h('option', { value: v, selected: o.size === v }, l))); s.onchange = () => { o.size = s.value; }; return s; })()),
             h('label', { class: 'f' }, h('span', {}, 'Sloupce'), (() => { const s = h('select', { class: 'inp' }, [[1, '1'], [2, '2']].map(([v, l]) => h('option', { value: v, selected: +o.cols === v }, l))); s.onchange = () => { o.cols = +s.value; }; return s; })())))));
@@ -213,7 +222,8 @@ function buildPrintPlaylist(pl, o) {
   if (o.what !== 'list') {
     const used = new Set();
     const songEls = songs.map((s, i) => {
-      const { blocks } = parseSong(s.text);
+      const blocks = filterForView(parseSong(s.text).blocks, o.mus && o.mus.on ? o.mus : null);
+      const im = Store.instrumentMap();
       const body = h('div', { class: 'pr-body' });
       for (const b of blocks) {
         if (b.type === 'gap') { body.appendChild(h('div', { class: 'pr-gap' })); continue; }
@@ -225,6 +235,14 @@ function buildPrintPlaylist(pl, o) {
           continue;
         }
         if (b.type === 'note') { if (o.notes) body.appendChild(h('div', { class: 'pr-note', html: inlineHtml(b.text, map) })); continue; }
+        if (b.type === 'chords') { body.appendChild(h('div', { class: 'pr-line pr-chords', html: chordedHtml(b.text, map) })); continue; }
+        if (b.type === 'mus' || b.type === 'musblock') {
+          const ins = b.inst.map(c => im[c]).filter(Boolean);
+          const tag = h('span', { class: 'pr-mtag', style: { '--ic': ins[0] ? ins[0].color : '#888' } }, ins.map(x => x.name).join(' + ') || b.inst.join('+'));
+          if (b.type === 'mus') body.appendChild(h('div', { class: 'pr-mus' }, tag, h('span', { html: ' ' + (hasChords(b.text) ? chordedHtml(b.text, map) : inlineHtml(b.text, map)) })));
+          else body.appendChild(h('div', { class: 'pr-musblock' }, h('div', {}, tag, b.title ? ' ' + b.title : ''), h('pre', {}, b.lines.join('\n'))));
+          continue;
+        }
         const sgs = b.singers.map(c => map[c]).filter(Boolean);
         sgs.forEach(x => used.add(x.code));
         const line = h('div', { class: 'pr-line' + (sgs.length ? ' has-sg' : '') });
@@ -232,7 +250,7 @@ function buildPrintPlaylist(pl, o) {
           line.style.setProperty('--bar', stripes(sgs.map(x => x.color)));
           line.appendChild(h('span', { class: 'pr-who' }, sgs.map(x => x.name).join('+')));
         }
-        const txt = h('span', { class: 'pr-txt', html: inlineHtml(b.text, map) || '&nbsp;' });
+        const txt = h('span', { class: 'pr-txt' + (b.showChords ? ' with-chords' : ''), html: b.showChords ? chordedHtml(b.text, map) : (inlineHtml(b.chords ? stripChords(b.text) : b.text, map) || '&nbsp;') });
         for (const sp of txt.querySelectorAll('.sg-in')) sp.style.textDecorationColor = sp.style.color;
         if (sgs.some(x => x.bold)) txt.style.fontWeight = 700;
         line.appendChild(txt);

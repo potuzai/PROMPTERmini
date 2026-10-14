@@ -193,7 +193,7 @@ const SingersView = {
     paint();
     const presets = ['#ffd23f', '#4fc3f7', '#7CFC9A', '#ff7eb6', '#ff9f43', '#b388ff', '#ff5252', '#ffffff'];
     content.append(
-      h('h2', {}, 'Zpěváci a jejich barvy'),
+      h('h2', {}, 'Zpěváci'),
       h('p', { class: 'help', style: { maxWidth: '800px' } }, 'Každý zpěvák má zkratku (používá se v textu jako ', h('code', {}, '@J'), '), jméno a barvu. Jména si klidně přepiš na skutečná. Pořadí určuje klávesovou zkratku v editoru. Vzhled označení (barva textu, pruh, podbarvení) se nastavuje v šabloně.'),
       h('table', { class: 'tbl' }, h('thead', {}, h('tr', {}, ['Zkratka v ed.', 'Kód', 'Jméno', 'Barva', 'Styl', 'Ukázka', ''].map(x => h('th', {}, x)))), tbody),
       h('div', { class: 'row', style: { marginTop: '14px', maxWidth: '900px' } },
@@ -202,9 +202,64 @@ const SingersView = {
           let code = 'A'; for (const c of 'ABCDEFGHKLMNOPRSUZ') if (!used.has(c)) { code = c; break; }
           cfg.list.push({ code, name: 'Nový zpěvák', color: presets[cfg.list.length % presets.length], bold: false, italic: false });
           save(); paint();
-        } }, '＋ Přidat zpěváka')));
+        } }, '＋ Přidat zpěváka')),
+      instrumentsSection());
   },
 };
+
+/* Nástroje – stejný princip jako zpěváci, informace jen pro muzikanty */
+function instrumentsSection() {
+  const cfg = clone(Store.config.get('instruments') || { id: 'instruments', list: DEFAULT_INSTRUMENTS });
+  const save = debounce(() => Store.put('config', cfg), 500);
+  const tbody = h('tbody');
+  const presets = ['#ff9f43', '#b388ff', '#ff7eb6', '#4dd0e1', '#c6ff00', '#ffab91', '#90caf9', '#e0e0e0'];
+  const paint = () => {
+    tbody.innerHTML = '';
+    cfg.list.forEach((s, i) => {
+      const code = h('input', { class: 'inp', value: s.code, maxlength: 3, style: { width: '70px', textTransform: 'uppercase', fontWeight: 700 } });
+      const name = h('input', { class: 'inp', value: s.name });
+      const color = h('input', { type: 'color', value: s.color });
+      const sample = h('code', {}, '%' + s.code + ' …');
+      code.onchange = async () => {
+        const nc = code.value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+        if (!nc || cfg.list.some((x, j) => j !== i && x.code === nc)) { toast('Zkratka musí být jedinečná (písmena/číslice).', 'err'); code.value = s.code; return; }
+        const old = s.code; s.code = nc; save(); sample.textContent = '%' + nc + ' …';
+        const n = await renameInstrumentCode(old, nc);
+        if (n) toast(`Zkratka změněna i v ${n} písních`, 'ok');
+      };
+      name.oninput = () => { s.name = name.value; save(); };
+      color.oninput = () => { s.color = color.value; save(); };
+      tbody.appendChild(h('tr', {},
+        h('td', {}, code), h('td', {}, name), h('td', {}, color), h('td', {}, sample),
+        h('td', {}, h('button', { class: 'btn small icon danger', title: 'Odebrat', onclick: async () => {
+          if (!await confirmDlg(`Odebrat nástroj „${s.name}“? Jeho řádky v písních zůstanou, jen nebudou mít název ani barvu.`, 'Odebrat', true)) return;
+          cfg.list.splice(i, 1); save(); paint();
+        } }, '✕'))));
+    });
+  };
+  paint();
+  return h('div', { style: { marginTop: '28px' } },
+    h('h2', {}, 'Nástroje'),
+    h('p', { class: 'help', style: { maxWidth: '900px' } }, 'Informace pro muzikanty – ladění, akordy, tabulatury, rytmus. Zapisují se do textu písně řádkem ', h('code', {}, '%G …'), ' nebo blokem ', h('code', {}, '%%G … %%'), '. Ve čtečce se nikdy nezobrazí; v náhledu je ukáže přepínač „Pro muzikanty“ a lze je vytisknout. Akordy ', h('code', {}, '[Am]'), ' jsou samostatná vrstva.'),
+    h('table', { class: 'tbl' }, h('thead', {}, h('tr', {}, ['Kód', 'Název', 'Barva', 'Zápis v textu', ''].map(x => h('th', {}, x)))), tbody),
+    h('div', { class: 'row', style: { marginTop: '14px' } },
+      h('button', { class: 'btn primary nogrow', onclick: () => {
+        const used = new Set(cfg.list.map(s => s.code));
+        let code = 'X'; for (const c of 'SVTHPAELMNOR') if (!used.has(c)) { code = c; break; }
+        cfg.list.push({ code, name: 'Nový nástroj', color: presets[cfg.list.length % presets.length] });
+        save(); paint();
+      } }, '＋ Přidat nástroj')));
+}
+
+async function renameInstrumentCode(oldC, newC) {
+  const re = new RegExp(`^(\\s*%%?(?:[A-Za-z0-9]+\\+)*)${oldC}(?=[+\\s]|$)`, 'gm');
+  let n = 0;
+  for (const s of Store.songs.values()) {
+    const t = (s.text || '').replace(re, `$1${newC}`);
+    if (t !== s.text) { s.text = t; await Store.put('songs', s); n++; }
+  }
+  return n;
+}
 
 async function renameSingerCode(oldC, newC) {
   const re = new RegExp(`([@+{])${oldC}(?=[+\\s:}]|$)`, 'gm');

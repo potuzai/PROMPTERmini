@@ -6,8 +6,18 @@ const bg = [
   spawn(process.execPath, [require.resolve('http-server/bin/http-server'), root, '-p', '8123', '-s', '-c-1']),
   spawn(process.execPath, [path.join(__dirname, 'mock-github.js')]),
 ];
+// Kontrola stylů: nevyvážená závorka tiše vyřadí následující pravidla
+const fs = require('fs');
+for (const f of fs.readdirSync(path.join(root, 'css'))) {
+  const css = fs.readFileSync(path.join(root, 'css', f), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  let d = 0, bad = false;
+  for (const c of css) { if (c === '{') d++; else if (c === '}') { d--; if (d < 0) bad = true; } }
+  if (bad || d !== 0) { console.log(`FAIL: css/${f} má nevyvážené složené závorky`); process.exitCode = 1; }
+  else console.log(`ok: css/${f} – závorky v pořádku`);
+}
+
 setTimeout(() => {
-  let failed = false;
+  let failed = process.exitCode === 1;
   const xvfb = process.platform === 'linux' && !process.env.DISPLAY;
   for (const t of ['test-ui.js', 'test-full.js', 'test-mobile.js', 'test-sync.js', 'test-folder.js', 'test-mega.js', 'test-electron.js']) {
     console.log('\n=== ' + t);

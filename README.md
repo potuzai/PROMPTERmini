@@ -61,6 +61,18 @@ Vlož text (Ctrl+V). Akordy, zbytečné mezery a prázdné řádky se automatick
 | `**tučně**` `*kurzíva*` | zvýraznění |
 | `---` | nová stránka |
 
+**Pro muzikanty.** Tyto informace se ve čtečce nikdy nezobrazí. Uvidíš je v náhledu po přepnutí na **Pro muzikanty** (tlačítko **Vrstvy** určí, co se ukáže) a v tisku playlistu.
+
+| Zápis | Význam |
+|---|---|
+| `[Am]Zpívám [C]ptákům` | akordy nad slovy |
+| `[G] [D] [Em]` | samostatný řádek akordů (intro, mezihra) |
+| `%G Ladění Drop D, capo 2` | informace pro kytaru (G = zkratka nástroje) |
+| `%G+B stop na 4` | informace pro více nástrojů |
+| `%%G Tabulatura intro` … `%%` | blok (tabulatura), mezery zůstanou přesně |
+
+Nástroje (kytara, basa, bicí, klávesy…) a jejich zkratky a barvy nastavíš v záložce **Obsazení**. Když vložíš text z webu s akordy nad řádky, akordy se samy převedou do textu a tabulatury se zabalí do bloku pro kytaru.
+
 Zpěváky (jména, barvy) upravíš v záložce **Zpěváci**. Vzhled stránky (písmo, velikost, barvy, okraje, zarovnání, sloupce, zmenšení dlouhých písní, zrcadlení) nastavíš v záložce **Šablony**. Šablonu pak přiřadíš playlistu, aby všechny písně vypadaly jednotně.
 
 Náhled v editoru odpovídá přesně monitoru čtečky. Rozměr monitoru se sdílí s celou kapelou.

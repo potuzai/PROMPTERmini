@@ -22,7 +22,7 @@ const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode
   await p.waitForTimeout(300);
   const v = await p.inputValue('.ta');
   console.log(v);
-  assert(v.includes('## Sloka 1') && v.includes('## Refrén') && v.includes('>> Refrén') && !v.includes('Am'), 'čištění vloženého textu');
+  assert(v.includes('## Sloka 1') && v.includes('## Refrén') && v.includes('>> Refrén') && v.includes('[Am] [C]') && !/^Am\s/m.test(v), 'čištění vloženého textu (akordy převedeny pro muzikanty)');
   // označit řádky 2-3 jako J
   await p.evaluate(() => { const ta = document.querySelector('.ta'); const i = ta.value.indexOf('První'); ta.setSelectionRange(i, ta.value.indexOf('řádek', i + 10)); });
   await p.keyboard.press('Alt+1');

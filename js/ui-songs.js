@@ -94,6 +94,7 @@ class SongEditor {
       h('button', { class: 'btn small', title: 'Zopakovat dříve napsanou sekci (např. refrén)', onclick: e => this.insertRepeat(e.currentTarget) }, '>> Opakovat ▾'),
       h('button', { class: 'btn small', title: 'Poznámka (malým písmem, lze skrýt v šabloně)', onclick: () => this.insertLinePrefix('// ') }, '// Poznámka'),
       h('button', { class: 'btn small', title: 'Vynutit novou stránku', onclick: () => this.insertText('\n---\n') }, '⤓ Stránka'),
+      h('button', { class: 'btn small', title: 'Akordy, ladění, tabulatury… – jen pro muzikanty, ve čtečce se nezobrazí', onclick: e => this.musMenu(e.currentTarget) }, '🎸 Muzikanti ▾'),
       h('button', { class: 'btn small', title: 'Tučně (Ctrl+B)', onclick: () => this.wrapSel('**') }, h('b', {}, 'B')),
       h('button', { class: 'btn small', title: 'Kurzíva (Ctrl+I)', onclick: () => this.wrapSel('*') }, h('i', {}, 'I')),
       h('span', { class: 'sep' }),
@@ -135,7 +136,12 @@ class SongEditor {
         h('button', { class: 'btn danger icon', title: 'Smazat píseň', 'aria-label': 'Smazat píseň', onclick: () => this.del() }, ic('trash')))),
       h('div', { class: 'ed-right pane' },
         h('div', { class: 'pane-title' }, 'Náhled čtečky', this.brushLbl = h('span', {})),
-        h('div', { class: 'preview-bar' }, this.prevTpl, h('span', { class: 'grow' }),
+        h('div', { class: 'preview-bar' }, this.prevTpl,
+          this.viewSeg = h('div', { class: 'seg', title: 'Co ukázat v náhledu' },
+            h('button', { class: 'btn small', 'data-v': 'reader', onclick: () => this.setView(false) }, 'Čtečka'),
+            h('button', { class: 'btn small', 'data-v': 'mus', onclick: () => this.setView(true) }, 'Pro muzikanty')),
+          this.layersBtn = h('button', { class: 'btn small', title: 'Které informace pro muzikanty ukázat', onclick: e => layersPopover(e.currentTarget, () => this.renderPreview()) }, 'Vrstvy ▾'),
+          h('span', { class: 'grow' }),
           h('button', { class: 'btn small icon', onclick: () => this.turn(-1), title: 'Předchozí stránka' }, ic('left')), this.pageLbl,
           h('button', { class: 'btn small icon', onclick: () => this.turn(1), title: 'Další stránka' }, ic('right')),
           h('button', { class: 'btn small', title: 'Otevřít ve čtečce', onclick: () => this.openReader() }, '▶ Čtečka')),
@@ -160,6 +166,7 @@ class SongEditor {
     this.ro = new ResizeObserver(() => { this.syncBackWidth(); this.fitPreview(); });
     this.ro.observe(this.ta); this.ro.observe(this.prevWrap);
     this.fillTplSelect();
+    this.paintViewSeg();
     this.paintBack();
     this.renderPreview();
     this.updateBrushLbl();
@@ -292,11 +299,47 @@ class SongEditor {
       { label: 'První písmeno řádku velké', action: () => this.replaceRange(s, e, t.split('\n').map(l => l.replace(/^(\s*(?:@[A-Za-z0-9+]+\s)?)(\p{L})/u, (a, p, c) => p + c.toLocaleUpperCase('cs'))).join('\n')) },
     ]);
   }
+  setView(on) {
+    const mv = Object.assign({}, Settings.get('musView'), { on });
+    Settings.set('musView', mv);
+    this.paintViewSeg();
+    this.page = 0;
+    this.renderPreview();
+  }
+  paintViewSeg() {
+    const on = !!(Settings.get('musView') || {}).on;
+    $$('button', this.viewSeg).forEach(b => b.classList.toggle('on', (b.dataset.v === 'mus') === on));
+    this.layersBtn.disabled = !on;
+  }
+  musMenu(anchor) {
+    const items = [{ label: '[Am] Akord na místo kurzoru', action: () => {
+      const s = this.ta.selectionStart, e = this.ta.selectionEnd;
+      const sel = this.ta.value.slice(s, e);
+      if (sel && isChordToken(sel)) this.replaceRange(s, e, '[' + sel + ']', false);
+      else { this.replaceRange(s, e, '[]' + sel, false); this.ta.setSelectionRange(s + 1, s + 1); }
+    } }];
+    for (const ins of Store.instruments()) {
+      items.push({ label: `%${ins.code} ${ins.name} – poznámka (ladění, rytmus…)`, action: () => this.insertLineAbove(`%${ins.code} `) });
+      items.push({ label: `%%${ins.code} ${ins.name} – blok (tabulatura)`, action: () => this.insertLineAbove(`%%${ins.code} Tabulatura\ne|-----------------|\nB|-----------------|\nG|-----------------|\nD|-----------------|\nA|-----------------|\nE|-----------------|\n%%`) });
+    }
+    popupMenu(anchor, items);
+  }
+  insertLineAbove(text) {
+    const { start } = this.selLines();
+    this.replaceRange(start, start, text + '\n', false);
+    this.ta.setSelectionRange(start + text.split('\n')[0].length, start + text.split('\n')[0].length);
+  }
   async cleanDialog() {
-    const o = { removeChords: true, detectSections: true, trimSpaces: true, collapseBlank: true };
+    const o = { chords: 'keep', detectSections: true, trimSpaces: true, collapseBlank: true };
+    const chordOpt = (v, l) => h('label', { class: 'chk' }, h('input', { type: 'radio', name: 'cl-chords', checked: o.chords === v, onchange: () => { o.chords = v; } }), l);
     const box = h('div', {},
       h('p', { class: 'help' }, 'Použije se na označený text, nebo na celý text, pokud nic označeno není. Vrátit jde přes Ctrl+Z.'),
-      ...[['removeChords', 'Odstranit akordy (řádky s akordy a [Am] v textu)'], ['detectSections', 'Rozpoznat sloky a refrény (1., R:, Ref., [Chorus]…)'],
+      h('h3', {}, 'Akordy nad textem'),
+      chordOpt('keep', 'Převést pro muzikanty – [Am] nad slovy, ve čtečce se nezobrazí'),
+      chordOpt('remove', 'Odstranit'),
+      chordOpt('none', 'Nechat beze změny'),
+      h('h3', {}, 'Další úpravy'),
+      ...[['detectSections', 'Rozpoznat sloky a refrény (1., R:, Ref., [Chorus]…)'],
         ['trimSpaces', 'Sjednotit mezery a odstranit tabulátory'], ['collapseBlank', 'Sloučit více prázdných řádků']]
         .map(([k, l]) => h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: true, onchange: e => { o[k] = e.target.checked; } }), l)));
     const ok = await modal({ title: '🧹 Vyčistit text', body: box, buttons: [{ label: 'Zrušit', value: false }, { label: 'Vyčistit', value: true, primary: true }] });
@@ -336,7 +379,17 @@ class SongEditor {
       const info = lines[i] || { kind: 'line', singers: [] };
       const d = document.createElement('div');
       d.textContent = l || '​';
-      const cols = info.singers.map(c => map[c]).filter(Boolean).map(s => s.color);
+      if (info.kind === 'mus' || info.kind === 'musblock' || info.kind === 'chords') {
+        // řádky jen pro muzikanty – čárkovaný okraj v barvě nástroje
+        const im = Store.instrumentMap();
+        const c = info.kind === 'chords' ? CHORD_COLOR : ((im[(info.inst || [])[0]] || {}).color || '#9aa0a6');
+        d.className = 'mus';
+        d.style.borderLeftColor = c;
+        d.style.background = hexToRgba(c, info.edge ? 0.16 : 0.07);
+        frag.appendChild(d);
+        return;
+      }
+      const cols = (info.singers || []).map(c => map[c]).filter(Boolean).map(s => s.color);
       if (cols.length) {
         d.style.borderLeftColor = cols[0];
         d.style.background = stripes(cols.map(c => hexToRgba(c, info.kind === 'section' ? 0.3 : info.inherited ? 0.1 : 0.2)), true);
@@ -360,7 +413,7 @@ class SongEditor {
     const W = Settings.get('screenW'), H = Settings.get('screenH');
     const tpl = Store.template(this.prevTpl.value);
     const song = this.collect();
-    this.lay = Render.layout(song, tpl, W, H);
+    this.lay = Render.layout(song, tpl, W, H, musViewOpts());
     if (this.page >= this.lay.pages.length) this.page = this.lay.pages.length - 1;
     if (this.page < 0) this.page = 0;
     this.prevWrap.innerHTML = '';
@@ -431,6 +484,33 @@ class SongEditor {
   }
 }
 
+/* ===== Vrstvy pro muzikanty (náhled a tisk) ===== */
+function musDefaults() {
+  const mv = Object.assign({ on: false, chords: true, inst: {} }, Settings.get('musView') || {});
+  // poprvé: všechny nástroje zapnuté
+  for (const i of Store.instruments()) if (!(i.code in mv.inst)) mv.inst[i.code] = true;
+  return mv;
+}
+function musViewOpts() { const mv = musDefaults(); return mv.on ? { chords: mv.chords, inst: mv.inst } : null; }
+
+function layersPopover(anchor, onChange) {
+  $$('.menu').forEach(m => m.remove());
+  const mv = musDefaults();
+  const save = () => { Settings.set('musView', mv); onChange && onChange(); };
+  const row = (label, color, checked, set) => h('label', { class: 'chk menu-chk' },
+    h('input', { type: 'checkbox', checked, onchange: e => { set(e.target.checked); save(); } }),
+    h('span', { class: 'led', style: { background: color } }), label);
+  const m = h('div', { class: 'menu menu-layers' },
+    h('div', { class: 'menu-head' }, 'Ukázat pro muzikanty'),
+    row('Akordy', CHORD_COLOR, mv.chords, v => { mv.chords = v; }),
+    ...Store.instruments().map(i => row(i.name, i.color, !!mv.inst[i.code], v => { mv.inst[i.code] = v; })));
+  document.body.appendChild(m);
+  const r = anchor.getBoundingClientRect();
+  m.style.left = Math.max(8, Math.min(r.left, innerWidth - m.offsetWidth - 8)) + 'px';
+  m.style.top = (r.bottom + 4) + 'px';
+  setTimeout(() => document.addEventListener('mousedown', function off(e) { if (!m.contains(e.target) && e.target !== anchor) { m.remove(); document.removeEventListener('mousedown', off); } }), 0);
+}
+
 /* ===== Sdílené pomocníky pro UI ===== */
 function popupMenu(anchor, items) {
   $$('.menu').forEach(m => m.remove());
@@ -481,8 +561,21 @@ function showMarkupHelp() {
     ['---', 'vynutí novou stránku ve čtečce'],
     ['(prázdný řádek)', 'mezera mezi slokami'],
   ];
+  const ins = Store.instruments();
+  const i0 = ins[0] ? ins[0].code : 'G', i1 = ins[1] ? ins[1].code : 'B';
+  const musRows = [
+    ['[Am]Zpívám [C]ptákům', 'akordy nad slovy'],
+    ['[G] [D] [Em]', 'samostatný řádek akordů (intro, mezihra)'],
+    ['%' + i0 + ' Ladění Drop D, capo 2', 'informace pro ' + (ins[0] ? ins[0].name.toLowerCase() : 'nástroj')],
+    ['%' + i0 + '+' + i1 + ' stop na 4', 'informace pro více nástrojů'],
+    ['%%' + i0 + ' Tabulatura intro', 'začátek bloku (tabulatura) – mezery zůstanou přesně'],
+    ['%%', 'konec bloku'],
+  ];
   const body = h('div', {},
     h('div', { class: 'cheat' }, rows.map(r => [h('code', {}, r[0]), h('span', {}, r[1])])),
+    h('h3', {}, 'Pro muzikanty – ve čtečce se nikdy nezobrazí'),
+    h('div', { class: 'cheat' }, musRows.map(r => [h('code', {}, r[0]), h('span', {}, r[1])])),
+    h('p', { class: 'help' }, 'Zobrazíš je v náhledu přepínačem „Pro muzikanty“ (Vrstvy = co ukázat) a v tisku playlistu. Nástroje a jejich zkratky nastavíš v záložce Obsazení.'),
     h('h3', {}, 'Zkratky v editoru'),
     h('div', { class: 'cheat' },
       sg.slice(0, 9).map((s, i) => [h('span', {}, h('kbd', {}, 'Alt'), ' + ', h('kbd', {}, String(i + 1))), h('span', {}, 'označit vybrané řádky: ', h('b', { style: { color: s.color } }, s.name))]),

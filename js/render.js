@@ -56,6 +56,16 @@ const Render = {
 
   blockEl(b, tpl, singerMap) {
     if (b.type === 'gap') return h('div', { class: 'b-gap' });
+    if (b.type === 'mus' || b.type === 'musblock') {
+      const im = Store.instrumentMap();
+      const ins = b.inst.map(c => im[c]).filter(Boolean);
+      const color = ins[0] ? ins[0].color : '#9aa0a6';
+      const tag = h('span', { class: 'mtag' }, ins.map(x => x.name).join(' + ') || b.inst.join('+'));
+      if (b.type === 'mus') return h('div', { class: 'b-mus', 'data-src': b.src, style: { '--ic': color } }, tag, h('span', { html: ' ' + (hasChords(b.text) ? chordedHtml(b.text, singerMap) : inlineHtml(b.text, singerMap)) }));
+      return h('div', { class: 'b-musblock', 'data-src': b.src, style: { '--ic': color } },
+        h('div', {}, tag, b.title ? ' ' + b.title : ''), h('pre', {}, b.lines.join('\n')));
+    }
+    if (b.type === 'chords') return h('div', { class: 'b-line b-chordline', 'data-src': b.src, style: { '--chc': CHORD_COLOR }, html: chordedHtml(b.text, singerMap) });
     if (b.type === 'break') return h('div', { class: 'b-gap' });
     if (b.type === 'section') {
       const sg = b.singers.map(c => singerMap[c]).filter(Boolean);
@@ -75,7 +85,8 @@ const Render = {
       if (tpl.singerBg) el.style.setProperty('--tint', stripes(sgs.map(s => hexToRgba(s.color, 0.22)), true));
       el.classList.add('has-sg');
     }
-    let inner = inlineHtml(b.text, singerMap) || '&nbsp;';
+    let inner = b.showChords ? chordedHtml(b.text, singerMap) : (inlineHtml(b.chords ? stripChords(b.text) : b.text, singerMap) || '&nbsp;');
+    if (b.showChords) el.classList.add('has-chords');
     if (tpl.singerBadge && sgs.length) {
       inner = sgs.map(s => `<span class="badge" style="background:${s.color}">${esc(s.name)}</span>`).join('') + inner;
     }
@@ -83,11 +94,11 @@ const Render = {
     return el;
   },
 
-  /* Spočítá rozdělení písně na stránky */
-  layout(song, tpl, W, H) {
+  /* Spočítá rozdělení písně na stránky. mus = vrstvy pro muzikanty (null = čtečka: nic z nich) */
+  layout(song, tpl, W, H, mus = null) {
     const parsed = parseSong(song.text);
     const singerMap = Store.singerMap();
-    const blocks = parsed.blocks;
+    const blocks = filterForView(parsed.blocks, mus);
     const cols = Math.max(1, tpl.columns | 0);
     const tryK = k => this._chunk(blocks, tpl, W, H, k, singerMap, cols);
     let k = 1, res = tryK(1);

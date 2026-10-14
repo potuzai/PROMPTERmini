@@ -64,7 +64,7 @@ const App = {
   },
 
   buildTopbar() {
-    const tabs = [['songs', '🎵 Písně'], ['playlists', '📋 Playlisty'], ['templates', '🎨 Šablony'], ['singers', '🎤 Zpěváci'], ['settings', '⚙ Nastavení']];
+    const tabs = [['songs', '🎵 Písně'], ['playlists', '📋 Playlisty'], ['templates', '🎨 Šablony'], ['singers', '🎤 Obsazení'], ['settings', '⚙ Nastavení']];
     this.tabEls = {};
     const bar = h('div', { id: 'topbar' },
       h('div', { class: 'logo', title: 'Prompter písní ' + APP_VERSION }, 'Prompter', h('span', {}, APP_VERSION)),

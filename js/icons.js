@@ -38,6 +38,7 @@ const ICONS = {
   folder: '<path d="M3 6.5A1.5 1.5 0 0 1 4.5 5H9l2 2.5h8.5A1.5 1.5 0 0 1 21 9v9.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"/>',
   pagebreak: '<path d="M5 3v5h14V3M5 21v-5h14v5"/><path d="M2 12h3M8 12h3M13 12h3M19 12h3"/>',
   x: '<path d="M6 6l12 12M18 6 6 18"/>',
+  guitar: '<path d="M14.5 9.5 20 4M18 2.5 21.5 6"/><path d="M10.6 8.2a3.4 3.4 0 0 0-4.6.3c-.9.9-1 2-.6 3-1.6.3-2.9 1.6-3 3.4-.2 2.5 2.2 5.1 4.9 5 1.8-.1 3.1-1.4 3.4-3 1 .4 2.1.3 3-.6a3.4 3.4 0 0 0 .3-4.6"/><circle cx="9.5" cy="14.5" r="1.4"/>',
   help: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5v.7M12 17h.01"/>',
 };
 
@@ -56,7 +57,7 @@ const GLYPH_ICONS = {
   '⇩': 'download', '⧉': 'copy', '🗑': 'trash', '🔑': 'key', '⚠': 'warn', '🔍': 'search', '✎': 'edit', '👥': 'users',
   '★': 'star', '◀': 'left', '🔒': 'lock', '🔓': 'unlock', '💾': 'save', '⟳': 'sync', '🔗': 'link', '🧹': 'clean',
   '🖨': 'print', '⏻': 'power', '↩': 'back', '🖥': 'monitor', '⌖': 'target', '👤': 'user', '✅': 'check', '☁': 'cloud',
-  '📁': 'folder', '⤓': 'pagebreak', '✕': 'x', '✓': 'check',
+  '📁': 'folder', '⤓': 'pagebreak', '✕': 'x', '✓': 'check', '🎸': 'guitar',
 };
 const GLYPH_RE = new RegExp('^(' + Object.keys(GLYPH_ICONS).map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')\\uFE0F?\\s*');
 function glyphToIcon(text) {

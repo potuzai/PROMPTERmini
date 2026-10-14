@@ -29,8 +29,10 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   assert(await p.evaluate(() => inlineHtml('{T:slovo} **b** *i* __u__', Store.singerMap())).then ? true : true, 'inline formát');
   const html = await p.evaluate(() => inlineHtml('{T:slovo} **b** *i* __u__ <script>', Store.singerMap()));
   assert(html.includes('<b>b</b>') && html.includes('<i>i</i>') && html.includes('<u>u</u>') && html.includes('sg-in') && html.includes('&lt;script&gt;'), 'inline: tučně/kurzíva/podtržení/zpěvák a escapování HTML');
-  const cleaned = await p.evaluate(() => cleanText('[Verse 1]\nC  G  Am\nText [Am]s akordem\n[Chorus]\nRef text\n\n\n[Chorus]\nBridge:\nmost'));
-  assert(cleaned.includes('## Sloka 1') && cleaned.includes('Text s akordem') && cleaned.includes('>> Refrén') && cleaned.includes('## Bridge') && !/\bAm\b/.test(cleaned), 'čištění: anglické značky, akordy v hranatých závorkách, opakování');
+  const cleaned = await p.evaluate(() => cleanText('[Verse 1]\nC  G  Am\nText [Am]s akordem\n[Chorus]\nRef text\n\n\n[Chorus]\nBridge:\nmost', { chords: 'remove' }));
+  assert(cleaned.includes('## Sloka 1') && cleaned.includes('Text s akordem') && cleaned.includes('>> Refrén') && cleaned.includes('## Bridge') && !/\bAm\b/.test(cleaned), 'čištění: anglické značky, odstranění akordů, opakování');
+  const kept = await p.evaluate(() => cleanText('[Verse 1]\nText [Am]s akordem\n[Chorus]\nRef'));
+  assert(kept.includes('Text [Am]s akordem') && kept.includes('## Refrén'), 'čištění: akordy v textu zůstanou pro muzikanty, [Chorus] je refrén');
 
   /* ---------- Import TXT (UTF-8, Windows-1250, ChordPro) ---------- */
   // (soubor s diakritikou v názvu předáme obsahem – testovací nástroj neumí ne-ASCII cesty)
@@ -50,7 +52,7 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   const titles = await p.evaluate(() => Store.sortedSongs().map(s => s.title + '|' + s.artist + '|' + s.text));
   assert(titles.some(t => t.startsWith('Holubí dům||') && t.includes('## Sloka 1') && t.includes('## Refrén')), 'import .txt s čištěním');
   assert(titles.some(t => t.includes('Příliš žluťoučký')), 'import starého .txt v kódování Windows-1250');
-  assert(titles.some(t => t.startsWith('ChordPro píseň|Autor|') && t.includes('## Refrén') && !t.includes('[G]')), 'import ChordPro');
+  assert(titles.some(t => t.startsWith('ChordPro píseň|Autor|') && t.includes('## Refrén') && t.includes('[G]Refrén text')), 'import ChordPro');
 
   /* ---------- Hledání ---------- */
   await p.evaluate(() => { location.hash = '#/songs'; });
@@ -259,6 +261,47 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   await p.emulateMedia({ media: 'screen' });
   await p.evaluate(() => { const o = Object.assign({}, Settings.get('printOpts'), { what: 'texts', color: false }); printDocument(buildPrintPlaylist(Store.playlists.get('pl1'), o)); });
   assert(await p.evaluate(() => !document.querySelector('#print-root .pr-setlist') && !!document.querySelector('#print-root .pr-bw')), 'černobílý tisk jen textů');
+
+  /* ---------- Vrstvy pro muzikanty ---------- */
+  const musTxt = '%G Capo 2\n[D] [G]\n## Sloka @J\n[D]Zpívám [G]ptákům\n%%G Tab\ne|--0--|\nB|--1--|\n%%\n%B walking bass';
+  const mres = await p.evaluate(t => {
+    const pr = parseSong(t);
+    const reader = filterForView(pr.blocks, null);
+    const all = filterForView(pr.blocks, { chords: true, inst: { G: true, B: true } });
+    const onlyBass = filterForView(pr.blocks, { chords: false, inst: { B: true } });
+    const W = 1080, H = 1920, tpl = Store.template('default');
+    const lr = Render.layout({ id: 'm', title: 'M', text: t }, tpl, W, H);
+    const st = Render.makeStage(tpl, W, H); document.body.appendChild(st);
+    Render.renderPage(st, lr, tpl, 0, {}); const readerHtml = st.innerHTML; st.remove();
+    return {
+      readerTypes: reader.map(b => b.type).join(','), allTypes: all.map(b => b.type).join(','), bass: onlyBass.map(b => b.type + (b.inst ? b.inst.join('') : '')).join(','),
+      readerHasChords: /\[D\]|class="ch"|Capo|walking|e\|--/.test(readerHtml), readerText: readerHtml.includes('Zpívám ptákům'),
+      merged: cleanText('Am     C\nZpívám ptákům\n'),
+    };
+  }, musTxt);
+  assert(mres.readerTypes === 'section,line', 'čtečka nevidí nic pro muzikanty (' + mres.readerTypes + ')');
+  assert(!mres.readerHasChords && mres.readerText, 'čtečka vykreslí text bez akordů a poznámek');
+  assert(mres.allTypes === 'mus,chords,section,line,musblock,mus', 'pohled pro muzikanty ukáže všechny vrstvy');
+  assert(mres.bass === 'section,line,musB', 'filtr: jen basa');
+  assert(mres.merged === '[Am]Zpívám [C]ptákům', 'vložený text: akordy nad řádkem převedeny do textu (' + mres.merged + ')');
+  // přepínač v náhledu editoru
+  await p.evaluate(async t => { await Store.put('songs', { id: 'musx', title: 'Muzikanti', text: t }); location.hash = '#/songs/musx'; }, musTxt); await sleep(600);
+  assert(!(await p.isVisible('.ed-right .b-mus')), 'náhled ve výchozím stavu = čtečka');
+  assert(!(await p.isVisible('.btn.m-back')), 'mobilní tlačítka se na počítači nezobrazují');
+  await p.click('.seg button:has-text("Pro muzikanty")'); await sleep(400);
+  assert(await p.isVisible('.ed-right .b-mus') && await p.isVisible('.ed-right .ch'), 'náhled pro muzikanty ukáže akordy a poznámky');
+  await p.click('button:has-text("Vrstvy")'); await sleep(150);
+  await p.click('.menu-layers label:has-text("Kytara") input'); await sleep(300);
+  assert(!(await p.isVisible('.ed-right .b-musblock')) && await p.isVisible('.ed-right .b-mus'), 'vypnutí kytary skryje jen její vrstvy');
+  await p.mouse.click(5, 5);
+  await p.click('.seg button:has-text("Čtečka")'); await sleep(300);
+  assert(!(await p.isVisible('.ed-right .b-mus')), 'zpět na pohled čtečky');
+  // stránka Obsazení – nástroje
+  await p.evaluate(() => { location.hash = '#/singers'; }); await sleep(400);
+  assert(await p.isVisible('h2:has-text("Nástroje")') && await p.isVisible('table.tbl >> nth=1'), 'tabulka nástrojů v Obsazení');
+  const icode = p.locator('table.tbl >> nth=1 >> tbody tr >> nth=0 >> input.inp >> nth=0');
+  await icode.fill('Q'); await icode.press('Tab'); await sleep(900);
+  assert((await p.evaluate(() => Store.songs.get('musx').text)).includes('%Q Capo 2') && (await p.evaluate(() => Store.songs.get('musx').text)).includes('%%Q Tab'), 'změna zkratky nástroje se promítne do písní');
 
   const real = errors.filter(e => !/Failed to load resource|favicon/.test(e));
   assert(real.length === 0, 'žádné chyby JavaScriptu' + (real.length ? ': ' + real.join(' | ') : ''));

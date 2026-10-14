@@ -1,6 +1,6 @@
 'use strict';
 /* ===== Lokální úložiště (IndexedDB) + výchozí data ===== */
-const APP_VERSION = '1.5.0';
+const APP_VERSION = '1.6.0';
 const DB_NAME = 'prompter-pisne';
 const DB_VER = 1;
 const STORES = ['songs', 'playlists', 'templates', 'config', 'meta'];
@@ -10,6 +10,15 @@ const DEFAULT_SINGERS = [
   { code: 'T', name: 'Ty', color: '#4fc3f7', bold: false, italic: false },
   { code: 'V', name: 'Všichni', color: '#7CFC9A', bold: true, italic: false },
 ];
+
+// Nástroje – informace jen pro muzikanty (ve čtečce se nezobrazí)
+const DEFAULT_INSTRUMENTS = [
+  { code: 'G', name: 'Kytara', color: '#ff9f43' },
+  { code: 'B', name: 'Basa', color: '#b388ff' },
+  { code: 'D', name: 'Bicí', color: '#ff7eb6' },
+  { code: 'K', name: 'Klávesy', color: '#4dd0e1' },
+];
+const CHORD_COLOR = '#ff5a4f';
 
 const DEFAULT_TEMPLATE = {
   id: 'default', name: 'Výchozí – černé pozadí',
@@ -60,6 +69,7 @@ const DEFAULT_SETTINGS = {
   readOnly: false,               // jen stahovat (např. čtečka)
   bandName: '',
   welcomed: false,
+  musView: { on: false, chords: true, inst: {} },   // náhled „Pro muzikanty“ – co zobrazit (jen tento počítač)
   gh: { owner: '', repo: '', branch: 'main', token: '', login: '', canPush: null },
 };
 
@@ -163,6 +173,7 @@ const Store = {
     if (m) this.meta = Object.assign(this.meta, m);
     // Výchozí data při prvním spuštění
     if (!this.config.has('singers')) await this.put('config', { id: 'singers', list: clone(DEFAULT_SINGERS) }, { silent: true, noStamp: true });
+    if (!this.config.has('instruments')) await this.put('config', { id: 'instruments', list: clone(DEFAULT_INSTRUMENTS) }, { silent: true, noStamp: true });
     if (this.templates.size === 0) {
       for (const t of [DEFAULT_TEMPLATE, ...EXTRA_TEMPLATES]) await this.put('templates', clone(t), { silent: true, noStamp: true });
     }
@@ -214,6 +225,8 @@ const Store = {
 
   singers() { return (this.config.get('singers') || { list: DEFAULT_SINGERS }).list; },
   singerMap() { const m = {}; for (const s of this.singers()) m[s.code.toUpperCase()] = s; return m; },
+  instruments() { return (this.config.get('instruments') || { list: DEFAULT_INSTRUMENTS }).list; },
+  instrumentMap() { const m = {}; for (const s of this.instruments()) m[s.code.toUpperCase()] = s; return m; },
 
   template(id) {
     return Object.assign(clone(DEFAULT_TEMPLATE), this.templates.get(id) || this.templates.get(Settings.get('defaultTemplate')) || this.templates.get('default') || {});
