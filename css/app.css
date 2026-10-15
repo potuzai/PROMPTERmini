@@ -170,16 +170,36 @@ kbd { font: 600 11px/1 var(--mono); padding: 3px 5px; border: 1px solid var(--li
 .view.song-open > .side { display: none; }
 /* seznam písní přes celou šířku */
 .view.list-only > .content { display: none; }
-.view.list-only > .side.big-list { width: auto; flex: 1 1 auto; border-right: 0; background: var(--bg); }
+.view.list-only > .side.big-list { width: auto; flex: 1 1 auto; border-right: 0; background: var(--bg); padding: 8px clamp(12px, 3vw, 40px) 12px; } /* seznam neleží až na okrajích obrazovky */
+.pl-prev { border: 1px solid var(--line); margin-left: 18px; }
 .sl-head { flex-direction: row; flex-wrap: wrap; align-items: center; padding: 14px 18px; }
 .sl-head .inp[type=search] { flex: 1 1 260px; max-width: 520px; }
 .sl-head .sl-sort { width: auto; flex: 0 0 auto; margin-left: auto; } /* řazení vpravo */
+.sl-head .sl-push { margin-left: auto; }
+.sl-head .sl-push + .sl-sort { margin-left: 0; }
 .sl-row { display: grid; grid-template-columns: minmax(140px, 1.1fr) minmax(180px, 1.6fr) 130px minmax(100px, 1fr); gap: 16px; align-items: center; }
 .sl-cols { padding: 8px 18px; font-size: 11.5px; color: var(--dim); border-bottom: 1px solid var(--line); }
 .big-list .list .item.sl-row { padding: 10px 18px; border-bottom: 1px solid #1d1f22; }
 .big-list .list .item.sl-row:hover { background: var(--panel); }
 .sl-row.pl-row { grid-template-columns: 110px minmax(180px, 1.6fr) 90px minmax(100px, 1fr) 34px; }
 .view.pl-open > .side { display: none; }
+.pl-split { flex: 1; min-height: 0; display: flex; }
+.pl-main { flex: 2 1 0; min-width: 0; display: flex; flex-direction: column; }
+.pl-main > .list { flex: 1; overflow-y: auto; }
+.pl-prev { flex: 1 1 0; min-width: 260px; overflow-y: auto; border-left: 1px solid var(--line); background: var(--panel); padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+.pl-prev-head h3 { margin: 0 0 4px; font: 500 19px var(--font); letter-spacing: 0; text-transform: none; color: var(--text); }
+.pl-prev-meta { font-size: 12.5px; color: var(--dim); }
+.pl-prev-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+.pl-prev-list { margin: 0; padding: 0; list-style: none; counter-reset: n; border-top: 1px solid var(--line); }
+.pl-prev-list li { counter-increment: n; display: grid; grid-template-columns: 28px 1fr; column-gap: 6px; padding: 8px 0; border-bottom: 1px solid #1d1f22; cursor: pointer; }
+.pl-prev-list li::before { content: counter(n) "."; grid-row: 1 / 3; color: var(--faint); font: 13px var(--mono); padding-top: 2px; }
+.pl-prev-list li:hover b { color: var(--acc-hi); }
+.pl-prev-list li b { font-weight: 500; }
+.pl-prev-list li span { grid-column: 2; font-size: 12px; color: var(--dim); }
+.pl-prev-list li.missing { cursor: default; }
+.pl-prev-list li.missing b { color: var(--faint); font-style: italic; }
+.pl-prev-empty { padding: 4px 0; }
+.big-list .list .item.sl-row.active { background: var(--acc-soft); box-shadow: inset 3px 0 0 var(--acc); }
 .btn.pl-back { margin-bottom: 12px; }
 .sl-artist { color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sl-title { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -500,6 +520,8 @@ details summary { color: var(--text); }
   .sl-artist { grid-column: 1; grid-row: 2; font-size: 13px; }
   .sl-key { grid-column: 2; grid-row: 1 / 3; }
   .sl-tags { display: none; }
+  .pl-prev { display: none; }
+  .view.list-only > .side.big-list { padding: 0; }
   .sl-row.pl-row { grid-template-columns: 1fr auto; }
   .pl-row .sl-artist:first-child { grid-column: 1; grid-row: 2; }
   .pl-row .sl-title { grid-column: 1; grid-row: 1; }

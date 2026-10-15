@@ -20,8 +20,9 @@ const SongsView = {
     side.append(
       h('div', { class: 'side-head sl-head' },
         h('button', { class: 'btn primary', onclick: () => this.create() }, '＋ Nová píseň'),
-        h('button', { class: 'btn', title: 'Importovat písně z .txt souborů', onclick: () => importTxtFiles() }, '⇪ Import'),
-        searchInp, sortSel),
+        searchInp,
+        h('button', { class: 'btn sl-push', title: 'Importovat písně z .txt souborů', onclick: () => importTxtFiles() }, '⇪ Import'),
+        sortSel),
       h('div', { class: 'sl-row sl-cols' }, h('span', {}, 'Interpret'), h('span', {}, 'Název'), h('span', {}, 'Tónina · tempo'), h('span', {}, 'Štítky')),
       list, count);
     const paintList = () => {
