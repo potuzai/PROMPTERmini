@@ -61,9 +61,11 @@ Uprostřed editoru je přesně stránka čtečky: celý rozměr monitoru včetn�
 
 Myší: klik vybere řádek, druhý klik začne psaní, pravé tlačítko otevře nabídku. Shift + klik nebo Shift + ↓ vybere víc řádků najednou.
 
-**Pravý panel** je klidný a jen pro vybraný řádek: kdo zpívá (barevné kostky), písmo (B, I, A+, A−) a vložit (řádek, sekce, další…). Vše ostatní – údaje o písni, ukázka jako v playlistu, akordy pro muzikanty, písmo písně, vyčištění, zdrojový text, export, smazání – je pod tlačítkem **Píseň ⋯**. Při úpravě písně se seznam písní schová, zpět vede **◀ Písně**.
+**Levý sloupec:** píseň (Uložit, Uložit jako…, Údaje…, Do playlistu, ▶ Čtečka, export a smazání), kdo zpívá, řádky (+ řádek, + mezera, nahoru / dolů, smazat), sekce (+ sekce, opakovat, poznámka, nová stránka) a pro muzikanty.
 
-Pokročilí můžou přes **Píseň ⋯ → Zdrojový text…** upravit text tak, jak se ukládá (se značkami):
+**Pravý sloupec** je jen pro text: upravit a vložit text, písmo (B, I, A+, A−, VELKÁ / malá), písmo celé písně, vyčištění, zdrojový text, zpět / znovu a nápověda.
+
+Pokročilí můžou přes **Zdrojový text…** v pravém sloupci upravit text tak, jak se ukládá (se značkami):
 
 | Zápis | Význam |
 |---|---|

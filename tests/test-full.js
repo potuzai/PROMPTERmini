@@ -80,14 +80,19 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   await p.evaluate(id => { location.hash = '#/songs/' + id; }, hid);
   await sleep(500);
   const src = () => p.evaluate(() => SongsView.editor.src);
-  const more = async label => { await p.click('.ed-panel button:has-text("Píseň ⋯")'); await p.click(`.menu div:has-text("${label}")`); };
+  const more = async label => {
+    const direct = { 'Písmo této písně': 'Písmo písně…', 'Ukázat akordy': '.ed-left-panel button[title^="Ukázat na stránce"]', 'Které vrstvy': 'Vrstvy' }[label];
+    if (direct) return direct.startsWith('.') ? p.click(direct) : p.click(`.ed-panel button:has-text("${direct}")`);
+    await p.click('.ed-left-panel button[title="Export, smazání písně"]'); await p.click(`.menu div:has-text("${label}")`);
+  };
   const dl = p.waitForEvent('download');
   await more('Export .txt');
   const d = await dl; const dpath = path.join(tmp, 'exp.txt'); await d.saveAs(dpath);
   assert(fs.readFileSync(dpath, 'utf8').startsWith('# Holubí dům'), 'export písně do .txt');
-  await more('Duplikovat');
+  await p.click('.ed-panel button:has-text("Uložit jako")');
+  await p.fill('.modal input', 'Holubí dům (kopie)'); await p.keyboard.press('Enter');
   await sleep(500);
-  assert(await p.evaluate(() => Store.sortedSongs().some(s => s.title === 'Holubí dům (kopie)')), 'duplikace písně');
+  assert(await p.evaluate(() => Store.sortedSongs().some(s => s.title === 'Holubí dům (kopie)')) && await p.evaluate(() => SongsView.editor.inTitle.value) === 'Holubí dům (kopie)', 'Uložit jako – nová píseň pod jiným názvem');
   await p.evaluate(id => { location.hash = '#/songs/' + id; }, hid);
   await sleep(500);
   // nadpis sekce přes tlačítko v panelu (před poslední řádek)
@@ -102,8 +107,8 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   await p.keyboard.press('Escape');
   await sleep(100);
   assert(/## Bridge\ntext mostu/.test(await src()), 'nový řádek pod sekcí a psaní');
-  await p.click('.ed-panel button:has-text("Další…")');
-  await p.click('.menu div:has-text("Opakovat: Refrén")');
+  await p.click('.ed-panel button:has-text("Opakovat")');
+  await p.click('.menu div:has-text("Refrén")');
   await sleep(200);
   assert(/text mostu\n>> Refrén/.test(await src()), 'opakování sekce z nabídky');
   // tučně celý řádek

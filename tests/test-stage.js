@@ -14,7 +14,11 @@ const SHOTS = process.env.SHOTS || '/tmp/claude-0/shots';
   await p.goto(URL + '#/songs'); await p.waitForFunction(() => typeof Store !== 'undefined' && Store.ready);
   const src = () => p.evaluate(() => SongsView.editor.src);
   const key = async (k, n = 1) => { for (let i = 0; i < n; i++) { await p.keyboard.press(k); await sleep(60); } };
-  const songMenu = async label => { await p.click('.ed-panel button:has-text("Píseň ⋯")'); await p.click(`.menu div:has-text("${label}")`); };
+  const songMenu = async label => {
+    if (label === 'Ukázat akordy') return p.click('.ed-left-panel button[title^="Ukázat na stránce"]');
+    if (label === 'Údaje o písni') return p.click('.ed-panel button:has-text("Údaje…")');
+    if (label === 'Zdrojový text') return p.click('.ed-panel button:has-text("Zdrojový text")');
+  };
   const curText = () => p.evaluate(() => { const e = document.querySelector('.edit-stage .is-cur'); return e ? e.textContent : ''; });
 
   // nová píseň: prázdná stránka, vložení textu
@@ -115,8 +119,7 @@ const SHOTS = process.env.SHOTS || '/tmp/claude-0/shots';
   await p.click('.ed-panel .sw >> nth=2');
   assert(/^@V refrén druhý/m.test(await src()), 'tlačítko zpěváka v panelu');
   assert(await p.isVisible('.ed-panel .sw.on'), 'panel ukazuje zpěváka vybraného řádku');
-  await p.click('.ed-panel button:has-text("Další…")');
-  await p.click('.menu div:has-text("Nová stránka")');
+  await p.click('.ed-panel button:has-text("Nová stránka")');
   await sleep(200);
   assert(/---\n@V refrén druhý/.test(await src()), 'nová stránka před vybraný řádek');
   assert(/2/.test(await p.textContent('.page-lbl')) && (await p.textContent('.page-lbl')).includes('/2'), 'stránky: počet v panelu');
@@ -124,6 +127,15 @@ const SHOTS = process.env.SHOTS || '/tmp/claude-0/shots';
   await key('PageUp'); await sleep(100);
   assert((await p.textContent('.page-lbl')).startsWith('1'), 'PgUp = předchozí stránka');
   await key('Control+z'); await sleep(150);
+
+  // posun řádků
+  const before2 = await src();
+  await p.click('.edit-stage .b-line:has-text("Refrén první")');
+  await p.click('.ed-panel button:has-text("↓ Dolů")'); await sleep(150);
+  assert(/@V refrén druhý\nRefrén první/.test(await src()), 'řádek jde posunout dolů');
+  assert((await curText()).includes('Refrén první'), 'posunutý řádek zůstane vybraný');
+  await key('Alt+ArrowUp');
+  assert(await src() === before2, 'Alt+↑ ho vrátí nahoru');
 
   // pro muzikanty: akordy jen v pohledu Pro muzikanty
   await songMenu('Ukázat akordy'); await sleep(250);

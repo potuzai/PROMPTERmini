@@ -224,6 +224,7 @@ class StageEditor {
     if (ctrl && (k === 'b' || k === 'B')) { e.preventDefault(); return this.formatLines('bold'); }
     if (ctrl && (k === 'i' || k === 'I')) { e.preventDefault(); return this.formatLines('italic'); }
     if (e.altKey && /^Digit[0-9]$/.test(e.code)) { e.preventDefault(); return this.singerByNumber(+e.code.slice(5), e.shiftKey); }
+    if (e.altKey && (k === 'ArrowUp' || k === 'ArrowDown')) { e.preventDefault(); return this.moveLines(k === 'ArrowUp' ? -1 : 1); }
     if (ctrl || e.altKey) return;
     switch (k) {
       case 'ArrowDown': e.preventDefault(); return this.select(idx < 0 ? 0 : idx + 1, e.shiftKey);
@@ -677,6 +678,29 @@ class StageEditor {
     this.anchorKey = null;
     this.commit(ls.filter((l, i) => !del.has(i)).join('\n'));
     toast('Smazáno – Ctrl+Z vrátí.', 'ok', 1500);
+  }
+
+  /* Posunout vybrané řádky o jeden řádek nahoru (-1) / dolů (+1) */
+  moveLines(d) {
+    this.finishEdit(true);
+    const targets = this.selTargets();
+    if (!targets.length) return;
+    const ls = this.lines();
+    let start = Math.min(...targets.map(t => t.line));
+    let end = Math.max(...targets.map(t => t.kind === 'musblock' ? this.afterTarget(t) - 1 : t.line));
+    if (d < 0 ? start === 0 : end >= ls.length - 1) return;
+    const curLine = this.cur().line, anchor = this.anchorKey != null && this.targets.find(t => t.key === this.anchorKey);
+    const anchorLine = anchor ? anchor.line : null;
+    if (d < 0) { const [x] = ls.splice(start - 1, 1); ls.splice(end, 0, x); }
+    else { const [x] = ls.splice(end + 1, 1); ls.splice(start, 0, x); }
+    this.ed.src = ls.join('\n');
+    this.pushHist();
+    this.ed.changed();
+    this.curKey = null; this.anchorKey = null; this.curLine = curLine + d; this.followCur = true;
+    this.render();
+    const find = line => this.targets.find(t => t.line === line && t.kind !== 'repeat') || this.targets.find(t => t.line === line);
+    const c = find(curLine + d), a = anchorLine != null ? find(anchorLine + d) : null;
+    if (c) { this.curKey = c.key; this.anchorKey = a ? a.key : null; this.page = c.page; this.paintPage(); }
   }
 
   /* Formát: v psaní na označený text, jinak na celé vybrané řádky */
