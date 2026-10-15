@@ -62,6 +62,18 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   await sleep(200);
   assert(await p.locator('.side .item').count() === 1, 'hledání bez diakritiky a i v textu');
   await p.fill('.side-head input[type=search]', '');
+  // seznam přes celou šířku, řazení: interpret, pak název
+  await p.evaluate(async () => {
+    await Store.put('songs', { id: 'o1', title: 'Zebra', artist: 'Arakain', text: 'x' });
+    await Store.put('songs', { id: 'o2', title: 'Anděl', artist: 'Arakain', text: 'x' });
+    await Store.put('songs', { id: 'o3', title: 'Bílá', artist: 'Čechomor', text: 'x' });
+    location.hash = '#/playlists'; location.hash = '#/songs';
+  });
+  await sleep(400);
+  const order = await p.$$eval('.song-list .item .sl-title', els => els.map(e => e.textContent));
+  assert(order.indexOf('Anděl') < order.indexOf('Zebra') && order.indexOf('Zebra') < order.indexOf('Bílá') && order.indexOf('Bílá') < order.indexOf('Holubí dům'), 'řazení: interpret, pak název; bez interpreta na konci (' + order.join(', ') + ')');
+  assert(await p.evaluate(() => document.querySelector('.song-list').getBoundingClientRect().width > innerWidth * 0.8), 'seznam písní je přes celou šířku');
+  await p.evaluate(async () => { for (const id of ['o1', 'o2', 'o3']) await Store.remove('songs', id); });
 
   /* ---------- Editor: duplikace, export, smazání ---------- */
   const hid = await p.evaluate(() => Store.sortedSongs().find(s => s.title === 'Holubí dům').id);

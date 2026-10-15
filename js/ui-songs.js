@@ -4,47 +4,49 @@ const SongsView = {
   search: '',
   editor: null,
 
+  /* Bez otevřené písně: seznam přes celou šířku. S otevřenou písní: jen editor (zpět přes ◀ Písně). */
   render(main, songId) {
-    const side = h('div', { class: 'side' });
+    const song = songId && Store.songs.get(songId);
+    const side = h('div', { class: 'side song-list' });
     const content = h('div', { class: 'content', style: { padding: 0 } });
-    main.append(h('div', { class: 'view' + (songId ? ' has-detail' : '') + (songId && Store.songs.has(songId) ? ' song-open' : '') }, side, content));
+    main.append(h('div', { class: 'view' + (song ? ' has-detail song-open' : ' list-only') }, side, content));
 
-    const searchInp = h('input', { class: 'inp', type: 'search', placeholder: 'Hledat název, interpreta, text, štítek…', value: this.search });
+    const searchInp = h('input', { class: 'inp', type: 'search', placeholder: 'Hledat interpreta, název, text, štítek…', value: this.search });
+    const sortSel = h('select', { class: 'inp sl-sort', title: 'Řazení' },
+      [['artist', 'Řadit: interpret, název'], ['title', 'Řadit: název'], ['recent', 'Řadit: naposledy upravené']]
+        .map(([v, l]) => h('option', { value: v, selected: (Settings.get('songSort') || 'artist') === v }, l)));
     const list = h('div', { class: 'list' });
+    const count = h('div', { class: 'sl-count' });
     side.append(
-      h('div', { class: 'side-head' },
-        h('div', { class: 'row' },
-          h('button', { class: 'btn primary', onclick: () => this.create() }, '＋ Nová píseň'),
-          h('button', { class: 'btn nogrow', title: 'Importovat písně z .txt souborů', onclick: () => importTxtFiles() }, '⇪ Import')),
-        searchInp),
-      list,
-      h('div', { class: 'help', style: { padding: '6px 12px', borderTop: '1px solid var(--line)' } }, `${Store.songs.size} písní`));
+      h('div', { class: 'side-head sl-head' },
+        h('button', { class: 'btn primary', onclick: () => this.create() }, '＋ Nová píseň'),
+        h('button', { class: 'btn', title: 'Importovat písně z .txt souborů', onclick: () => importTxtFiles() }, '⇪ Import'),
+        searchInp, sortSel),
+      h('div', { class: 'sl-row sl-cols' }, h('span', {}, 'Interpret'), h('span', {}, 'Název'), h('span', {}, 'Tónina · tempo'), h('span', {}, 'Štítky')),
+      list, count);
     const paintList = () => {
       const q = normalizeForSearch(this.search);
       list.innerHTML = '';
-      const songs = Store.sortedSongs().filter(s => !q || normalizeForSearch([s.title, s.artist, (s.tags || []).join(' '), s.text].join(' ')).includes(q));
+      const songs = Store.sortedSongs(sortSel.value).filter(s => !q || normalizeForSearch([s.title, s.artist, (s.tags || []).join(' '), s.text].join(' ')).includes(q));
       for (const s of songs) {
-        list.appendChild(h('div', { class: 'item' + (s.id === songId ? ' active' : ''), onclick: () => { location.hash = '#/songs/' + s.id; } },
-          h('div', { class: 't' }, h('b', {}, s.title || '(bez názvu)'),
-            h('small', {}, [s.artist, s.key ? 'tónina ' + s.key : ''].filter(Boolean).join(' · ') || ' '),
-            (s.tags || []).length ? h('small', {}, (s.tags || []).map(t => h('span', { class: 'tag' }, t))) : null)));
+        list.appendChild(h('div', { class: 'item sl-row' + (s.id === songId ? ' active' : ''), onclick: () => { location.hash = '#/songs/' + s.id; } },
+          h('span', { class: 'sl-artist' }, s.artist || '—'),
+          h('b', { class: 'sl-title' }, s.title || '(bez názvu)'),
+          h('span', { class: 'sl-key' }, [s.key, s.tempo ? s.tempo + ' BPM' : ''].filter(Boolean).join(' · ')),
+          h('span', { class: 'sl-tags' }, (s.tags || []).map(t => h('span', { class: 'tag' }, t)))));
       }
-      if (!songs.length) list.appendChild(h('div', { class: 'help', style: { padding: '12px' } }, q ? 'Nic nenalezeno.' : 'Zatím žádné písně.'));
-      const act = $('.item.active', list); if (act) act.scrollIntoView({ block: 'nearest' });
+      if (!songs.length) list.appendChild(h('div', { class: 'help', style: { padding: '16px' } }, q ? 'Nic nenalezeno.' : 'Zatím žádné písně. Vytvoř novou nebo importuj .txt soubory.'));
+      count.textContent = q ? `${songs.length} z ${Store.songs.size} písní` : `${Store.songs.size} písní`;
     };
     searchInp.addEventListener('input', () => { this.search = searchInp.value; paintList(); });
+    sortSel.addEventListener('change', () => { Settings.set('songSort', sortSel.value); paintList(); });
     this.paintList = paintList;
     paintList();
 
-    const song = songId && Store.songs.get(songId);
     if (song) this.editor = new SongEditor(content, song);
     else {
       this.editor = null;
-      content.appendChild(h('div', { class: 'empty' }, h('div', { class: 'empty-ic' }, '🎵'),
-        h('div', {}, 'Vyber píseň vlevo, nebo vytvoř novou.'),
-        h('div', { class: 'row', style: { flex: '0 0 auto' } },
-          h('button', { class: 'btn primary big', onclick: () => this.create() }, '＋ Nová píseň'),
-          h('button', { class: 'btn big', onclick: () => importTxtFiles() }, '⇪ Import z .txt'))));
+      setTimeout(() => { if (!this.search) return; searchInp.focus(); }, 0);
     }
   },
 

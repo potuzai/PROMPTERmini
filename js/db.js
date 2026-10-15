@@ -1,6 +1,6 @@
 'use strict';
 /* ===== Lokální úložiště (IndexedDB) + výchozí data ===== */
-const APP_VERSION = '1.10.0';
+const APP_VERSION = '1.11.0';
 const DB_NAME = 'prompter-pisne';
 const DB_VER = 1;
 const STORES = ['songs', 'playlists', 'templates', 'config', 'meta'];
@@ -232,8 +232,13 @@ const Store = {
     return Object.assign(clone(DEFAULT_TEMPLATE), this.templates.get(id) || this.templates.get(Settings.get('defaultTemplate')) || this.templates.get('default') || {});
   },
 
-  sortedSongs() {
-    return [...this.songs.values()].sort((a, b) => (a.title || '').localeCompare(b.title || '', 'cs'));
+  /* Výchozí řazení: interpret (kapela), pak název – vzestupně; písně bez interpreta na konci */
+  sortedSongs(by = 'artist') {
+    const cmp = (a, b) => String(a || '').localeCompare(String(b || ''), 'cs', { sensitivity: 'base' });
+    const list = [...this.songs.values()];
+    if (by === 'title') return list.sort((a, b) => cmp(a.title, b.title) || cmp(a.artist, b.artist));
+    if (by === 'recent') return list.sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')));
+    return list.sort((a, b) => (!a.artist - !b.artist) || cmp(a.artist, b.artist) || cmp(a.title, b.title));
   },
   sortedPlaylists() {
     return [...this.playlists.values()].sort((a, b) => (b.date || '').localeCompare(a.date || '') || (a.name || '').localeCompare(b.name || '', 'cs'));
