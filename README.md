@@ -91,7 +91,7 @@ Pokročilí můžou přes **Zdrojový text…** v pravém sloupci upravit text t
 
 Nástroje (kytara, basa, bicí, klávesy…) a jejich zkratky a barvy nastavíš v záložce **Obsazení**. Když vložíš text z webu s akordy nad řádky, akordy se samy převedou do textu a tabulatury se zabalí do bloku pro kytaru.
 
-Zpěváky (jména, barvy) upravíš v záložce **Zpěváci**. Vzhled stránky (písmo, velikost, barvy, okraje, zarovnání, sloupce, zmenšení dlouhých písní, zrcadlení) nastavíš v záložce **Šablony**. Šablonu pak přiřadíš playlistu, aby všechny písně vypadaly jednotně.
+Zpěváky (jména, barvy) upravíš v záložce **Zpěváci**. Vzhled stránky (písmo, velikost, barvy, okraje, zarovnání, sloupce, zmenšení dlouhých písní, zrcadlení) nastavíš v záložce **Šablony**. Šablonu přiřadíš písni (Údaje… → Šablona písně). Formátování drží každá píseň sama, playlist ho nemění – rozměr stránky určuje jen nastavení monitoru.
 
 Náhled v editoru odpovídá přesně monitoru čtečky. Rozměr monitoru se sdílí s celou kapelou.
 

@@ -32,11 +32,10 @@ const PlaylistsView = {
     const paintPrev = p => {
       prev.innerHTML = '';
       if (!p) { prev.appendChild(h('div', { class: 'help pl-prev-empty' }, 'Klikni na playlist a tady uvidíš, co obsahuje.')); return; }
-      const tpl = p.templateId && Store.templates.get(p.templateId);
       prev.append(
         h('div', { class: 'pl-prev-head' },
           h('h3', {}, p.name || '(bez názvu)'),
-          h('div', { class: 'pl-prev-meta' }, [p.date ? new Date(p.date).toLocaleDateString('cs-CZ') : '', p.note, tpl ? 'šablona: ' + tpl.name : ''].filter(Boolean).join(' · ') || ' ')),
+          h('div', { class: 'pl-prev-meta' }, [p.date ? new Date(p.date).toLocaleDateString('cs-CZ') : '', p.note].filter(Boolean).join(' · ') || ' ')),
         h('div', { class: 'pl-prev-btns' },
           h('button', { class: 'btn primary', onclick: () => { location.hash = '#/playlists/' + p.id; } }, '✎ Upravit'),
           h('button', { class: 'btn', onclick: () => { location.hash = '#/reader/' + p.id; } }, '▶ Čtečka'),
@@ -102,12 +101,9 @@ const PlaylistsView = {
     const f = (label, el) => h('label', { class: 'f' }, h('span', {}, label), el);
     const inName = h('input', { class: 'inp', value: pl.name || '' });
     const inDate = h('input', { class: 'inp', type: 'date', value: pl.date || '' });
-    const inTpl = h('select', { class: 'inp' }, h('option', { value: '' }, '— dle písně / výchozí —'),
-      [...Store.templates.values()].map(t => h('option', { value: t.id, selected: t.id === pl.templateId }, t.name)));
     const inNote = h('input', { class: 'inp', value: pl.note || '', placeholder: 'místo, čas, poznámka…' });
     inName.oninput = () => { pl.name = inName.value; save(); };
     inDate.onchange = () => { pl.date = inDate.value; save(); };
-    inTpl.onchange = () => { pl.templateId = inTpl.value; save(); };
     inNote.oninput = () => { pl.note = inNote.value; save(); };
 
     const itemsBox = h('div', { class: 'list' });
@@ -176,7 +172,7 @@ const PlaylistsView = {
 
     root.append(
       h('div', { class: 'row', style: { marginBottom: '10px' } },
-        f('Název playlistu', inName), h('div', { style: { flex: '0 0 160px' } }, f('Datum', inDate)), f('Šablona pro všechny písně', inTpl), f('Poznámka', inNote)),
+        f('Název playlistu', inName), h('div', { style: { flex: '0 0 160px' } }, f('Datum', inDate)), f('Poznámka', inNote)),
       h('div', { class: 'bottom-actions', style: { marginBottom: '12px' } },
         h('button', { class: 'btn primary', onclick: () => { location.hash = '#/reader/' + pl.id; } }, '▶ Spustit ve čtečce'),
         h('button', { class: 'btn', onclick: () => this.print(pl) }, '🖨 Tisk'),

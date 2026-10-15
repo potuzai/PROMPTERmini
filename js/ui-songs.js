@@ -81,9 +81,9 @@ class SongEditor {
     this.inKey = h('input', { class: 'inp', value: song.key || '', placeholder: 'C, Am…' });
     this.inTempo = h('input', { class: 'inp', value: song.tempo || '', placeholder: 'BPM' });
     this.inTags = h('input', { class: 'inp', value: (song.tags || []).join(', '), placeholder: 'rock, pomalá…' });
-    this.inTpl = h('select', { class: 'inp' }, h('option', { value: '' }, '— výchozí / dle playlistu —'),
+    this.inTpl = h('select', { class: 'inp' }, h('option', { value: '' }, '— výchozí —'),
       [...Store.templates.values()].map(t => h('option', { value: t.id, selected: t.id === song.templateId }, t.name)));
-    // jak by píseň vypadala v playlistu (pořadí x/y, šablona playlistu, další píseň)
+    // jak by píseň vypadala v playlistu (pořadí x/y, další píseň)
     const pls = [...Store.playlists.values()].filter(p => p.items.includes(this.id)).sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
     this.inPl = h('select', { class: 'inp' }, h('option', { value: '' }, '— samostatně —'),
       pls.map(p => h('option', { value: p.id }, p.name + (p.date ? ' · ' + p.date : ''))));
@@ -229,7 +229,7 @@ class SongEditor {
       f('Štítky (oddělené čárkou)', this.inTags),
       f('Šablona písně', this.inTpl),
       f('Ukázat jako v playlistu', this.inPl),
-      h('p', { class: 'help' }, 'Podle playlistu se na stránce ukáže pořadí (např. 2/12), šablona playlistu a další píseň – přesně jako ve čtečce.'));
+      h('p', { class: 'help' }, 'Podle playlistu se na stránce ukáže pořadí (např. 2/12) a další píseň – přesně jako ve čtečce.'));
     await modal({ title: 'Údaje o písni', body: box, buttons: [{ label: 'Hotovo', primary: true, value: true }] });
     this.se.render();
     this.stageWrap.focus({ preventScroll: true });
@@ -238,8 +238,7 @@ class SongEditor {
   /* ----- Šablona a údaje pro stránku ----- */
   playlist() { return this.inPl && this.inPl.value ? Store.playlists.get(this.inPl.value) : null; }
   lookTpl(song) {
-    const pl = this.playlist();
-    const id = (pl && pl.templateId) || this.inTpl.value || Settings.get('defaultTemplate');
+    const id = this.inTpl.value || Settings.get('defaultTemplate');
     return applySongStyle(Store.template(id), song || this.collect());
   }
   pageInfo(song) {
@@ -456,7 +455,7 @@ class SongEditor {
     $$('.menu').forEach(m => m.remove());
     const song = this.collect();
     const st = Object.assign({}, song.style || {});
-    const base = (() => { const pl = this.playlist(); return Store.template((pl && pl.templateId) || this.inTpl.value || Settings.get('defaultTemplate')); })();
+    const base = Store.template(this.inTpl.value || Settings.get('defaultTemplate'));
     const apply = () => {
       const clean = {};
       for (const [k, v] of Object.entries(st)) if (v !== '' && v != null && !(k === 'sizePct' && +v === 100)) clean[k] = v;

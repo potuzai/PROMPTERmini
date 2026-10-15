@@ -208,13 +208,14 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   await p.evaluate(async t => {
     await Store.put('songs', { id: 'long', title: 'Dlouhá', text: t });
     await Store.put('songs', { id: 's3', title: 'Třetí', text: '@T konec' });
-    const pl = Store.playlists.get('pl1'); pl.items = [Store.sortedSongs().find(s => s.title === 'Holubí dům').id, 'long', 's3']; pl.templateId = 'velke-stred'; await Store.put('playlists', pl);
+    const pl = Store.playlists.get('pl1'); pl.items = [Store.sortedSongs().find(s => s.title === 'Holubí dům').id, 'long', 's3']; await Store.put('playlists', pl);
+    for (const id of pl.items) { const s = Store.songs.get(id); if (s) { s.templateId = 'velke-stred'; await Store.put('songs', s); } }
     const tpl = Store.templates.get('velke-stred'); tpl.fit = 'paginate'; await Store.put('templates', tpl);
   }, long);
   await p.evaluate(() => { location.hash = '#/reader/pl1'; });
   await sleep(600);
   const pos = () => p.evaluate(() => [Reader.songIdx, Reader.pageIdx]);
-  assert(await p.evaluate(() => getComputedStyle(document.querySelector('#reader .stage')).getPropertyValue('--align').trim()) === 'center', 'šablona playlistu se použije ve čtečce');
+  assert(await p.evaluate(() => getComputedStyle(document.querySelector('#reader .stage')).getPropertyValue('--align').trim()) === 'center', 'šablona písně se použije ve čtečce');
   await p.keyboard.press('ArrowRight'); await sleep(100);
   assert(JSON.stringify(await pos()) === '[1,0]', 'šipka → další píseň');
   await p.keyboard.press('PageDown'); await sleep(100);

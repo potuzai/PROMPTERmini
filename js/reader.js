@@ -68,8 +68,8 @@ const Reader = {
   },
 
   tplFor(song) {
-    const pl = this.plId ? Store.playlists.get(this.plId) : null;
-    const id = (pl && pl.templateId) || (song && song.templateId) || Settings.get('defaultTemplate');
+    // formátování drží písně samy (šablona písně), playlist ho nemění
+    const id = (song && song.templateId) || Settings.get('defaultTemplate');
     const tpl = applySongStyle(Store.template(id), song);
     const z = Settings.get('readerZoom') || 1;
     if (z !== 1) tpl.fontSize = Math.round(tpl.fontSize * z);
