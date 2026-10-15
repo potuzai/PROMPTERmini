@@ -3,33 +3,55 @@
 const PlaylistsView = {
   libSearch: '',
 
+  search: '',
+
+  /* Bez otevřeného playlistu: seznam přes celou šířku (hledání, řazení). S otevřeným: jen jeho úprava. */
   render(main, plId) {
-    const side = h('div', { class: 'side' });
+    const pl = plId && Store.playlists.get(plId);
+    const side = h('div', { class: 'side big-list pl-list' });
     const content = h('div', { class: 'content' });
-    main.append(h('div', { class: 'view' + (plId ? ' has-detail' : '') }, side, content));
-    // na mobilu: zpět na seznam
-    content.appendChild(h('button', { class: 'btn m-back', onclick: () => { location.hash = '#/playlists'; } }, '◀ Playlisty'));
+    main.append(h('div', { class: 'view' + (pl ? ' has-detail pl-open' : ' list-only') }, side, content));
+
+    const searchInp = h('input', { class: 'inp', type: 'search', placeholder: 'Hledat playlist, poznámku nebo píseň v něm…', value: this.search });
+    const sortSel = h('select', { class: 'inp sl-sort', title: 'Řazení' },
+      [['new', 'Řadit: nejnovější'], ['old', 'Řadit: nejstarší'], ['name', 'Řadit: název']]
+        .map(([v, l]) => h('option', { value: v, selected: (Settings.get('plSort') || 'new') === v }, l)));
     const list = h('div', { class: 'list' });
-    side.append(h('div', { class: 'side-head' }, h('button', { class: 'btn primary', onclick: () => this.create() }, '＋ Nový playlist')), list);
+    const count = h('div', { class: 'sl-count' });
+    side.append(
+      h('div', { class: 'side-head sl-head' },
+        h('button', { class: 'btn primary', onclick: () => this.create() }, '＋ Nový playlist'),
+        searchInp, sortSel),
+      h('div', { class: 'sl-row pl-row sl-cols' }, h('span', {}, 'Datum'), h('span', {}, 'Název'), h('span', {}, 'Písní'), h('span', {}, 'Poznámka'), h('span', {})),
+      list, count);
+    const sorted = by => {
+      const cmp = (a, b) => String(a || '').localeCompare(String(b || ''), 'cs', { sensitivity: 'base' });
+      const all = [...Store.playlists.values()];
+      if (by === 'name') return all.sort((a, b) => cmp(a.name, b.name) || String(b.date || '').localeCompare(String(a.date || '')));
+      if (by === 'old') return all.sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')) || cmp(a.name, b.name));
+      return Store.sortedPlaylists();
+    };
     this.paintSide = () => {
+      const q = normalizeForSearch(this.search);
       list.innerHTML = '';
-      for (const p of Store.sortedPlaylists()) {
-        list.appendChild(h('div', { class: 'item' + (p.id === plId ? ' active' : ''), onclick: () => { location.hash = '#/playlists/' + p.id; } },
-          h('div', { class: 't' }, h('b', {}, p.name || '(bez názvu)'),
-            h('small', {}, [p.date ? new Date(p.date).toLocaleDateString('cs-CZ') : '', p.items.length + ' písní'].filter(Boolean).join(' · '))),
+      const pls = sorted(sortSel.value).filter(p => !q || normalizeForSearch([p.name, p.note, p.date, ...p.items.map(id => (Store.songs.get(id) || {}).title || '')].join(' ')).includes(q));
+      for (const p of pls) {
+        list.appendChild(h('div', { class: 'item sl-row pl-row' + (p.id === plId ? ' active' : ''), onclick: () => { location.hash = '#/playlists/' + p.id; } },
+          h('span', { class: 'sl-artist' }, p.date ? new Date(p.date).toLocaleDateString('cs-CZ') : '—'),
+          h('b', { class: 'sl-title' }, p.name || '(bez názvu)'),
+          h('span', { class: 'sl-key' }, p.items.length + (p.items.length === 1 ? ' píseň' : p.items.length >= 2 && p.items.length <= 4 ? ' písně' : ' písní')),
+          h('span', { class: 'sl-artist' }, p.note || ''),
           h('button', { class: 'btn small icon', title: 'Spustit ve čtečce', onclick: e => { e.stopPropagation(); location.hash = '#/reader/' + p.id; } }, '▶')));
       }
-      if (!Store.playlists.size) list.appendChild(h('div', { class: 'help', style: { padding: '12px' } }, 'Zatím žádné playlisty.'));
+      if (!pls.length) list.appendChild(h('div', { class: 'help', style: { padding: '16px' } }, q ? 'Nic nenalezeno.' : 'Zatím žádné playlisty. Playlist = seznam písní v pořadí, jak je budete hrát.'));
+      count.textContent = q ? `${pls.length} z ${Store.playlists.size} playlistů` : `${Store.playlists.size} playlistů`;
     };
+    searchInp.addEventListener('input', () => { this.search = searchInp.value; this.paintSide(); });
+    sortSel.addEventListener('change', () => { Settings.set('plSort', sortSel.value); this.paintSide(); });
     this.paintSide();
 
-    const pl = plId && Store.playlists.get(plId);
-    if (!pl) {
-      content.appendChild(h('div', { class: 'empty' }, h('div', { class: 'empty-ic' }, '📋'),
-        'Playlist = seznam písní v pořadí, jak je budete hrát.',
-        h('button', { class: 'btn primary big', onclick: () => this.create() }, '＋ Nový playlist')));
-      return;
-    }
+    if (!pl) return;
+    content.appendChild(h('button', { class: 'btn pl-back', onclick: () => { location.hash = '#/playlists'; } }, '◀ Playlisty'));
     this.editor(content, pl);
   },
 

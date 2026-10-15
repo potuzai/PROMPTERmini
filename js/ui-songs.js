@@ -7,7 +7,7 @@ const SongsView = {
   /* Bez otevřené písně: seznam přes celou šířku. S otevřenou písní: jen editor (zpět přes ◀ Písně). */
   render(main, songId) {
     const song = songId && Store.songs.get(songId);
-    const side = h('div', { class: 'side song-list' });
+    const side = h('div', { class: 'side big-list song-list' });
     const content = h('div', { class: 'content', style: { padding: 0 } });
     main.append(h('div', { class: 'view' + (song ? ' has-detail song-open' : ' list-only') }, side, content));
 

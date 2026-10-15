@@ -128,6 +128,26 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   await p.click('.modal button:has-text("Smazat")');
   await sleep(400);
   assert(await p.evaluate(id => !Store.songs.has(id) && !Store.playlists.get('pl1').items.includes(id), copyId), 'smazaná píseň zmizí i z playlistu');
+  // seznam playlistů přes celou šířku: hledání a řazení
+  await p.evaluate(async () => {
+    await Store.put('playlists', { id: 'plA', name: 'Akustika', date: '2026-09-01', templateId: '', note: 'klub', items: [] });
+    await Store.put('playlists', { id: 'plZ', name: 'Zábava', date: '2026-11-30', templateId: '', note: '', items: [] });
+    location.hash = '#/playlists';
+  });
+  await sleep(400);
+  const plNames = () => p.$$eval('.pl-list .item .sl-title', els => els.map(e => e.textContent));
+  assert((await plNames()).join(',') === 'Zábava,Koncert,Akustika', 'playlisty: výchozí řazení od nejnovějšího');
+  assert(await p.evaluate(() => document.querySelector('.pl-list').getBoundingClientRect().width > innerWidth * 0.8), 'seznam playlistů je přes celou šířku');
+  await p.selectOption('.pl-list .sl-sort', 'name'); await sleep(150);
+  assert((await plNames()).join(',') === 'Akustika,Koncert,Zábava', 'playlisty: řazení podle názvu');
+  await p.fill('.pl-list input[type=search]', 'holubi'); await sleep(150);
+  assert((await plNames()).join(',') === 'Koncert', 'playlisty: hledání i podle písní v playlistu');
+  await p.fill('.pl-list input[type=search]', ''); await p.selectOption('.pl-list .sl-sort', 'new');
+  await p.click('.pl-list .item:has-text("Akustika")'); await sleep(300);
+  assert(!(await p.isVisible('.pl-list')) && await p.isVisible('.btn.pl-back'), 'otevřený playlist: seznam schovaný, tlačítko zpět');
+  await p.click('.btn.pl-back'); await sleep(300);
+  assert(await p.isVisible('.pl-list'), 'zpět na seznam playlistů');
+  await p.evaluate(async () => { await Store.remove('playlists', 'plA'); await Store.remove('playlists', 'plZ'); });
 
   /* ---------- Zpěváci ---------- */
   await p.evaluate(() => { location.hash = '#/singers'; });
