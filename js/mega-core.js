@@ -38,13 +38,22 @@
   }
 
   const dirs = f => (f.children || []).filter(c => c.directory);
+  const fileCount = f => (f.children || []).reduce((n, c) => n + (c.directory ? fileCount(c) : 1), 0);
+  /* Složka podle jména. Když jich je víc stejného jména (dřív vznikly souběžným připojením),
+     použije se ta s daty a prázdné kopie se přesunou do koše Mega. */
   async function ensureDir(parent, name) {
-    const found = dirs(parent).find(c => c.name === name);
-    if (found) return found;
-    return parent.mkdir(name);
+    const found = dirs(parent).filter(c => c.name === name).sort((a, b) => fileCount(b) - fileCount(a));
+    if (!found.length) return parent.mkdir(name);
+    for (const dup of found.slice(1)) if (!fileCount(dup)) { try { await dup.delete(false); } catch (e) { /* nevadí */ } }
+    return found[0];
   }
 
-  async function open(cfg, fresh) {
+  // Připojení se nikdy nesmí překrývat – jinak by si každé založilo vlastní složku kapely
+  let lock = Promise.resolve();
+  const serial = fn => { const r = lock.then(fn, fn); lock = r.catch(() => {}); return r; };
+
+  function open(cfg, fresh) { return serial(() => openNow(cfg, fresh)); }
+  async function openNow(cfg, fresh) {
     const storage = await login(cfg, fresh);
     const folderName = (cfg.folder || 'Prompter kapela').trim();
     const base = await ensureDir(storage.root, folderName);

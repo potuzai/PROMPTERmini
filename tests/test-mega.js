@@ -141,6 +141,10 @@ async function browserMember(browser) {
   await D.p.reload(); await D.p.waitForFunction(() => typeof Store !== 'undefined' && Store.ready);
   assert(await D.p.evaluate(() => Sync.mode() === 'mega' && Store.playlists.has('plweb')), 'prohlížeč: po obnovení stránky zůstane připojeno i s daty');
   assert(!(await D.p.isVisible('.modal-title:has-text("Vítej")')), 'uvítání se už znovu neukáže');
+  // souběžná připojení nesmí založit víc složek kapely
+  await D.p.evaluate(async () => { const api = MegaProvider.api(); const c = Object.assign({}, MegaProvider.cfg(), { folder: 'Soubezna' }); await Promise.all([api.test(c), api.snapshot(c), api.test(c), api.snapshot(c)]); });
+  const dirsNamed = n => Object.values(cloud().nodes).filter(x => x.dir && x.name === n).length;
+  assert(dirsNamed('Soubezna') === 1, 'souběžné připojení k Mega vytvoří jen jednu složku kapely');
   // čtečka v prohlížeči z playlistu
   await D.p.evaluate(() => { location.hash = '#/reader/plweb'; }); await sleep(500);
   assert(await D.p.evaluate(() => !!document.querySelector('#reader .stage') && document.querySelector('#reader').textContent.includes('Žlutý pes')), 'prohlížeč: čtečka zobrazí playlist');
