@@ -75,11 +75,16 @@ async function browserMember(browser) {
   assert(files0.some(f => f.path === 'Prompter kapela/config/singers.json'), 'zpěváci nahráni');
   const savedPass = JSON.parse(fs.readFileSync(path.join(A.dir, 'settings.json'), 'utf8')).mega.pass;
   assert(savedPass && !savedPass.includes('heslo123'), 'heslo není v nastavení čitelně');
-  await A.w.fill('.modal input.inp', 'Rusted');
-  const code = await A.w.inputValue('.modal textarea');
-  await A.w.click('.modal input[type=checkbox]');
-  const roCode = await A.w.inputValue('.modal textarea');
+  await A.w.fill('.modal input.inp >> nth=0', 'Rusted');
+  await A.w.fill('.modal input[placeholder^="krátké heslo"]', 'tajne123'); await sleep(1500);
+  const link = await A.w.inputValue('.modal textarea >> nth=0');
+  assert(/\?kapela=[A-Za-z0-9_-]{40,}&n=Rusted$/.test(link) && !link.includes('heslo123'), 'odkaz kapely vytvořen (přístup v něm zašifrovaný)');
+  const code = await A.w.inputValue('.modal details textarea');
+  await A.w.click('.modal label.chk:has-text("Jen pro čtení") input');
+  await sleep(300);
+  const roCode = await A.w.inputValue('.modal details textarea');
   assert(code.startsWith('PROMPTER-') && roCode !== code, 'kód kapely (úpravy i jen pro čtení)');
+  await A.w.click('.modal label.chk:has-text("Jen pro čtení") input'); await sleep(300);
   await A.w.click('.modal button:has-text("Hotovo")');
   await A.w.evaluate(async () => { await Store.put('songs', { id: 'zluty', title: 'Žlutý pes', artist: '', key: 'C', tempo: '', tags: [], text: '@J Žlutý pes' }); await Sync.run(); });
 

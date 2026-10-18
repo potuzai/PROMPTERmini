@@ -142,9 +142,11 @@ Aplikace nemá vlastní server, proto neposílá upozornění; změny se ukážo
 ## 4. Sdílení s kapelou
 
 ### Člen kapely (1 minuta)
-1. Stáhne a spustí Prompter.
-2. V uvítacím okně klikne na **🔑 Mám kód kapely** (nebo vpravo nahoře na **připojit ke kapele**).
-3. Vloží kód od správce a klikne na **Připojit**. Písně a playlisty se stáhnou samy a další změny se synchronizují automaticky.
+1. Otevře **odkaz kapely**, který mu poslal správce, a uloží si ho do záložek.
+2. Zadá **heslo kapely** (krátké, správce ho řekne zvlášť) a klikne na **Připojit**. Písně a playlisty se stáhnou samy.
+3. **Zapamatovat na tomto zařízení**: zapnuté = příště se na nic neptá. Vypnuté (cizí / sdílený počítač) = heslo kapely je potřeba po každém otevření prohlížeče.
+
+Když prohlížeč po zavření maže data webů, stačí otevřít odkaz ze záložek a zadat krátké heslo. Lepší je ale přidat `potuzai.github.io` do výjimek, které se nemažou. V programu `Prompter.exe` se odkaz vloží přes **Připojit ke kapele**; program si přístup pamatuje (heslo k Mega šifrované přes Windows).
 
 ### Správce kapely (jednou, asi 10 minut)
 V **Nastavení → Sdílení s kapelou** zvol, kde budou písně uložené:
@@ -154,7 +156,7 @@ V **Nastavení → Sdílení s kapelou** zvol, kde budou písně uložené:
   2. Vyplň e-mail a heslo tohoto účtu a klikni na **Připojit k Mega**. Program si sám vytvoří složku „Prompter kapela“ a nahraje do ní písně.
 - **GitHub**: program tě provede třemi odkazy: účet, soukromý repozitář a token.
 
-Po připojení se ukáže **kód kapely**. Zkopíruj ho a pošli členům. Pro PC čtečky můžeš vytvořit kód **jen pro čtení**: čtečka pak písně jen stahuje a nic neodešle.
+Po připojení se ukáže okno **Pozvat členy**: vymysli **heslo kapely** (aspoň 6 znaků), zkopíruj **odkaz kapely** a pošli ho členům; heslo jim řekni zvlášť (ústně, SMS). Přístup k úložišti je v odkazu zašifrovaný heslem kapely – samotný odkaz bez hesla je k ničemu. (Starý dlouhý **kód kapely** bez hesla je pod „Starý způsob“.) Pro PC čtečky můžeš vytvořit kód **jen pro čtení**: čtečka pak písně jen stahuje a nic neodešle.
 
 Když dva lidé upraví stejnou píseň najednou, nic se neztratí: druhá verze se uloží jako kopie „(konflikt)“. Bez internetu vše funguje dál a změny se odešlou při dalším připojení. Když kód unikne, změň heslo k Mega (nebo vytvoř nový token na GitHubu), připoj se znovu a pošli členům nový kód.
 

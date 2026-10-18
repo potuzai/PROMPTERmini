@@ -1,4 +1,5 @@
 const { chromium } = require('playwright');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode = 1; } else console.log('ok: ' + m); };
 (async () => {
   const b = await chromium.launch();
@@ -113,5 +114,38 @@ const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode
   const badErr = await C.evaluate(c => BandCode.join(c).then(() => '').catch(e => e.message), 'PROMPTER-' + btoa('{"v":1,"k":"xyz"}'));
   assert(/Neznámý formát/.test(badErr), 'neznámý typ kódu → srozumitelná chyba');
   assert(await C.evaluate(() => Sync.mode()) === 'github', 'po chybném kódu zůstane původní připojení');
+
+  // Odkaz kapely + krátké heslo kapely
+  const blob = await A.evaluate(() => BandLink.seal(BandCode.make({ name: 'Rusted', ro: false }), 'tajne123'));
+  assert(!(await A.evaluate(b => atob(b.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((b.length + 3) % 4)).includes('TESTTOKEN'), blob)), 'odkaz kapely neobsahuje token čitelně');
+  const ctxE = await b.newContext({ viewport: { width: 1400, height: 850 } });
+  await ctxE.addInitScript(() => { window.GH_API_OVERRIDE = 'http://localhost:8124'; });
+  const E = await ctxE.newPage();
+  E.on('pageerror', e => console.log('PAGEERR', e.message));
+  await E.goto('http://localhost:8123/index.html?kapela=' + blob + '&n=Rusted#/songs');
+  await E.waitForSelector('.modal-title:has-text("Kapela")');
+  assert(await E.isVisible('.modal :text("Rusted")') && !(await E.isVisible('.modal-title:has-text("Vítej")')), 'odkaz kapely: jen heslo kapely, žádné uvítání');
+  await E.fill('.modal input[type=password]', 'spatne'); await E.click('.modal button:has-text("Připojit")'); await sleep(1500);
+  assert(await E.isVisible('.modal :text("Špatné heslo kapely")'), 'špatné heslo kapely → chyba');
+  await E.fill('.modal input[type=password]', 'tajne123');
+  await E.uncheck('.modal input[type=checkbox]');
+  await E.click('.modal button:has-text("Připojit")');
+  await E.waitForFunction(() => Store.songs.has('a2'), null, { timeout: 15000 });
+  assert(true, 'správné heslo kapely → připojeno a písně staženy');
+  assert(await E.evaluate(() => !JSON.parse(localStorage.getItem('prompter-settings')).gh.token && Settings.get('rememberBand') === false), 'nepamatovat: token se do prohlížeče natrvalo neuloží');
+  // nové otevření prohlížeče (nová záložka = nové sessionStorage) bez odkazu: zeptá se jen na heslo
+  const E2 = await ctxE.newPage();
+  E2.on('pageerror', e => console.log('PAGEERR', e.message));
+  await E2.goto('http://localhost:8123/index.html#/songs');
+  await E2.waitForSelector('.modal-title:has-text("Heslo kapely")');
+  assert(await E2.evaluate(() => Sync.locked() && document.querySelector('.sync-pill').dataset.state.includes('zamčeno')), 'po novém otevření zamčeno, čeká na heslo kapely');
+  await E2.fill('.modal input[type=password]', 'tajne123'); await E2.click('.modal button:has-text("Odemknout")'); await sleep(2500);
+  assert(await E2.evaluate(() => !Sync.locked() && Sync.state !== 'error'), 'heslo kapely odemkne synchronizaci');
+  // zapamatovat: další otevření bez ptaní
+  await E2.evaluate(() => setRememberBand(true));
+  const E3 = await ctxE.newPage();
+  await E3.goto('http://localhost:8123/index.html?kapela=' + blob + '#/songs'); await sleep(1500);
+  assert(!(await E3.isVisible('.modal')) && await E3.evaluate(() => !Sync.locked()), 'zapamatováno: odkaz se otevře bez ptaní');
+  await ctxE.close();
   await b.close();
 })();

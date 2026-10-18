@@ -1,6 +1,6 @@
 'use strict';
 /* ===== Lokální úložiště (IndexedDB) + výchozí data ===== */
-const APP_VERSION = '1.19.2';
+const APP_VERSION = '1.20.0';
 const DB_NAME = 'prompter-pisne';
 const DB_VER = 2;
 const STORES = ['songs', 'playlists', 'templates', 'config', 'events', 'rsvps', 'meta'];
@@ -75,6 +75,8 @@ const DEFAULT_SETTINGS = {
   readOnly: false,               // jen stahovat (např. čtečka)
   bandName: '',
   welcomed: false,
+  bandLink: '',                  // zašifrovaný odkaz kapely (bez hesla kapely je k ničemu)
+  rememberBand: true,            // false = heslo kapely zadat po každém otevření prohlížeče
   deviceRole: '',                // k čemu zařízení slouží: reader | editor | both | musician (nastaví průvodce)
   theme: 'dark',                 // vzhled aplikace: dark | light | auto (podle systému)
   screenId: '',                  // kterou obrazovkou kapely je toto zařízení; '' = program: hlavní čtečka, web: podle okna
@@ -106,6 +108,10 @@ const Settings = {
     if (SHARED_DISPLAY_KEYS.includes(k) && typeof Store !== 'undefined') {
       const d = Store.config.get('display');
       if (d && d[k] !== undefined) return d[k];
+    }
+    // „nepamatovat si na tomto zařízení“: heslo / token kapely jen do zavření prohlížeče
+    if ((k === 'mega' || k === 'gh') && this.data.rememberBand === false) {
+      try { const sec = JSON.parse(sessionStorage.getItem('prompter-secret-' + k) || 'null'); if (sec) return Object.assign({}, this.data[k], sec); } catch (e) { /* nic */ }
     }
     return this.data[k];
   },

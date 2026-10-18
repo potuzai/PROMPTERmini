@@ -70,6 +70,7 @@ body { display: flex; }
 .sync-pill.pending .dot { background: var(--warn); }
 .sync-pill.syncing .dot { background: var(--ok); animation: pulse .7s infinite alternate; }
 .sync-pill.error .dot { background: var(--err); }
+.sync-pill.locked .dot { background: var(--warn); }
 @keyframes pulse { to { opacity: .25; } }
 @media (prefers-reduced-motion: reduce) { .sync-pill.syncing .dot { animation: none; } }
 

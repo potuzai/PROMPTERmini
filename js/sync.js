@@ -188,7 +188,9 @@ const Sync = {
     const m = Settings.get('syncMode');
     if (m === 'folder') return window.native && Settings.get('sharedFolder') ? 'folder' : 'off';
     if (m === 'mega') return (Settings.get('mega') || {}).email ? 'mega' : 'off';
-    if (m === 'github' || (m === undefined && GH.configured())) return GH.configured() ? 'github' : 'off';
+    // GitHub bez uloženého tokenu („nepamatovat“) zůstává připojený – jen zamčený, dokud se nezadá heslo kapely
+    const ghOk = GH.configured() || (Settings.data.rememberBand === false && !!(Settings.get('gh') || {}).repo);
+    if (m === 'github' || (m === undefined && GH.configured())) return ghOk ? 'github' : 'off';
     return 'off';
   },
   provider() { return { folder: FolderProvider, github: GitHubProvider, mega: MegaProvider }[this.mode()] || null; },
@@ -210,16 +212,24 @@ const Sync = {
     this.timer = setTimeout(() => this.run().catch(() => {}), this.mode() === 'folder' ? 2000 : 6000);
   },
 
+  /* zařízení si heslo kapely nepamatuje a v tomto otevření prohlížeče ještě nebylo zadané */
+  locked() {
+    if (Settings.data.rememberBand !== false || window.native) return false;
+    const m = this.mode();
+    return (m === 'mega' && !(Settings.get('mega') || {}).pass) || (m === 'github' && !(Settings.get('gh') || {}).token);
+  },
   refreshState() {
     if (this.state === 'syncing') return;
     const p = this.provider();
     if (!p) return this.setState('off');
+    if (this.locked()) return this.setState('locked');
     if (p.needsNet && !navigator.onLine) return this.setState('offline');
     if (this.state === 'error') return this.setState('error', this.lastError);
     this.setState(Store.pendingCount() ? 'pending' : 'idle');
   },
 
   run(opts = {}) {
+    if (this.locked()) { this.refreshState(); return Promise.reject(new Error('Zadej heslo kapely (kliknutím na stav sdílení).')); }
     // už běží: změny z mezitímu by se nepřenesly – navázat jedno další kolo hned po něm
     if (this.running) {
       if (!this.again) this.again = this.running.catch(() => {}).then(() => { this.again = null; return this.run(opts); });

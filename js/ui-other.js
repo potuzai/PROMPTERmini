@@ -475,18 +475,23 @@ const SettingsView = {
           Settings.get('readOnly') ? h('span', { class: 'tag', style: { marginLeft: '6px' } }, 'jen pro čtení') : null,
           Sync.lastError ? h('span', { style: { color: 'var(--err)', marginLeft: '8px' } }, Sync.lastError) : null),
         h('div', { class: 'row' },
-          canInvite ? h('button', { class: 'btn primary nogrow', onclick: () => inviteDialog() }, '👥 Pozvat členy (kód kapely)') : null,
+          canInvite ? h('button', { class: 'btn primary nogrow', onclick: () => inviteDialog() }, '👥 Pozvat členy (odkaz kapely)') : null,
           h('button', { class: 'btn nogrow', onclick: () => App.syncClick() }, '⟳ Synchronizovat teď'),
           h('button', { class: 'btn danger nogrow', onclick: async () => {
             if (!await confirmDlg('Odpojit tento počítač od kapely? Písně v něm zůstanou, jen se přestanou synchronizovat.', 'Odpojit')) return;
-            Settings.set('syncMode', 'none'); Settings.set('readOnly', false);
+            Settings.set('syncMode', 'none'); Settings.set('readOnly', false); Settings.set('bandLink', ''); Settings.set('rememberBand', true);
+            sessionStorage.removeItem('prompter-secret-mega'); sessionStorage.removeItem('prompter-secret-gh');
             // přístupové údaje se z tohoto počítače smažou (důležité na cizím PC)
             Settings.set('mega', Object.assign({}, Settings.get('mega'), { pass: '' }));
             Settings.set('gh', Object.assign({}, Settings.get('gh'), { token: '', login: '', canPush: null }));
             MegaProvider.api().logout();
             if (window.native) window.native.watchFolder('');
             await Sync.resetMeta(); Sync.lastError = ''; Sync.state = 'off'; Sync.refreshState(); App.go(true);
-          } }, 'Odpojit')));
+          } }, 'Odpojit')),
+        window.native ? null : h('label', { class: 'chk', style: { marginTop: '10px' } },
+          h('input', { type: 'checkbox', checked: Settings.data.rememberBand !== false, onchange: e => setRememberBand(e.target.checked) }),
+          'Pamatovat si heslo kapely na tomto zařízení',
+          h('span', { class: 'help' }, ' – vypni na cizím počítači: heslo kapely pak bude potřeba po každém otevření prohlížeče')));
     } else {
       top.append(
         h('p', {}, 'Písně jsou zatím jen v tomto počítači.'),
@@ -665,6 +670,23 @@ const SettingsView = {
 
 function pickFile(accept) {
   return new Promise(res => { const i = h('input', { type: 'file', accept }); i.onchange = () => res(i.files[0]); i.click(); });
+}
+
+/* Pamatovat / nepamatovat přístup ke kapele v tomto prohlížeči */
+function setRememberBand(on) {
+  const mode = Sync.mode();
+  if (!on && !Settings.get('bandLink')) { toast('Nejdřív se připoj odkazem kapely – jinak by nebylo čím heslo znovu zadat.', 'warn', 6000); App.go(true); return; }
+  if (on) {
+    const m = Settings.get('mega'), g = Settings.get('gh');
+    Settings.set('rememberBand', true);
+    if (mode === 'mega' && m && m.pass) Settings.set('mega', m);
+    if (mode === 'github' && g && g.token) Settings.set('gh', g);
+  } else {
+    if (mode === 'mega') { sessionStorage.setItem('prompter-secret-mega', JSON.stringify({ pass: Settings.data.mega.pass })); Settings.set('mega', Object.assign({}, Settings.data.mega, { pass: '' })); }
+    if (mode === 'github') { sessionStorage.setItem('prompter-secret-gh', JSON.stringify({ token: Settings.data.gh.token })); Settings.set('gh', Object.assign({}, Settings.data.gh, { token: '' })); }
+    Settings.set('rememberBand', false);
+  }
+  toast(on ? 'Heslo kapely si toto zařízení zapamatuje.' : 'Heslo kapely se po zavření prohlížeče zapomene.', 'ok');
 }
 
 function exportBackup() {

@@ -39,16 +39,22 @@ const App = {
         history.replaceState(null, '', '#/reader/' + (Settings.get('lastPlaylist') || ''));
       } else history.replaceState(null, '', '#/songs');
     }
+    // odkaz kapely (?kapela=…): připojit / odemknout jen krátkým heslem kapely
+    const q = new URLSearchParams(location.search), link = q.get('kapela');
+    if (link) {
+      if (!(Sync.enabled() && Settings.get('bandLink') === link)) { Settings.set('welcomed', true); setTimeout(() => joinByLinkDialog(link, q.get('n') || ''), 50); }
+      else if (Sync.locked()) setTimeout(() => unlockBandSession(link), 50);
+    } else if (Sync.locked() && Settings.get('bandLink')) setTimeout(() => unlockBandSession(Settings.get('bandLink')), 50);
     this.go();
     Sync.refreshState();
-    if (Sync.enabled()) {
+    if (Sync.enabled() && !Sync.locked()) {
       Sync.run().then(r => { if (r && r.downloaded) toast(`Staženo ${r.downloaded} změn od ostatních`, 'ok'); }).catch(() => {});
     }
     // Pravidelná kontrola změn od ostatních (složka každou minutu, GitHub každých 5 min)
     let tick = 0;
     setInterval(() => {
       tick++;
-      if (!Sync.enabled() || !Settings.get('autoSync')) return;
+      if (!Sync.enabled() || !Settings.get('autoSync') || Sync.locked()) return;
       if (Sync.mode() === 'folder' || tick % 5 === 0) Sync.run().catch(() => {});
     }, 60 * 1000);
     if (window.native && Sync.mode() === 'folder') window.native.watchFolder(Settings.get('sharedFolder'));
@@ -90,8 +96,8 @@ const App = {
 
   paintSync() {
     const st = Sync.state;
-    const labels = { off: 'připojit ke kapele', idle: 'synchronizováno', pending: 'neodeslané změny', syncing: 'synchronizuji…', error: 'chyba synchronizace', offline: 'offline' };
-    const short = { off: 'Kapela', idle: 'Sdíleno', pending: 'Odeslat', syncing: 'Sdílím…', error: 'Chyba', offline: 'Offline' };
+    const labels = { locked: 'zamčeno – zadej heslo kapely', off: 'připojit ke kapele', idle: 'synchronizováno', pending: 'neodeslané změny', syncing: 'synchronizuji…', error: 'chyba synchronizace', offline: 'offline' };
+    const short = { locked: 'Heslo', off: 'Kapela', idle: 'Sdíleno', pending: 'Odeslat', syncing: 'Sdílím…', error: 'Chyba', offline: 'Offline' };
     const ro = Settings.get('readOnly') && st !== 'off' ? ' · jen čtení' : '';
     this.syncPill.className = 'sync-pill ' + st;
     $('.lbl', this.syncPill).textContent = short[st] || st;
@@ -102,6 +108,7 @@ const App = {
 
   async syncClick() {
     if (!Sync.enabled()) return joinBandDialog();
+    if (Sync.locked()) return Settings.get('bandLink') ? unlockBandSession(Settings.get('bandLink')) : joinBandDialog();
     try { const r = await Sync.run(); toast(`Synchronizováno · staženo ${r.downloaded || 0}, odesláno ${r.pushed || 0}`, 'ok'); }
     catch (e) { toast(e.message, 'err', 6000); }
   },
