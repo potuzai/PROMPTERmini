@@ -112,10 +112,9 @@ async function welcomeDialog() {
         h('li', {}, h('b', {}, 'Dostal(a) jsi kód kapely?'), ' Klikni na „Mám kód kapely“ a vlož ho.'),
         h('li', {}, h('b', {}, 'Zakládáš kapelu?'), ' V Nastavení → Sdílení s kapelou propojíš Mega nebo GitHub a pak pozveš ostatní kódem.'),
         h('li', {}, 'Nebo si aplikaci nejdřív jen vyzkoušej – sdílení jde zapnout kdykoli později.')),
-      h('p', { class: 'help' }, 'Bude toto zařízení čtečkou nebo obrazovkou muzikanta (monitor, tablet)? Zvol „Nastavit obrazovku“ – to jde i později v Nastavení › Toto zařízení.')),
-    buttons: [{ label: 'Nastavit obrazovku…', value: 'device' }, { label: 'Jen vyzkoušet', value: 'try' }, { label: 'Založit kapelu', value: 'new' }, { label: '🔑 Mám kód kapely', value: 'join', primary: true }],
+      ),
+    buttons: [{ label: 'Jen vyzkoušet', value: 'try' }, { label: 'Založit kapelu', value: 'new' }, { label: '🔑 Mám kód kapely', value: 'join', primary: true }],
   });
   if (v === 'join') joinBandDialog();
-  if (v === 'device') setupWizard();
   if (v === 'new') location.hash = '#/settings/share';
 }

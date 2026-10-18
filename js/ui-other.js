@@ -281,7 +281,7 @@ const SettingsView = {
     const chk = (k, label, help) => h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: !!S[k], onchange: e => { Settings.set(k, e.target.checked); } }), label, help ? h('span', { class: 'help' }, ' – ' + help) : null);
 
     // --- Obrazovky kapely (sdílené profily): rozměr, co se ukáže, písmo
-    let edId = (section && section.startsWith('screen-') ? section.slice(7) : '') || Settings.get('screenId') || 'main';
+    let edId = (section && section.startsWith('screen-') ? section.slice(7) : '') || (Screens.myId() === 'auto' ? 'main' : Screens.myId());
     const scrTabs = h('div', { class: 'scr-tabs' });
     const scrBox = h('div', { class: 'scr-box' });
     const presets = [[1920, 1080, 'Full HD (většina 24" monitorů)'], [1920, 1200, '24" 16:10'], [1680, 1050, '22" 16:10'], [1600, 900, ''], [1366, 768, 'notebook'], [1280, 1024, 'starší 4:3/5:4'], [2560, 1440, '27" QHD'], [2048, 1536, 'iPad'], [2340, 1080, 'mobil']];
@@ -289,7 +289,7 @@ const SettingsView = {
       if (!Screens.list().some(x => x.id === edId)) edId = 'main';
       scrTabs.innerHTML = '';
       for (const sc of Screens.list()) scrTabs.appendChild(h('button', { class: 'chip' + (sc.id === edId ? ' on' : ''), onclick: () => { edId = sc.id; paintScreens(); } },
-        sc.name + (sc.id === Settings.get('screenId') || (sc.id === 'main' && !Settings.get('screenId')) ? ' · toto zařízení' : '')));
+        sc.name + (sc.id === Screens.myId() ? ' · toto zařízení' : '')));
       scrTabs.appendChild(h('button', { class: 'chip add', onclick: async () => {
         const name = await promptDlg('Název nové obrazovky', 'Tablet – kytara', 'např. Mobil – basa');
         if (!name) return;
@@ -363,7 +363,7 @@ const SettingsView = {
     const devBox = h('div', { class: 'set-rows' });
     const paintDevice = () => {
       devBox.innerHTML = '';
-      const scrSel = h('select', { class: 'inp set-sel' }, Screens.list().map(sc => h('option', { value: sc.id, selected: sc.id === Screens.mine().id }, Screens.label(sc))));
+      const scrSel = h('select', { class: 'inp set-sel' }, [Screens.auto(), ...Screens.list()].map(sc => h('option', { value: sc.id, selected: sc.id === Screens.myId() }, Screens.label(sc))));
       scrSel.onchange = () => { Settings.set('screenId', scrSel.value); toast('Toto zařízení: ' + Screens.mine().name, 'ok'); paintScreens(); paintDevice(); };
       const my = Settings.get('myView');
       const view = Object.assign({ chords: false, inst: [] }, my || Screens.mine().view || {});
@@ -383,7 +383,7 @@ const SettingsView = {
       const row = (t, help, ctl) => h('div', { class: 'set-row' }, h('div', {}, h('b', {}, t), help ? h('span', { class: 'help' }, help) : null), ctl);
       devBox.append(
         row('K čemu zařízení slouží', 'Určuje, co se otevře po zapnutí.', roleSel),
-        row('Toto zařízení je obrazovka', 'Rozměr, konce stránek a obsah podle obrazovky kapely.', scrSel),
+        row('Toto zařízení je obrazovka', 'Na webu a v telefonu se stránka přizpůsobí oknu. Obrazovku kapely zvol jen pro pevně umístěný displej (čtečka, tablet na stojanu).', scrSel),
         row('Co vidím já', my ? 'Vlastní výběr jen pro toto zařízení.' : 'Jako obrazovka „' + Screens.mine().name + '“.',
           segControl([['profile', 'Jako obrazovka'], ['custom', 'Vlastní']], my ? 'custom' : 'profile', v => { Settings.set('myView', v === 'custom' ? Object.assign({}, view) : null); paintDevice(); })),
         h('div', { class: 'set-row sub' + (my ? '' : ' hidden') }, custom),

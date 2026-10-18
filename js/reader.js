@@ -17,7 +17,12 @@ const Reader = {
     this.el.addEventListener('wheel', e => this.onWheel(e), { passive: false });
     this.el.addEventListener('mousemove', e => this.onMove(e));
     document.addEventListener('keydown', e => this.onKey(e));
-    window.addEventListener('resize', () => { if (this.isOpen()) this.fit(); });
+    window.addEventListener('resize', () => {
+      if (!this.isOpen()) return;
+      // „podle okna“: při změně velikosti / otočení telefonu přestránkovat, jinak jen přizpůsobit
+      if (Screens.myId() === 'auto') { clearTimeout(this.rsT); this.fit(); this.rsT = setTimeout(() => { this.stage = null; this.render(); }, 150); }
+      else this.fit();
+    });
     document.addEventListener('fullscreenchange', () => { if (this.isOpen()) setTimeout(() => this.fit(), 50); });
     Store.on(() => { this.cache.clear(); if (this.isOpen() && !this.menu) { this.loadItems(); this.render(); } });
   },

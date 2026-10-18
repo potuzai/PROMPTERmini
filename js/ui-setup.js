@@ -50,9 +50,9 @@ function setupWizard() {
     step: 0,
     role: Settings.get('deviceRole') || (Settings.get('startInReader') ? 'reader' : 'editor'),
     // obrazovka kapely, kterou toto zařízení bude (nebo „new“ = nová)
-    scr: Screens.mine().id, scrName: '',
-    w: Screens.mine().w, h: Screens.mine().h,
-    diag: Screens.mine().diag || 24, dist: Screens.mine().dist || 2.5,
+    scr: Screens.myId() === 'auto' ? 'main' : Screens.myId(), scrName: '',
+    w: Screens.get(Screens.myId() === 'auto' ? 'main' : Screens.myId()).w, h: Screens.get(Screens.myId() === 'auto' ? 'main' : Screens.myId()).h,
+    diag: Screens.get(Screens.myId() === 'auto' ? 'main' : Screens.myId()).diag || 24, dist: Screens.get(Screens.myId() === 'auto' ? 'main' : Screens.myId()).dist || 2.5,
     rot: Settings.get('readerRotate') || 0, theme: Settings.get('theme') || 'dark', pin: '',
   };
   const steps = ['Zařízení', 'Orientace', 'Velikost', 'Hotovo'];

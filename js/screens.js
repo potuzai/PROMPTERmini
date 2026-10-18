@@ -18,9 +18,20 @@ const Screens = {
   },
   others() { return ((typeof Store !== 'undefined' && Store.config && Store.config.get('screens')) || { list: [] }).list || []; },
   list() { return [this.main(), ...this.others()]; },
-  get(id) { return (id && id !== 'main' && this.others().find(s => s.id === id)) || this.main(); },
-  /* obrazovka tohoto zařízení */
-  mine() { return this.get(Settings.get('screenId')); },
+  get(id) {
+    if (id === 'auto') return this.auto();
+    return (id && id !== 'main' && this.others().find(s => s.id === id)) || this.main();
+  },
+  /* „Podle okna“ (web, mobil): stránka má tvar okna prohlížeče. Kratší strana = 1080 px,
+     takže písmo ze šablony (navržené pro monitor 1080 px) zůstane v poměru čitelné. */
+  auto() {
+    const iw = Math.max(1, window.innerWidth), ih = Math.max(1, window.innerHeight);
+    const k = 1080 / Math.min(iw, ih);
+    return { id: 'auto', name: 'Podle okna', w: Math.round(iw * k), h: Math.round(ih * k), diag: 0, dist: 0, view: { chords: false, inst: [] }, fontPct: 100 };
+  },
+  /* obrazovka tohoto zařízení: program = hlavní čtečka, web = podle okna (dokud si ji člověk nezvolí) */
+  myId() { return Settings.get('screenId') || (window.native ? 'main' : 'auto'); },
+  mine() { return this.get(this.myId()); },
 
   async save(scr) {
     if (scr.id === 'main') {
@@ -43,7 +54,7 @@ const Screens = {
   async remove(id) {
     if (id === 'main') return;
     await Store.put('config', { id: 'screens', list: this.others().filter(s => s.id !== id) });
-    if (Settings.get('screenId') === id) Settings.set('screenId', 'main');
+    if (Settings.get('screenId') === id) Settings.set('screenId', '');
   },
 
   /* Co se na obrazovce ukáže: profil, případně přepsaný osobním nastavením zařízení.
@@ -57,7 +68,7 @@ const Screens = {
   },
   /* Velikost písma: profil × osobní zvětšení */
   fontScale(scr, personal) { return (scr.fontPct || 100) / 100 * (personal ? (Settings.get('readerZoom') || 1) : 1); },
-  label(scr) { return `${scr.name} · ${scr.w}×${scr.h}`; },
+  label(scr) { return scr.id === 'auto' ? 'Podle okna (přizpůsobí se displeji)' : `${scr.name} · ${scr.w}×${scr.h}`; },
 };
 
 /* Soukromé poznámky k písni – jen v tomto zařízení, nesdílí se */

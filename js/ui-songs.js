@@ -121,7 +121,7 @@ class SongEditor {
     this.src = song.text || '';
     this.style = song.style || null;
     // náhled pro obrazovku: naposledy zvolená v tomto zařízení, jinak vlastní obrazovka zařízení
-    this.screenId = Screens.get(Settings.get('editScreen') || Settings.get('screenId')).id;
+    this.screenId = Screens.get(Settings.get('editScreen') || (Screens.myId() === 'auto' ? 'main' : Screens.myId())).id;
     this.build(song);
   }
 
@@ -236,7 +236,7 @@ class SongEditor {
       tool('? Nápověda', 'Jak psát a ovládat editor', () => showMarkupHelp(), 'wide quiet'));
 
     this.scrSel = h('select', { class: 'inp ed-screen', title: 'Pro kterou obrazovku kapely ukázat stránku – každá má svůj rozměr, konce stránek a obsah' },
-      Screens.list().map(sc => h('option', { value: sc.id, selected: sc.id === this.screenId }, Screens.label(sc) + (sc.id === Screens.mine().id ? ' (toto zařízení)' : ''))));
+      Screens.list().map(sc => h('option', { value: sc.id, selected: sc.id === this.screenId }, Screens.label(sc) + (sc.id === Screens.myId() ? ' (toto zařízení)' : ''))));
     this.scrSel.onchange = () => {
       this.screenId = this.scrSel.value; Settings.set('editScreen', this.screenId);
       this.structKey = null; this.se.followCur = true; this.se.render(); this.stageWrap.focus({ preventScroll: true });

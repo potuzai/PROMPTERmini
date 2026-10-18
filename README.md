@@ -47,7 +47,7 @@ Monitor čtečky během běhu programu neusne. Program se po případném pádu 
 
 ## 2. Prohlížečová verze (bez instalace)
 
-- Otevři **https://potuzai.github.io/RUSTEDprompter/** v Edge nebo Chrome. Napoprvé se objeví uvítání: zvol **🔑 Mám kód kapely** a vlož kód. Průvodce s otázkami na monitor se na webu neukazuje – spustíš ho tlačítkem **Nastavit obrazovku…** (nebo v Nastavení › Toto zařízení), jen když má být toto zařízení čtečkou nebo obrazovkou muzikanta.
+- Otevři **https://potuzai.github.io/RUSTEDprompter/** v Edge nebo Chrome. Napoprvé se objeví uvítání: zvol **🔑 Mám kód kapely** a vlož kód. Web se na monitor neptá: stránka čtečky se přizpůsobí oknu prohlížeče nebo telefonu (i po otočení). Pevnou obrazovku kapely zvolíš v Nastavení › Toto zařízení jen pro displej, který slouží jako čtečka.
 - Písně se uloží v tom prohlížeči a synchronizují se s kapelou, stejně jako v programu.
 - Ikonu na plochu přidáš v Edge přes **⋯ → Aplikace → Nainstalovat tento web jako aplikaci**.
 - Na **cizím počítači** se po práci odpoj: **Nastavení → Sdílení s kapelou → Odpojit**. Heslo se tím z prohlížeče smaže.
