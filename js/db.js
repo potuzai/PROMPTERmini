@@ -1,6 +1,6 @@
 'use strict';
 /* ===== Lokální úložiště (IndexedDB) + výchozí data ===== */
-const APP_VERSION = '1.16.0';
+const APP_VERSION = '1.17.0';
 const DB_NAME = 'prompter-pisne';
 const DB_VER = 1;
 const STORES = ['songs', 'playlists', 'templates', 'config', 'meta'];
@@ -71,6 +71,10 @@ const DEFAULT_SETTINGS = {
   welcomed: false,
   deviceRole: '',                // k čemu zařízení slouží: reader | editor | both | musician (nastaví průvodce)
   theme: 'dark',                 // vzhled aplikace: dark | light | auto (podle systému)
+  screenId: 'main',              // kterou obrazovkou kapely je toto zařízení (profil se sdílí, volba ne)
+  myView: null,                  // vlastní „co vidím“ ({ chords, inst: [] }); null = jako profil obrazovky
+  mySinger: '', highlightMine: false, // zvýraznit řádky, které zpívám já
+  privateNotes: {},              // soukromé poznámky k písním (jen toto zařízení)
   musView: { on: false, chords: true, inst: {} },   // náhled „Pro muzikanty“ – co zobrazit (jen tento počítač)
   gh: { owner: '', repo: '', branch: 'main', token: '', login: '', canPush: null },
 };

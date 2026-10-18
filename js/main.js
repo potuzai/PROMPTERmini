@@ -147,7 +147,11 @@ const App = {
     SongsView.editor = null;
     const views = { songs: SongsView, playlists: PlaylistsView, templates: TemplatesView, singers: SingersView, settings: SettingsView };
     (views[view] || SongsView).render(main, param);
-    if (!Settings.get('welcomed') && !$('.modal') && !$('.wizard')) setTimeout(() => setupWizard(), 200);
+    // první spuštění: program (čtečka) → průvodce zařízením; web → jen uvítání a připojení ke kapele
+    if (!Settings.get('welcomed')) setTimeout(() => {
+      if (Settings.get('welcomed') || $('.modal') || $('.wizard')) return; // jen jednou
+      if (window.native) setupWizard(); else welcomeDialog();
+    }, 200);
   },
 };
 

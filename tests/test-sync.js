@@ -77,11 +77,10 @@ const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode
   const C = await ctxC.newPage();
   C.on('pageerror', e => console.log('PAGEERR', e.message));
   await C.goto('http://localhost:8123/index.html#/songs');
-  await C.waitForSelector('.wizard');
-  assert(true, 'při prvním spuštění se zobrazí průvodce nastavením zařízení');
-  for (let i = 0; i < 3; i++) await C.click('.wz-foot .btn.primary');
+  await C.waitForSelector('.modal-title:has-text("Vítej")');
+  assert(!(await C.isVisible('.wizard')), 'web: při prvním otevření jen uvítání, ne průvodce čtečkou');
   await C.evaluate(t => navigator.clipboard.writeText(t), code);
-  await C.click('.wizard button:has-text("Mám kód kapely")');
+  await C.click('.modal button:has-text("Mám kód kapely")');
   await C.waitForSelector('.modal textarea');
   assert((await C.inputValue('.modal textarea')) === code, 'kód kapely se sám vložil ze schránky');
   await C.click('.modal button:has-text("Připojit")');

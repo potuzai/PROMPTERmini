@@ -72,7 +72,7 @@ const Render = {
       return h('div', { class: 'b-sec' + (b.repeat ? ' rep' : ''), 'data-src': b.src },
         b.text, sg.length ? h('span', { class: 'sec-sg' }, ' · ' + sg.map(s => s.name).join(' + ')) : null);
     }
-    if (b.type === 'note') return h('div', { class: 'b-note' + (b.warn ? ' warn' : ''), 'data-src': b.src, html: inlineHtml(b.text, singerMap) });
+    if (b.type === 'note') return h('div', { class: 'b-note' + (b.warn ? ' warn' : '') + (b.private ? ' private' : ''), 'data-src': b.src, html: inlineHtml(b.text, singerMap) });
     // řádek textu
     const sgs = b.singers.map(c => singerMap[c]).filter(Boolean);
     const el = h('div', { class: 'b-line', 'data-src': b.src });
@@ -94,11 +94,16 @@ const Render = {
     return el;
   },
 
-  /* Spočítá rozdělení písně na stránky. mus = vrstvy pro muzikanty (null = čtečka: nic z nich) */
-  layout(song, tpl, W, H, mus = null) {
+  /* Spočítá rozdělení písně na stránky. mus = vrstvy pro muzikanty (null = čtečka: nic z nich)
+     opts.screen = pro kterou obrazovku (platí jen její konce stránek), opts.note = soukromá poznámka,
+     opts.mine = kód zpěváka, jehož řádky se zvýrazní (ostatní ztlumené) */
+  layout(song, tpl, W, H, mus = null, opts = {}) {
     const parsed = parseSong(song.text);
     const singerMap = Store.singerMap();
-    const blocks = filterForView(parsed.blocks, mus);
+    const scr = opts.screen || 'main';
+    let blocks = filterForView(parsed.blocks.filter(b => b.type !== 'break' || b.screen === scr), mus);
+    while (blocks.length && blocks[0].type === 'break') blocks.shift();
+    if (opts.note) blocks = [{ type: 'note', text: opts.note, private: true, src: -1 }, ...blocks];
     const cols = Math.max(1, tpl.columns | 0);
     const tryK = k => this._chunk(blocks, tpl, W, H, k, singerMap, cols);
     let k = 1, res = tryK(1);
@@ -118,7 +123,7 @@ const Render = {
         k = best.k; res = best.res;
       }
     }
-    return { blocks, pages: res.pages, k, cols, singerMap };
+    return { blocks, pages: res.pages, k, cols, singerMap, mine: opts.mine || '' };
   },
 
   _chunk(blocks, tpl, W, H, k, singerMap, cols) {
@@ -184,7 +189,13 @@ const Render = {
     const page = lay.pages[pageIdx] || [];
     cols.forEach((col, ci) => {
       col.innerHTML = '';
-      for (const i of (page[ci] || [])) { const el = this.blockEl(lay.blocks[i], tpl, lay.singerMap); el.dataset.bi = i; col.appendChild(el); }
+      for (const i of (page[ci] || [])) {
+        const b = lay.blocks[i];
+        const el = this.blockEl(b, tpl, lay.singerMap); el.dataset.bi = i;
+        // zvýraznit mé řádky: cizí ztlumit (řádky „všichni“ a bez zpěváka zůstanou)
+        if (lay.mine && b.type === 'line' && b.singers.length && !b.singers.some(c => c === lay.mine || /všichni/i.test((lay.singerMap[c] || {}).name || ''))) el.classList.add('not-mine');
+        col.appendChild(el);
+      }
     });
     const hl = $('.st-h-left', stage), hr = $('.st-h-right', stage), fl = $('.st-f-left', stage), fr = $('.st-f-right', stage);
     hl.innerHTML = `<b>${esc(info.title || '')}</b>${info.artist ? ' <span class="dim">– ' + esc(info.artist) + '</span>' : ''}`;
@@ -237,9 +248,11 @@ function stripes(colors, soft) {
 
 /* Malý náhled první stránky písně (seznam písní, průvodce) – přesně jako ve čtečce, jen zmenšený */
 function miniPage(box, song, info) {
-  const W = Settings.get('screenW'), H = Settings.get('screenH');
+  const scr = Screens.mine();
+  const W = scr.w, H = scr.h;
   const tpl = applySongStyle(Store.template((song && song.templateId) || Settings.get('defaultTemplate')), song);
-  const lay = Render.layout(song, tpl, W, H);
+  tpl.fontSize = Math.round(tpl.fontSize * Screens.fontScale(scr, false));
+  const lay = Render.layout(song, tpl, W, H, Screens.view(scr, true), screenOpts(scr, song.id, true));
   const st = Render.makeStage(tpl, W, H);
   box.innerHTML = '';
   box.style.aspectRatio = W + ' / ' + H;

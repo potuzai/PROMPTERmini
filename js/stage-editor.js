@@ -64,7 +64,8 @@ class StageEditor {
   /* ---------- Vykreslení ---------- */
   render() {
     const ed = this.ed;
-    const W = Settings.get('screenW'), H = Settings.get('screenH');
+    const scr = ed.screen(), own = scr.id === Screens.mine().id;
+    const W = scr.w, H = scr.h;
     const song = ed.collect();
     let text = song.text;
     if (this.editing) {
@@ -76,8 +77,12 @@ class StageEditor {
       text = ls.join('\n');
     }
     const tpl = ed.lookTpl(song);
-    this.wrap.classList.toggle('mus-on', !!musViewOpts());
-    const lay = Render.layout(Object.assign({}, song, { text }), tpl, W, H, musViewOpts());
+    const fz = Screens.fontScale(scr, own);
+    if (fz !== 1) tpl.fontSize = Math.round(tpl.fontSize * fz);
+    // náhled přesně pro zvolenou obrazovku (její konce stránek a vrstvy); „Ukázat akordy“ přidá vše pro muzikanty
+    const mus = musViewOpts() || Screens.view(scr, own);
+    this.wrap.classList.toggle('mus-on', !!(mus && mus.chords));
+    const lay = Render.layout(Object.assign({}, song, { text }), tpl, W, H, mus, screenOpts(scr, ed.id, own));
     this.lay = lay;
     this.tpl = tpl;
     this.targets = this.buildTargets(lay, tpl);
@@ -120,8 +125,8 @@ class StageEditor {
   }
   fit() {
     if (!this.stage) return;
-    const W = Settings.get('screenW'), H = Settings.get('screenH');
-    Render.fit(this.stage, this.wrap, W, H, 'none');
+    const scr = this.ed.screen();
+    Render.fit(this.stage, this.wrap, scr.w, scr.h, 'none');
   }
 
   /* Cíle pro výběr šipkami: řádky, nadpisy, poznámky, opakování (celé jako jeden cíl), bloky */
@@ -132,7 +137,7 @@ class StageEditor {
     const out = [];
     let last = null;
     lay.blocks.forEach((b, i) => {
-      if (b.type === 'gap' || b.type === 'break' || pageOf[i] === undefined) return;
+      if (b.type === 'gap' || b.type === 'break' || b.private || pageOf[i] === undefined) return;
       if (b.type === 'section' && !tpl.showSections && !b.repeat) return;
       if (b.type === 'note' && !tpl.showNotes && !b.warn) return;
       const rep = b.repeat || (info[b.src] && info[b.src].kind === 'repeat');

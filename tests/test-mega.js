@@ -114,9 +114,8 @@ async function browserMember(browser) {
   /* ----- Prohlížečová verze: člen se připojí stejným kódem ----- */
   const browser = await chromium.launch();
   const D = await browserMember(browser);
-  await D.p.waitForSelector('.wizard');
-  for (let i = 0; i < 3; i++) await D.p.click('.wz-foot .btn.primary');
-  await D.p.click('.wizard button:has-text("Mám kód kapely")');
+  await D.p.waitForSelector('.modal-title:has-text("Vítej")');
+  await D.p.click('.modal button:has-text("Mám kód kapely")');
   await D.p.fill('.modal textarea', code);
   await D.p.click('.modal button:has-text("Připojit")');
   await D.p.waitForFunction(() => Store.songs.has('zluty'), null, { timeout: 15000 });

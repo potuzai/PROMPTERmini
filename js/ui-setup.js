@@ -28,7 +28,7 @@ function applyDeviceRole(role) {
   Settings.set('deviceRole', role);
   Settings.set('startInReader', role === 'reader');
   if (role === 'musician') {
-    Settings.set('musView', Object.assign({}, Settings.get('musView'), { on: true }));
+    Settings.set('myView', Object.assign({ chords: true, inst: [] }, Settings.get('myView') || {}));
     if (Sync.enabled()) Settings.set('readOnly', true);
   }
 }
@@ -49,8 +49,10 @@ function setupWizard() {
   const st = {
     step: 0,
     role: Settings.get('deviceRole') || (Settings.get('startInReader') ? 'reader' : 'editor'),
-    w: Settings.get('screenW'), h: Settings.get('screenH'),
-    diag: Settings.get('diagonal') || 24, dist: Settings.get('distance') || 2.5,
+    // obrazovka kapely, kterou toto zařízení bude (nebo „new“ = nová)
+    scr: Screens.mine().id, scrName: '',
+    w: Screens.mine().w, h: Screens.mine().h,
+    diag: Screens.mine().diag || 24, dist: Screens.mine().dist || 2.5,
     rot: Settings.get('readerRotate') || 0, theme: Settings.get('theme') || 'dark', pin: '',
   };
   const steps = ['Zařízení', 'Orientace', 'Velikost', 'Hotovo'];
@@ -133,12 +135,23 @@ function setupWizard() {
       hint.textContent = '←→ vybrat · Tab další volba · OK pokračovat';
     } else if (st.step === 2) {
       title.textContent = 'Jak velký je displej čtečky?';
-      sub.textContent = 'Rozlišení určuje velikost stránky. Úhlopříčka a vzdálenost slouží jen k doporučení velikosti písma.';
+      sub.textContent = 'Rozlišení určuje velikost stránky na této obrazovce. Kapela může mít víc obrazovek (hlavní prompter, tablet…) – každá má vlastní rozměr a konce stránek.';
       const wI = num('w', 320, 7680), hI = num('h', 240, 7680), dI = num('diag', 10, 100, 0.5), sI = num('dist', 0.5, 15, 0.1);
       const chips = h('div', { class: 'chips' }, SCREEN_PRESETS.map(p => h('button', { type: 'button', class: 'chip', onclick: () => {
         const [a, b] = isPortrait() ? [p.w, p.h] : [p.h, p.w];
         st.w = a; st.h = b; st.diag = p.d; wI.value = a; hI.value = b; dI.value = p.d; paintAdvice();
       } }, p.label)));
+      // které obrazovce kapely tento displej odpovídá
+      const scrSel = h('select', { class: 'inp' }, Screens.list().map(sc => h('option', { value: sc.id, selected: sc.id === st.scr }, sc.name)),
+        h('option', { value: 'new', selected: st.scr === 'new' }, '＋ Nová obrazovka…'));
+      const scrName = h('input', { class: 'inp', placeholder: 'např. Tablet – kytara', value: st.scrName });
+      const nameF = field('Název nové obrazovky', scrName);
+      nameF.hidden = st.scr !== 'new';
+      scrSel.onchange = () => {
+        st.scr = scrSel.value; nameF.hidden = st.scr !== 'new';
+        if (st.scr !== 'new') { const sc = Screens.get(st.scr); Object.assign(st, { w: sc.w, h: sc.h, diag: sc.diag, dist: sc.dist }); wI.value = st.w; hI.value = st.h; dI.value = st.diag; sI.value = st.dist; paintAdvice(); }
+      };
+      scrName.oninput = () => { st.scrName = scrName.value; };
       const adv = h('div', { class: 'wz-advice' });
       const prev = h('span', { class: 'wz-mon' }, h('i'), h('i'), h('i'), h('i'), h('i'));
       paintAdvice = () => {
@@ -150,6 +163,7 @@ function setupWizard() {
       };
       body.append(h('div', { class: 'wz-size' },
         h('div', { class: 'wz-size-f' },
+          h('div', { class: 'row' }, field('Obrazovka kapely', scrSel), nameF),
           h('div', { class: 'ep-lbl' }, 'Rychlá volba'), chips,
           h('div', { class: 'row' }, field('Šířka', wI, 'px'), field('Výška', hI, 'px'),
             h('button', { type: 'button', class: 'btn nogrow', onclick: () => { [st.w, st.h] = detected(); wI.value = st.w; hI.value = st.h; paintAdvice(); } }, '⌖ Z této obrazovky')),
@@ -162,7 +176,7 @@ function setupWizard() {
       title.textContent = 'Hotovo, zkontroluj to';
       sub.textContent = 'Vše se dá kdykoli změnit v Nastavení › Toto zařízení.';
       const rows = [['Zařízení', roleName(st.role), 0]];
-      if (!skipSize()) rows.push(['Monitor čtečky', (isPortrait() ? 'Na výšku' : 'Na šířku') + (st.rot ? ` · otočit o ${st.rot === 90 ? '90° ↻' : '90° ↺'}` : ''), 1],
+      if (!skipSize()) rows.push(['Obrazovka kapely', st.scr === 'new' ? (st.scrName.trim() || 'Nová obrazovka') + ' (nová)' : Screens.get(st.scr).name, 2], ['Monitor', (isPortrait() ? 'Na výšku' : 'Na šířku') + (st.rot ? ` · otočit o ${st.rot === 90 ? '90° ↻' : '90° ↺'}` : ''), 1],
         ['Displej', `${st.w} × ${st.h} px · ${st.diag}″ · ${st.dist} m`, 2]);
       rows.push(['Po zapnutí', st.role === 'reader' ? 'Otevřít čtečku s posledním playlistem' : 'Otevřít seznam písní', 0]);
       const pin = h('input', { class: 'inp wz-pin', type: 'password', inputmode: 'numeric', placeholder: 'bez PINu', 'aria-label': 'PIN pro úpravy', value: st.pin });
@@ -184,8 +198,10 @@ function setupWizard() {
   function finish(band) {
     applyDeviceRole(st.role);
     if (!skipSize()) {
-      Settings.set('screenW', Math.max(320, st.w | 0)); Settings.set('screenH', Math.max(240, st.h | 0));
-      Settings.set('diagonal', +st.diag); Settings.set('distance', +st.dist); Settings.set('readerRotate', st.rot);
+      const dims = { w: Math.max(320, st.w | 0), h: Math.max(240, st.h | 0), diag: +st.diag, dist: +st.dist };
+      if (st.scr === 'new') Screens.add(Object.assign({ name: st.scrName.trim() || 'Nová obrazovka', view: { chords: false, inst: [] } }, dims)).then(sc => Settings.set('screenId', sc.id));
+      else { Screens.save(Object.assign(Screens.get(st.scr), dims)); Settings.set('screenId', st.scr); }
+      Settings.set('readerRotate', st.rot);
     }
     Settings.set('theme', st.theme); App.applyTheme();
     if (st.pin) { Settings.set('pinHash', sha1Bytes(utf8.enc('prompter:' + st.pin))); sessionStorage.setItem('unlocked', '1'); }

@@ -115,7 +115,7 @@ const TemplatesView = {
     const songSel = h('select', { class: 'inp', style: { width: 'auto' } }, Store.sortedSongs().map(s => h('option', { value: s.id, selected: s.id === this.previewSong }, s.title)));
     const pageLbl = h('span', { class: 'dim' });
     let lay, stage;
-    const W = Settings.get('screenW'), H = Settings.get('screenH');
+    const W = Screens.main().w, H = Screens.main().h;
     const paint = () => {
       const song = Store.songs.get(songSel.value) || sampleSong();
       lay = Render.layout(song, t, W, H);
@@ -280,43 +280,119 @@ const SettingsView = {
     const S = Settings.data;
     const chk = (k, label, help) => h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: !!S[k], onchange: e => { Settings.set(k, e.target.checked); } }), label, help ? h('span', { class: 'help' }, ' – ' + help) : null);
 
-    // --- Monitor
-    const G = k => Settings.get(k);
-    const wIn = h('input', { class: 'inp', type: 'number', value: G('screenW'), min: 320, max: 7680 });
-    const hIn = h('input', { class: 'inp', type: 'number', value: G('screenH'), min: 240, max: 4320 });
-    const diag = h('input', { class: 'inp', type: 'number', value: G('diagonal') || 24, min: 10, max: 100, step: 0.5 });
-    const dist = h('input', { class: 'inp', type: 'number', value: G('distance') || 2.5, min: 0.5, max: 15, step: 0.1 });
-    const rec = h('div', { class: 'help' });
-    const presets = [[1920, 1080, 'Full HD (většina 24" monitorů)'], [1920, 1200, '24" 16:10'], [1680, 1050, '22" 16:10'], [1600, 900, ''], [1366, 768, 'notebook'], [1280, 1024, 'starší 4:3/5:4'], [2560, 1440, '27" QHD']];
-    const applyRes = (w, hh) => { wIn.value = w; hIn.value = hh; saveRes(); paintOrient(); };
-    const isPortrait = () => +hIn.value >= +wIn.value;
-    // presety se zobrazují v aktuální orientaci
-    const presetBox = h('div', { class: 'row', style: { marginTop: '8px' } });
-    const orientBtns = {};
-    const paintOrient = () => {
-      const p = isPortrait();
-      orientBtns.p.classList.toggle('primary', p); orientBtns.l.classList.toggle('primary', !p);
-      presetBox.innerHTML = '';
-      for (const [a, b, label] of presets) {
-        const [w, hh] = p ? [b, a] : [a, b];
-        presetBox.appendChild(h('button', { class: 'btn small nogrow', title: label, onclick: () => applyRes(w, hh) }, `${w}×${hh}`));
-      }
+    // --- Obrazovky kapely (sdílené profily): rozměr, co se ukáže, písmo
+    let edId = (section && section.startsWith('screen-') ? section.slice(7) : '') || Settings.get('screenId') || 'main';
+    const scrTabs = h('div', { class: 'scr-tabs' });
+    const scrBox = h('div', { class: 'scr-box' });
+    const presets = [[1920, 1080, 'Full HD (většina 24" monitorů)'], [1920, 1200, '24" 16:10'], [1680, 1050, '22" 16:10'], [1600, 900, ''], [1366, 768, 'notebook'], [1280, 1024, 'starší 4:3/5:4'], [2560, 1440, '27" QHD'], [2048, 1536, 'iPad'], [2340, 1080, 'mobil']];
+    const paintScreens = () => {
+      if (!Screens.list().some(x => x.id === edId)) edId = 'main';
+      scrTabs.innerHTML = '';
+      for (const sc of Screens.list()) scrTabs.appendChild(h('button', { class: 'chip' + (sc.id === edId ? ' on' : ''), onclick: () => { edId = sc.id; paintScreens(); } },
+        sc.name + (sc.id === Settings.get('screenId') || (sc.id === 'main' && !Settings.get('screenId')) ? ' · toto zařízení' : '')));
+      scrTabs.appendChild(h('button', { class: 'chip add', onclick: async () => {
+        const name = await promptDlg('Název nové obrazovky', 'Tablet – kytara', 'např. Mobil – basa');
+        if (!name) return;
+        const sc = await Screens.add({ name }); edId = sc.id; paintScreens(); paintDevice();
+      } }, '＋ Nová obrazovka'));
+      paintScreen(Screens.get(edId));
     };
-    const setOrient = portrait => { if (portrait !== isPortrait()) applyRes(+hIn.value, +wIn.value); };
-    orientBtns.p = h('button', { class: 'btn nogrow', onclick: () => setOrient(true) }, 'Na výšku');
-    orientBtns.l = h('button', { class: 'btn nogrow', onclick: () => setOrient(false) }, 'Na šířku');
-    const rotSel = h('select', { class: 'inp' }, [[0, 'neotáčet (Windows už obrazovku otáčí)'], [90, 'o 90° doprava'], [270, 'o 90° doleva'], [180, 'o 180°']]
-      .map(([v, l]) => h('option', { value: v, selected: (Settings.get('readerRotate') || 0) === v }, l)));
-    rotSel.onchange = () => Settings.set('readerRotate', +rotSel.value);
-    const saveRes = () => {
-      Settings.set('screenW', Math.max(320, +wIn.value | 0)); Settings.set('screenH', Math.max(240, +hIn.value | 0));
-      Settings.set('diagonal', +diag.value); Settings.set('distance', +dist.value);
-      const { pxPerCm, px } = fontAdvice(G('screenW'), G('screenH'), G('diagonal'), G('distance'));
-      rec.innerHTML = `Monitor ${G('diagonal')}" při ${G('screenW')}×${G('screenH')} ≈ ${pxPerCm.toFixed(1)} px/cm. Pro pohodlné čtení ze vzdálenosti ${G('distance')} m doporučuji písmo alespoň <b>${px} px</b> (nastavíš v šabloně).`;
+    const paintScreen = orig => {
+      const scr = clone(orig); // úpravy jen v kopii, uloží je Screens.save
+      scrBox.innerHTML = '';
+      const nameIn = h('input', { class: 'inp', value: scr.name });
+      const wIn = h('input', { class: 'inp', type: 'number', value: scr.w, min: 320, max: 7680 });
+      const hIn = h('input', { class: 'inp', type: 'number', value: scr.h, min: 240, max: 7680 });
+      const diag = h('input', { class: 'inp', type: 'number', value: scr.diag || 24, min: 4, max: 100, step: 0.5 });
+      const dist = h('input', { class: 'inp', type: 'number', value: scr.dist || 2.5, min: 0.2, max: 15, step: 0.1 });
+      const fontIn = h('input', { class: 'inp', type: 'number', value: scr.fontPct || 100, min: 40, max: 300, step: 5 });
+      const rec = h('div', { class: 'help' });
+      const presetBox = h('div', { class: 'row', style: { marginTop: '8px' } });
+      const orientBtns = {};
+      const isPortrait = () => +hIn.value >= +wIn.value;
+      const view = Object.assign({ chords: false, inst: [] }, scr.view || {});
+      const save = () => {
+        Object.assign(scr, { name: nameIn.value.trim() || scr.name, w: Math.max(320, +wIn.value | 0), h: Math.max(240, +hIn.value | 0), diag: +diag.value, dist: +dist.value, fontPct: Math.max(40, +fontIn.value || 100), view });
+        Screens.save(scr);
+        paintRec();
+      };
+      const paintRec = () => {
+        const { pxPerCm, px } = fontAdvice(scr.w, scr.h, scr.diag, scr.dist);
+        rec.innerHTML = `Monitor ${scr.diag}" při ${scr.w}×${scr.h} ≈ ${pxPerCm.toFixed(1)} px/cm. Pro pohodlné čtení ze vzdálenosti ${scr.dist} m doporučuji písmo alespoň <b>${px} px</b> (nastavíš v šabloně).`;
+      };
+      const applyRes = (w, hh) => { wIn.value = w; hIn.value = hh; save(); paintOrient(); };
+      const paintOrient = () => {
+        const p = isPortrait();
+        orientBtns.p.classList.toggle('primary', p); orientBtns.l.classList.toggle('primary', !p);
+        presetBox.innerHTML = '';
+        for (const [a, b, label] of presets) {
+          const [w, hh] = p ? [b, a] : [a, b];
+          presetBox.appendChild(h('button', { class: 'btn small nogrow', title: label, onclick: () => applyRes(w, hh) }, `${w}×${hh}`));
+        }
+      };
+      const setOrient = portrait => { if (portrait !== isPortrait()) applyRes(+hIn.value, +wIn.value); };
+      orientBtns.p = h('button', { class: 'btn nogrow', onclick: () => setOrient(true) }, 'Na výšku');
+      orientBtns.l = h('button', { class: 'btn nogrow', onclick: () => setOrient(false) }, 'Na šířku');
+      [nameIn, wIn, hIn, diag, dist, fontIn].forEach(i => i.addEventListener('change', () => { save(); paintOrient(); if (i === nameIn) paintScreens(); }));
+      const chordChk = h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: !!view.chords, onchange: e => { view.chords = e.target.checked; save(); } }), 'Akordy');
+      const instChks = Store.instruments().map(ins => h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: view.inst.includes(ins.code), onchange: e => {
+        view.inst = e.target.checked ? [...new Set([...view.inst, ins.code])] : view.inst.filter(c => c !== ins.code); save();
+      } }), h('span', { class: 'led', style: { background: ins.color } }), 'Poznámky: ' + ins.name));
+      scrBox.append(
+        h('div', { class: 'row' },
+          h('label', { class: 'f', style: { flex: '2 1 220px' } }, h('span', {}, 'Název obrazovky'), nameIn),
+          scr.id === 'main' ? h('span', { class: 'help nogrow', style: { alignSelf: 'center' } }, 'Hlavní čtečka kapely – nejde smazat') :
+            h('button', { class: 'btn danger nogrow', onclick: async () => {
+              if (!await confirmDlg(`Smazat obrazovku „${scr.name}“? Její konce stránek v písních zůstanou, jen se nepoužijí.`, 'Smazat')) return;
+              await Screens.remove(scr.id); edId = 'main'; paintScreens(); paintDevice();
+            } }, '🗑 Smazat')),
+        h('div', { class: 'row', style: { marginTop: '10px' } },
+          h('label', { class: 'f' }, h('span', {}, 'Šířka (px)'), wIn), h('label', { class: 'f' }, h('span', {}, 'Výška (px)'), hIn),
+          h('label', { class: 'f' }, h('span', {}, 'Úhlopříčka (palce)'), diag), h('label', { class: 'f' }, h('span', {}, 'Vzdálenost čtení (m)'), dist),
+          h('button', { class: 'btn nogrow', title: 'Převezme rozlišení obrazovky, na které je aplikace právě otevřená', onclick: () => applyRes(Math.round(screen.width * devicePixelRatio), Math.round(screen.height * devicePixelRatio)) }, '⌖ Z této obrazovky')),
+        h('div', { class: 'row', style: { marginTop: '10px', alignItems: 'center' } }, h('span', { class: 'nogrow help' }, 'Orientace:'), orientBtns.p, orientBtns.l),
+        presetBox,
+        h('h3', {}, 'Co se na této obrazovce ukáže'),
+        h('div', { class: 'scr-view' }, h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: true, disabled: true }), 'Text písně'), chordChk, ...instChks),
+        h('div', { class: 'row', style: { marginTop: '10px', maxWidth: '360px' } }, h('label', { class: 'f' }, h('span', {}, 'Velikost písma oproti šabloně (%)'), fontIn)),
+        h('p', {}, rec));
+      paintRec(); paintOrient();
     };
-    [wIn, hIn, diag, dist].forEach(i => i.addEventListener('change', () => { saveRes(); paintOrient(); }));
-    saveRes();
-    paintOrient();
+
+    // --- Toto zařízení: kterou obrazovkou je, co vidím já, moje řádky
+    const devBox = h('div', { class: 'set-rows' });
+    const paintDevice = () => {
+      devBox.innerHTML = '';
+      const scrSel = h('select', { class: 'inp set-sel' }, Screens.list().map(sc => h('option', { value: sc.id, selected: sc.id === Screens.mine().id }, Screens.label(sc))));
+      scrSel.onchange = () => { Settings.set('screenId', scrSel.value); toast('Toto zařízení: ' + Screens.mine().name, 'ok'); paintScreens(); paintDevice(); };
+      const my = Settings.get('myView');
+      const view = Object.assign({ chords: false, inst: [] }, my || Screens.mine().view || {});
+      const custom = h('div', { class: 'scr-view' + (my ? '' : ' hidden') },
+        h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: !!view.chords, onchange: e => { view.chords = e.target.checked; Settings.set('myView', Object.assign({}, view)); } }), 'Akordy'),
+        ...Store.instruments().map(ins => h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: view.inst.includes(ins.code), onchange: e => {
+          view.inst = e.target.checked ? [...new Set([...view.inst, ins.code])] : view.inst.filter(c => c !== ins.code); Settings.set('myView', Object.assign({}, view));
+        } }), h('span', { class: 'led', style: { background: ins.color } }), ins.name)));
+      const singerSel = h('select', { class: 'inp set-sel' }, h('option', { value: '' }, '— nikdo / nezvýrazňovat —'),
+        Store.singers().map(sg => h('option', { value: sg.code, selected: sg.code === Settings.get('mySinger') }, sg.name)));
+      singerSel.onchange = () => { Settings.set('mySinger', singerSel.value); Settings.set('highlightMine', !!singerSel.value); };
+      const zoom = h('input', { class: 'inp set-num', type: 'number', min: 50, max: 200, step: 5, value: Math.round((Settings.get('readerZoom') || 1) * 100) });
+      zoom.onchange = () => Settings.set('readerZoom', Math.max(0.5, Math.min(2, (+zoom.value || 100) / 100)));
+      const rotSel = h('select', { class: 'inp set-sel' }, [[0, 'neotáčet (Windows už obrazovku otáčí)'], [90, 'o 90° doprava'], [270, 'o 90° doleva'], [180, 'o 180°']]
+        .map(([v, l]) => h('option', { value: v, selected: (Settings.get('readerRotate') || 0) === v }, l)));
+      rotSel.onchange = () => Settings.set('readerRotate', +rotSel.value);
+      const row = (t, help, ctl) => h('div', { class: 'set-row' }, h('div', {}, h('b', {}, t), help ? h('span', { class: 'help' }, help) : null), ctl);
+      devBox.append(
+        row('K čemu zařízení slouží', 'Určuje, co se otevře po zapnutí.', roleSel),
+        row('Toto zařízení je obrazovka', 'Rozměr, konce stránek a obsah podle obrazovky kapely.', scrSel),
+        row('Co vidím já', my ? 'Vlastní výběr jen pro toto zařízení.' : 'Jako obrazovka „' + Screens.mine().name + '“.',
+          segControl([['profile', 'Jako obrazovka'], ['custom', 'Vlastní']], my ? 'custom' : 'profile', v => { Settings.set('myView', v === 'custom' ? Object.assign({}, view) : null); paintDevice(); })),
+        h('div', { class: 'set-row sub' + (my ? '' : ' hidden') }, custom),
+        row('Zvýraznit moje řádky', 'Řádky ostatních zpěváků budou ztlumené (řádky „všichni“ zůstanou).', singerSel),
+        row('Velikost písma (%)', 'Osobní zvětšení k velikosti obrazovky. Ve čtečce i klávesami + / −.', zoom),
+        row('Otočit obraz čtečky', 'Když systém monitor neotáčí.', rotSel),
+        row('Vzhled aplikace', 'Barvy stránky na čtečce určuje šablona písně.', segControl(THEMES, Settings.get('theme') || 'dark', v => { Settings.set('theme', v); App.applyTheme(); })));
+      custom.classList.remove('hidden');
+    };
 
     // --- PIN
     const pinBtn = h('button', { class: 'btn', onclick: async () => {
@@ -340,23 +416,11 @@ const SettingsView = {
     c.append(
       h('div', { class: 'settings-grid' },
       h('fieldset', { id: 'set-device', class: 'span2' }, h('legend', {}, '🖥 Toto zařízení', h('span', { class: 'grow' }), h('button', { class: 'btn small', onclick: () => setupWizard() }, 'Spustit průvodce znovu')),
-        h('p', { class: 'help' }, 'Platí jen pro tento počítač či telefon.'),
-        h('div', { class: 'set-rows' },
-          h('div', { class: 'set-row' }, h('div', {}, h('b', {}, 'K čemu zařízení slouží'), h('span', { class: 'help' }, 'Určuje, co se otevře po zapnutí.')), roleSel),
-          h('div', { class: 'set-row' }, h('div', {}, h('b', {}, 'Vzhled aplikace'), h('span', { class: 'help' }, 'Barvy stránky na čtečce určuje šablona písně.')),
-            segControl(THEMES, Settings.get('theme') || 'dark', v => { Settings.set('theme', v); App.applyTheme(); }))),
-        h('h3', {}, 'Monitor čtečky'),
-        h('p', { class: 'help' }, 'Zadej rozlišení monitoru čtečky. Stránka se navrhuje přesně pro tento rozměr – náhled v editoru pak odpovídá tomu, co uvidíš na pódiu. Nastavení se sdílí s celou kapelou, takže náhled sedí i na ostatních počítačích.'),
-        h('div', { class: 'row' },
-          h('label', { class: 'f' }, h('span', {}, 'Šířka (px)'), wIn), h('label', { class: 'f' }, h('span', {}, 'Výška (px)'), hIn),
-          h('label', { class: 'f' }, h('span', {}, 'Úhlopříčka (palce)'), diag), h('label', { class: 'f' }, h('span', {}, 'Vzdálenost čtení (m)'), dist),
-          h('button', { class: 'btn nogrow', title: 'Převezme rozlišení obrazovky, na které je aplikace právě otevřená', onclick: () => applyRes(Math.round(screen.width * devicePixelRatio), Math.round(screen.height * devicePixelRatio)) }, '⌖ Z této obrazovky')),
-        h('div', { class: 'row', style: { marginTop: '10px', alignItems: 'center' } }, h('span', { class: 'nogrow help' }, 'Orientace monitoru:'), orientBtns.p, orientBtns.l),
-        presetBox,
-        h('div', { class: 'row', style: { marginTop: '10px', maxWidth: '640px' } },
-          h('label', { class: 'f' }, h('span', {}, 'Otočit obraz čtečky (jen tento počítač)'), rotSel)),
-        h('p', { class: 'help' }, 'Když máš monitor fyzicky na výšku a ve Windows je nastavené otočení obrazovky (Nastavení → Systém → Obrazovka → Orientace: Na výšku), nech „neotáčet“. Když Windows obrazovku neotáčí, otočí obraz čtečka sama.'),
-        h('p', {}, rec)),
+        h('p', { class: 'help' }, 'Platí jen pro tento počítač, tablet či telefon.'),
+        devBox),
+      h('fieldset', { id: 'set-screens', class: 'span2' }, h('legend', {}, '🖥 Obrazovky kapely'),
+        h('p', { class: 'help' }, 'Každá obrazovka (hlavní prompter, tablet, mobil…) má svůj rozměr, konce stránek a obsah. Nastavení se sdílí s celou kapelou; každé zařízení si pak vybere, kterou obrazovkou je. Píseň se píše jen jednou.'),
+        scrTabs, scrBox),
       h('fieldset', { id: 'set-reader' }, h('legend', {}, '▶ Čtečka a ovládání'),
         chk('readerFullscreen', 'Čtečka přes celou obrazovku'),
         chk('startInReader', 'Po spuštění aplikace rovnou otevřít čtečku s posledním playlistem', 'pro PC čtečky'),
@@ -391,6 +455,7 @@ const SettingsView = {
       for (const f of secs) if (f.getBoundingClientRect().top <= top) cur = f;
       if (cur) mark(cur.id);
     });
+    paintScreens(); paintDevice();
     mark('set-device');
     if (section) setTimeout(() => { const f = $('#set-' + section, c); if (f) { f.scrollIntoView({ block: 'start' }); mark(f.id); } }, 0);
   },

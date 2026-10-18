@@ -12,9 +12,10 @@ Aplikace pro psaní, úpravy a zobrazování textů písní na čtečce (prompte
 
 1. Rozbal `Prompter-Windows-64bit.zip` třeba do `C:\Prompter` (pro starší 32bitová Windows použij `-32bit`).
 2. Spusť `Prompter.exe`. Při prvním spuštění Windows může ukázat „Systém Windows ochránil váš počítač“. Klikni na **Další informace → Přesto spustit**.
-3. Při prvním spuštění se objeví **průvodce nastavením zařízení** (ovládá se i jen šipkami a OK):
+3. Při prvním spuštění programu se objeví **průvodce nastavením zařízení** (ovládá se i jen šipkami a OK):
    - **K čemu zařízení slouží**: čtečka na pódiu, počítač pro úpravy, obojí na jednom, nebo muzikant (mobil, tablet). Čtečka pak po zapnutí rovnou otevře poslední playlist.
    - **Orientace monitoru** (na výšku / na šířku) a otočení obrazu, když ho Windows neotáčí.
+   - **Obrazovka kapely**: zda je to hlavní čtečka, jiná už nadefinovaná obrazovka, nebo nová (např. „Tablet – kytara“).
    - **Velikost displeje**: rozlišení (předvolby 21,5″–43″ nebo **Z této obrazovky**), úhlopříčka a vzdálenost zpěváka. Z nich průvodce doporučí velikost písma.
    - **Vzhled aplikace** (tmavý, světlý, podle systému), volitelně **PIN** a připojení ke kapele.
 4. Vše jde později změnit v **Nastavení › Toto zařízení** (tam je i **Spustit průvodce znovu**). V **Nastavení › Čtečka a ovládání**:
@@ -46,7 +47,7 @@ Monitor čtečky během běhu programu neusne. Program se po případném pádu 
 
 ## 2. Prohlížečová verze (bez instalace)
 
-- Otevři **https://potuzai.github.io/RUSTEDprompter/** v Edge nebo Chrome. Napoprvé se objeví průvodce nastavením. Na konci zvol **🔑 Mám kód kapely** a vlož kód.
+- Otevři **https://potuzai.github.io/RUSTEDprompter/** v Edge nebo Chrome. Napoprvé se objeví uvítání: zvol **🔑 Mám kód kapely** a vlož kód. Průvodce s otázkami na monitor se na webu neukazuje – spustíš ho tlačítkem **Nastavit obrazovku…** (nebo v Nastavení › Toto zařízení), jen když má být toto zařízení čtečkou nebo obrazovkou muzikanta.
 - Písně se uloží v tom prohlížeči a synchronizují se s kapelou, stejně jako v programu.
 - Ikonu na plochu přidáš v Edge přes **⋯ → Aplikace → Nainstalovat tento web jako aplikaci**.
 - Na **cizím počítači** se po práci odpoj: **Nastavení → Sdílení s kapelou → Odpojit**. Heslo se tím z prohlížeče smaže.
@@ -104,7 +105,23 @@ Nástroje (kytara, basa, bicí, klávesy…) a jejich zkratky a barvy nastavíš
 
 Zpěváky (jména, barvy) upravíš v záložce **Zpěváci**. Vzhled stránky (písmo, velikost, barvy, okraje, zarovnání, sloupce, zmenšení dlouhých písní, zrcadlení) nastavíš v záložce **Šablony**. Šablonu přiřadíš písni (Údaje… → Šablona písně). Formátování drží každá píseň sama, playlist ho nemění – rozměr stránky určuje jen nastavení monitoru.
 
-Náhled v editoru odpovídá přesně monitoru čtečky. Rozměr monitoru se sdílí s celou kapelou.
+### Obrazovky kapely a osobní zobrazení
+
+Píseň se píše **jen jednou** a sdílí se. Kapela si ale může nadefinovat víc **obrazovek** (Nastavení › Obrazovky kapely), třeba *Hlavní čtečka 24″ na výšku*, *Tablet – kytara*, *Mobil – basa*. Každá obrazovka má:
+
+- svůj rozměr a orientaci,
+- co se na ní ukáže: text, akordy, poznámky pro vybrané nástroje,
+- velikost písma oproti šabloně,
+- **vlastní konce stránek**: tlačítko *Nová stránka* v editoru vloží konec jen pro obrazovku, pro kterou se právě díváš (zápis `---` = hlavní čtečka, `--- id` = jiná obrazovka). Ostatní obrazovky stránkují samy.
+
+Obrazovky se sdílí s celou kapelou. **Každé zařízení si vybere, kterou obrazovkou je** (Nastavení › Toto zařízení), a k tomu si může nastavit jen pro sebe:
+
+- **co vidím** (jako obrazovka, nebo vlastní výběr akordů a nástrojů),
+- **zvýraznit moje řádky** – zvolíš, kdo jsi, a řádky ostatních zpěváků se ztlumí (řádky „všichni“ zůstanou),
+- **velikost písma** (i ve čtečce klávesami + / −),
+- **soukromé poznámky** k písni – v editoru vlevo *Moje poznámky*. Vidíš je jen ty na svém zařízení, ve čtečce nahoře na stránce; do kapely se neposílají.
+
+V editoru pod stránkou přepínáš **Náhled pro: …** a vidíš píseň přesně tak, jak ji uvidí daná obrazovka.
 
 ## 3. Sdílení s kapelou
 

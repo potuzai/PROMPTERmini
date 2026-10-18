@@ -120,6 +120,8 @@ class SongEditor {
     this.dirty = false;
     this.src = song.text || '';
     this.style = song.style || null;
+    // náhled pro obrazovku: naposledy zvolená v tomto zařízení, jinak vlastní obrazovka zařízení
+    this.screenId = Screens.get(Settings.get('editScreen') || Settings.get('screenId')).id;
     this.build(song);
   }
 
@@ -179,6 +181,7 @@ class SongEditor {
     this.leftPanel = h('div', { class: 'ed-panel ed-left-panel' },
       grp('Struktura', this.structBox),
       grp('Zpěváci', this.legend),
+      grp('Moje poznámky', this.privNote = h('textarea', { class: 'inp ep-priv', rows: 3, placeholder: 'Vidíš jen ty na tomto zařízení. Ukážou se nahoře na stránce.' }, PrivateNotes.get(song.id))),
       grp('Celá píseň',
         h('div', { class: 'tl-col' },
           tool('Písmo písně…', 'Písmo, velikost a zarovnání jen pro tuto píseň (jinak platí šablona)', e => this.fontPopover(e.currentTarget), 'wide'),
@@ -215,7 +218,7 @@ class SongEditor {
           act('+ Řádek', 'Enter', 'Nový řádek pod vybraný', () => this.se.startEdit(null, 'end')),
           act('+ Sekce', '', 'Nadpis sloky, refrénu… nad vybraný řádek', () => this.insertSection()),
           act('Opakovat ▾', '', 'Zopakovat refrén nebo jinou sekci', e => this.insertRepeat(e.currentTarget)),
-          act('Nová stránka', '', 'Ve čtečce začít od vybraného řádku novou stránku', () => this.se.insertLines(['---'], { before: true })),
+          act('Nová stránka', '', 'Na zvolené obrazovce začít od vybraného řádku novou stránku (ostatní obrazovky stránkují samy)', () => this.se.insertLines([this.breakLine()], { before: true })),
           act('Poznámka', '', 'Poznámka malým písmem pod vybraný řádek', () => this.se.insertLines(['// '], { edit: true })),
           act('+ Mezera', '', 'Mezera mezi slokami pod vybraný řádek', () => this.se.insertLines(['', ''])),
           act('Vložit text…', 'Ctrl V', 'Vložit text ze schránky – vloží se pod vybraný řádek', () => this.pasteDialog()))),
@@ -232,7 +235,14 @@ class SongEditor {
       h('div', { class: 'ep-hint' }, '↑↓ řádek · ←→ zpěvák · OK nabídka'),
       tool('? Nápověda', 'Jak psát a ovládat editor', () => showMarkupHelp(), 'wide quiet'));
 
+    this.scrSel = h('select', { class: 'inp ed-screen', title: 'Pro kterou obrazovku kapely ukázat stránku – každá má svůj rozměr, konce stránek a obsah' },
+      Screens.list().map(sc => h('option', { value: sc.id, selected: sc.id === this.screenId }, Screens.label(sc) + (sc.id === Screens.mine().id ? ' (toto zařízení)' : ''))));
+    this.scrSel.onchange = () => {
+      this.screenId = this.scrSel.value; Settings.set('editScreen', this.screenId);
+      this.structKey = null; this.se.followCur = true; this.se.render(); this.stageWrap.focus({ preventScroll: true });
+    };
     this.pager = h('div', { class: 'ed-pager' },
+      h('label', { class: 'ed-scr' }, h('span', {}, 'Náhled pro'), this.scrSel),
       h('button', { class: 'ep-pg', title: 'Předchozí stránka (PgUp)', onclick: () => this.se.turnPage(-1) }, '‹'),
       h('span', {}, 'strana ', this.pageLbl),
       h('button', { class: 'ep-pg', title: 'Další stránka (PgDn)', onclick: () => this.se.turnPage(1) }, '›'));
@@ -243,6 +253,7 @@ class SongEditor {
 
     const onMeta = () => { this.markDirty(); this.schedulePreview(); this.paintMeta(); };
     this.paintMeta();
+    this.privNote.addEventListener('input', () => { PrivateNotes.set(this.id, this.privNote.value); this.schedulePreview(); });
     [this.inTitle, this.inArtist, this.inKey, this.inTempo, this.inTags].forEach(i => i.addEventListener('input', onMeta));
     this.inTpl.addEventListener('change', onMeta);
     this.inPl.addEventListener('change', () => this.se.render());
@@ -335,6 +346,8 @@ class SongEditor {
     this.sgButtons.forEach((b, i) => b.classList.toggle('on', own.includes((Store.singers()[i] || {}).code)));
     this.paintStruct();
   }
+  screen() { return Screens.get(this.screenId); }
+  breakLine() { return this.screenId === 'main' ? '---' : '--- ' + this.screenId; }
   /* Údaje pod názvem (interpret · tónina · tempo) */
   paintMeta() {
     const t = [this.inArtist.value.trim(), this.inKey.value.trim(), this.inTempo.value.trim() ? this.inTempo.value.trim() + ' BPM' : ''].filter(Boolean).join(' · ');
@@ -349,7 +362,7 @@ class SongEditor {
     this.src.split('\n').forEach((l, i) => {
       const t = l.trim();
       let m;
-      if (t === '---') items.push({ line: i, brk: true });
+      if (breakScreen(t) !== null) { if (breakScreen(t) === this.screenId) items.push({ line: i, brk: true }); }
       else if (t.startsWith('##') && (m = RE_SECTION.exec(t))) {
         const c = parseCodes(m[2])[0];
         items.push({ line: i, name: m[1] || 'Sekce', color: c && sm[c] ? sm[c].color : '' });
@@ -453,14 +466,17 @@ class SongEditor {
       { label: 'Nadpis sekce nad…', action: () => this.insertSection() },
       { label: 'Opakování sekce', items: () => sections().map(n => ({ label: '↻ ' + n, action: () => se.insertLines(['>> ' + n]) })), empty: 'Nejdřív musí být v písni nadpis sekce (např. Refrén).' },
       { label: 'Poznámku pod', action: () => se.insertLines(['// '], { edit: true }) },
-      { label: 'Novou stránku před tento řádek', action: () => se.insertLines(['---'], { before: true }) },
+      { label: 'Novou stránku před tento řádek', action: () => se.insertLines([this.breakLine()], { before: true }) },
     ];
     const musItems = () => this.musItems();
-    const pageBreakBefore = ls[t.line - 1] !== undefined && ls[t.line - 1].trim() === '---';
+    // konec stránky této obrazovky těsně nad řádkem (přes případné konce jiných obrazovek)
+    let pbLine = -1;
+    for (let j = t.line - 1; j >= 0 && breakScreen(ls[j]) !== null; j--) if (breakScreen(ls[j]) === this.screenId) { pbLine = j; break; }
+    const pageBreakBefore = pbLine >= 0;
     const common = [
       { sep: true },
       { label: 'Vložit', items: insertItems },
-      pageBreakBefore ? { label: 'Zrušit novou stránku před', action: () => { const l = se.lines(); l.splice(t.line - 1, 1); se.curLine = t.line - 1; se.curKey = null; se.commit(l.join('\n')); } } : null,
+      pageBreakBefore ? { label: 'Zrušit novou stránku před', action: () => { const l = se.lines(); l.splice(pbLine, 1); se.curLine = t.line - 1; se.curKey = null; se.commit(l.join('\n')); } } : null,
       { label: 'Stránka a zobrazení', items: () => [
         { label: 'Další stránka', hint: 'PgDn', action: () => se.turnPage(1) },
         { label: 'Předchozí stránka', hint: 'PgUp', action: () => se.turnPage(-1) },

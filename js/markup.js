@@ -22,6 +22,9 @@ const RE_NOTE = /^\/\/\s?(.*)$/;
 const RE_MUS = /^%(?!%)([A-Za-z0-9+]+)\s?(.*)$/;
 const RE_MUSBLOCK = /^%%([A-Za-z0-9+]*)\s*(.*)$/;
 const RE_INLINE_CHORD = /\[([^\]\s]{1,12})\]/g;
+// konec stránky: „---“ platí pro hlavní čtečku, „--- tablet“ jen pro obrazovku s tímto id
+const RE_BREAK = /^---\s*([A-Za-z0-9][A-Za-z0-9_-]*)?\s*$/;
+function breakScreen(t) { const m = RE_BREAK.exec(String(t).trim()); return m ? (m[1] || 'main') : null; }
 
 function parseCodes(s) {
   return String(s || '').split('+').map(x => x.trim().toUpperCase()).filter(Boolean);
@@ -64,9 +67,10 @@ function parseSong(text) {
       lines.push({ kind: 'gap', singers: [] });
       const b = { type: 'gap', src: i };
       blocks.push(b); if (curSection) curSection.blocks.push(b);
-    } else if (t === '---') {
-      lines.push({ kind: 'break', singers: [] });
-      blocks.push({ type: 'break', src: i });
+    } else if ((m = RE_BREAK.exec(t))) {
+      const screen = m[1] || 'main';
+      lines.push({ kind: 'break', singers: [], screen });
+      blocks.push({ type: 'break', src: i, screen });
       curSection = null;
     } else if ((m = RE_SECTION.exec(t))) {
       const singers = parseCodes(m[2]);
@@ -180,7 +184,7 @@ function inlineHtml(text, singerMap) {
 /* Nastaví/odebere zpěváka na zdrojovém řádku. mode: 'set' | 'toggle' | 'clear' */
 function applySingerToLine(line, code, mode = 'set') {
   const t = line.trim();
-  if (t === '' || RE_REPEAT.test(t) || RE_NOTE.test(t) || t === '---' || t.startsWith('%')) return line;
+  if (t === '' || RE_REPEAT.test(t) || RE_NOTE.test(t) || RE_BREAK.test(t) || t.startsWith('%')) return line;
   let m;
   if ((m = RE_SECTION.exec(t))) {
     let codes = parseCodes(m[2]);

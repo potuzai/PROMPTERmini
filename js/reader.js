@@ -71,15 +71,19 @@ const Reader = {
     // formátování drží písně samy (šablona písně), playlist ho nemění
     const id = (song && song.templateId) || Settings.get('defaultTemplate');
     const tpl = applySongStyle(Store.template(id), song);
-    const z = Settings.get('readerZoom') || 1;
+    // písmo: profil obrazovky × osobní zvětšení tohoto zařízení
+    const z = Screens.fontScale(Screens.mine(), true);
     if (z !== 1) tpl.fontSize = Math.round(tpl.fontSize * z);
     return tpl;
   },
 
+  /* Stránkování pro obrazovku tohoto zařízení: její rozměr, konce stránek a co na ní má být */
   layoutFor(song, tpl) {
-    const W = Settings.get('screenW'), H = Settings.get('screenH');
-    const key = song.id + '|' + JSON.stringify(tpl) + '|' + W + 'x' + H + '|' + (song.updatedAt || '');
-    if (!this.cache.has(key)) this.cache.set(key, Render.layout(song, tpl, W, H));
+    const scr = Screens.mine();
+    const W = scr.w, H = scr.h;
+    const mus = Screens.view(scr, true), opts = screenOpts(scr, song.id, true);
+    const key = [song.id, JSON.stringify(tpl), W + 'x' + H, song.updatedAt || '', JSON.stringify(mus), JSON.stringify(opts)].join('|');
+    if (!this.cache.has(key)) this.cache.set(key, Render.layout(song, tpl, W, H, mus, opts));
     return this.cache.get(key);
   },
 
@@ -92,7 +96,7 @@ const Reader = {
 
   render() {
     const cur = this.current();
-    const W = Settings.get('screenW'), H = Settings.get('screenH');
+    const W = Screens.mine().w, H = Screens.mine().h;
     if (!cur) {
       this.wrap.innerHTML = '';
       this.wrap.appendChild(h('div', { class: 'empty', style: { color: '#888', fontSize: '24px' } },
@@ -126,7 +130,7 @@ const Reader = {
     if (!this.stage) return;
     const cur = this.current();
     const mirror = this.mirrorOverride ?? (cur ? cur.tpl.mirror : 'none');
-    Render.fit(this.stage, this.wrap, Settings.get('screenW'), Settings.get('screenH'), mirror, Settings.get('readerRotate') || 0);
+    Render.fit(this.stage, this.wrap, Screens.mine().w, Screens.mine().h, mirror, Settings.get('readerRotate') || 0);
   },
 
   next() {
