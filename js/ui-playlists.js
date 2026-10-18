@@ -18,10 +18,12 @@ const PlaylistsView = {
         .map(([v, l]) => h('option', { value: v, selected: (Settings.get('plSort') || 'new') === v }, l)));
     const list = h('div', { class: 'list' });
     const count = h('div', { class: 'sl-count' });
+    const total = h('span', {});
     // 2/3 seznam playlistů, 1/3 náhled obsahu vybraného playlistu
     const prev = h('div', { class: 'pl-prev' });
     side.append(h('div', { class: 'pl-split' },
       h('div', { class: 'pl-main' },
+        h('div', { class: 'sl-titlebar' }, h('h1', {}, 'Playlisty'), total),
         h('div', { class: 'side-head sl-head' },
           h('button', { class: 'btn primary', onclick: () => this.create() }, '＋ Nový playlist'),
           searchInp, sortSel),
@@ -76,7 +78,8 @@ const PlaylistsView = {
           h('button', { class: 'btn small icon', title: 'Spustit ve čtečce', onclick: e => { e.stopPropagation(); location.hash = '#/reader/' + p.id; } }, '▶')));
       }
       if (!pls.length) list.appendChild(h('div', { class: 'help', style: { padding: '16px' } }, q ? 'Nic nenalezeno.' : 'Zatím žádné playlisty. Playlist = seznam písní v pořadí, jak je budete hrát.'));
-      count.textContent = q ? `${pls.length} z ${Store.playlists.size} playlistů` : `${Store.playlists.size} playlistů`;
+      count.textContent = q ? `${pls.length} z ${Store.playlists.size} playlistů` : 'Klik = náhled · dvojklik = upravit';
+      total.textContent = `${Store.playlists.size} ${Store.playlists.size === 1 ? 'playlist' : Store.playlists.size >= 2 && Store.playlists.size <= 4 ? 'playlisty' : 'playlistů'}`;
       const keep = pls.find(p => p.id === this.selected) || pls[0];
       select(keep ? keep.id : null);
     };

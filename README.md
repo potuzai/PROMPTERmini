@@ -12,8 +12,12 @@ Aplikace pro psaní, úpravy a zobrazování textů písní na čtečce (prompte
 
 1. Rozbal `Prompter-Windows-64bit.zip` třeba do `C:\Prompter` (pro starší 32bitová Windows použij `-32bit`).
 2. Spusť `Prompter.exe`. Při prvním spuštění Windows může ukázat „Systém Windows ochránil váš počítač“. Klikni na **Další informace → Přesto spustit**.
-3. V programu: `Esc` → **Upravit písně a playlisty** → **Nastavení**:
-   - **Monitor čtečky**: zadej rozlišení monitoru (u 24" obvykle 1920×1080 nebo 1920×1200) nebo klikni na **Z této obrazovky**.
+3. Při prvním spuštění se objeví **průvodce nastavením zařízení** (ovládá se i jen šipkami a OK):
+   - **K čemu zařízení slouží**: čtečka na pódiu, počítač pro úpravy, obojí na jednom, nebo muzikant (mobil, tablet). Čtečka pak po zapnutí rovnou otevře poslední playlist.
+   - **Orientace monitoru** (na výšku / na šířku) a otočení obrazu, když ho Windows neotáčí.
+   - **Velikost displeje**: rozlišení (předvolby 21,5″–43″ nebo **Z této obrazovky**), úhlopříčka a vzdálenost zpěváka. Z nich průvodce doporučí velikost písma.
+   - **Vzhled aplikace** (tmavý, světlý, podle systému), volitelně **PIN** a připojení ke kapele.
+4. Vše jde později změnit v **Nastavení › Toto zařízení** (tam je i **Spustit průvodce znovu**). V **Nastavení › Čtečka a ovládání**:
    - Zaškrtni **Spustit program automaticky po zapnutí počítače**.
    - Volitelně nastav **PIN**, aby na čtečce nikdo omylem nic neupravil.
    - Volitelně připoj **GitHub** (stačí token jen pro čtení). Čtečka si pak při každém spuštění sama stáhne nové písně, pokud je internet.
@@ -32,14 +36,17 @@ Aplikace pro psaní, úpravy a zobrazování textů písní na čtečce (prompte
 | zrcadlení (sklo prompteru) | | M |
 | celá obrazovka | | F nebo F11 |
 | stáhnout změny | | S |
+| rychlá nabídka (dlaždice) | | Q nebo klávesa menu |
 | nápověda | | H |
 | zpět / úpravy | | Esc |
+
+Když myš sjede do spodní části obrazovky, objeví se **ovládací lišta** (předchozí / další, pořadí písně a stránky, seznam písní, nabídka) a nahoře tenký pruh s průběhem playlistu. Po chvíli sama zmizí. **Rychlá nabídka** má velké dlaždice: seznam písní, černá obrazovka, menší / větší písmo, zrcadlení, synchronizace, úprava písně, nápověda a zavření čtečky. Vybraný prvek má vždy bílý rámeček, aby byl vidět i z dálky.
 
 Monitor čtečky během běhu programu neusne. Program se po případném pádu sám obnoví a každý den zálohuje data do `data\zalohy` (drží 14 dní).
 
 ## 2. Prohlížečová verze (bez instalace)
 
-- Otevři **https://potuzai.github.io/RUSTEDprompter/** v Edge nebo Chrome. Napoprvé se objeví okno *Vítej*, v něm zvol **🔑 Mám kód kapely** a vlož kód.
+- Otevři **https://potuzai.github.io/RUSTEDprompter/** v Edge nebo Chrome. Napoprvé se objeví průvodce nastavením. Na konci zvol **🔑 Mám kód kapely** a vlož kód.
 - Písně se uloží v tom prohlížeči a synchronizují se s kapelou, stejně jako v programu.
 - Ikonu na plochu přidáš v Edge přes **⋯ → Aplikace → Nainstalovat tento web jako aplikaci**.
 - Na **cizím počítači** se po práci odpoj: **Nastavení → Sdílení s kapelou → Odpojit**. Heslo se tím z prohlížeče smaže.
@@ -47,7 +54,9 @@ Monitor čtečky během běhu programu neusne. Program se po případném pádu 
 
 ### Psaní textu
 
-Uprostřed editoru je přesně stránka čtečky: celý rozměr monitoru včetně záhlaví (název, interpret, tónina, BPM a pořadí v playlistu). Text se upravuje přímo v ní, bez značek. Všechny další nástroje jsou v pravém panelu.
+**Seznam písní** zabírá dvě třetiny okna (interpret, název, tónina a tempo, kdo zpívá, štítky), vpravo je náhled vybrané písně: první stránka, tlačítka **Upravit** a **▶ Čtečka** a playlisty, ve kterých píseň je (i s pořadím). Klik = náhled, dvojklik nebo Enter = editor, šipky ↑↓ vybírají.
+
+V editoru je nahoře název a údaje písně (klikem je upravíš), **Uložit jako…** a **▶ Čtečka**. Uprostřed je přesně stránka čtečky: celý rozměr monitoru včetně záhlaví (název, interpret, tónina, BPM a pořadí v playlistu). Text se upravuje přímo v ní, bez značek.
 
 **Ovládání jen šipkami a OK (airmouse):**
 
@@ -61,11 +70,13 @@ Uprostřed editoru je přesně stránka čtečky: celý rozměr monitoru včetn�
 
 Myší: klik vybere řádek, druhý klik začne psaní, pravé tlačítko otevře nabídku. Shift + klik nebo Shift + ↓ vybere víc řádků najednou.
 
-**Levý sloupec:** píseň (Uložit, Uložit jako…, Údaje…, Do playlistu, ▶ Čtečka, export a smazání), kdo zpívá, řádky (+ řádek, + mezera, nahoru / dolů, smazat), sekce (+ sekce, opakovat, poznámka, nová stránka) a pro muzikanty.
+**Levý sloupec:** struktura písně (sekce, opakování a konce stránek – klik na sekci ji vybere), zpěváci s klávesovými zkratkami (klik přiřadí vybraným řádkům), celá píseň (písmo písně, vyčištění, zdrojový text), pro muzikanty a dole Údaje…, Do playlistu, Uložit a Další (export, smazání).
 
-**Pravý sloupec** je jen pro text: upravit a vložit text, písmo (B, I, A+, A−, VELKÁ / malá), písmo celé písně, vyčištění, zdrojový text, zpět / znovu a nápověda.
+**Pravý sloupec** patří vybranému řádku: kdo zpívá, písmo (B, I, A−, A+, VELKÁ / malá), vložit (řádek, sekci, opakování, novou stránku, poznámku, mezeru, text ze schránky), řádek (upravit, nahoru / dolů, smazat), zpět / znovu a nápověda.
 
-Pokročilí můžou přes **Zdrojový text…** v pravém sloupci upravit text tak, jak se ukládá (se značkami):
+**Vzhled aplikace** přepneš v **Nastavení › Toto zařízení**: tmavý, světlý (do jasné místnosti), nebo podle systému (přepíná se sám s Windows / telefonem). Barvy stránky na čtečce určuje šablona písně, ne vzhled aplikace.
+
+Pokročilí můžou přes **Zdrojový text…** v levém sloupci upravit text tak, jak se ukládá (se značkami):
 
 | Zápis | Význam |
 |---|---|

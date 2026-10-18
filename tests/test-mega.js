@@ -53,11 +53,12 @@ async function browserMember(browser) {
   /* ----- Správce: přivítání → založit kapelu → Mega ----- */
   const A = await launch('Petr', {});
   await A.w.evaluate(() => { location.hash = '#/songs'; });
-  await A.w.waitForSelector('.modal-title:has-text("Vítej")', { timeout: 5000 });
-  assert(true, 'při prvním spuštění se zobrazí uvítání');
-  await A.w.click('.modal button:has-text("Založit kapelu")');
+  await A.w.waitForSelector('.wizard', { timeout: 5000 });
+  assert(true, 'při prvním spuštění se zobrazí průvodce');
+  for (let i = 0; i < 3; i++) await A.w.click('.wz-foot .btn.primary');
+  await A.w.click('.wizard button:has-text("Založit kapelu")');
   await sleep(400);
-  assert(await A.w.evaluate(() => location.hash) === '#/settings', 'uvítání → nastavení sdílení');
+  assert(await A.w.evaluate(() => location.hash.startsWith('#/settings') && !document.querySelector('.wizard')), 'průvodce → nastavení sdílení');
   await A.w.click('label.chk:has-text("Mega – program se připojí sám") input');
   await sleep(200);
   await A.w.fill('input[type=email]', 'kapela@test.cz');
@@ -85,8 +86,9 @@ async function browserMember(browser) {
   /* ----- Člen: přivítání → Mám kód kapely ----- */
   const B = await launch('Jana', {});
   await B.w.evaluate(() => { location.hash = '#/songs'; });
-  await B.w.waitForSelector('.modal-title:has-text("Vítej")');
-  await B.w.click('.modal button:has-text("Mám kód kapely")');
+  await B.w.waitForSelector('.wizard');
+  for (let i = 0; i < 3; i++) await B.w.click('.wz-foot .btn.primary');
+  await B.w.click('.wizard button:has-text("Mám kód kapely")');
   await B.w.waitForSelector('.modal textarea');
   await B.w.fill('.modal textarea', 'nesmysl');
   await B.w.click('.modal button:has-text("Připojit")');
@@ -112,14 +114,15 @@ async function browserMember(browser) {
   /* ----- Prohlížečová verze: člen se připojí stejným kódem ----- */
   const browser = await chromium.launch();
   const D = await browserMember(browser);
-  await D.p.waitForSelector('.modal-title:has-text("Vítej")');
-  await D.p.click('.modal button:has-text("Mám kód kapely")');
+  await D.p.waitForSelector('.wizard');
+  for (let i = 0; i < 3; i++) await D.p.click('.wz-foot .btn.primary');
+  await D.p.click('.wizard button:has-text("Mám kód kapely")');
   await D.p.fill('.modal textarea', code);
   await D.p.click('.modal button:has-text("Připojit")');
   await D.p.waitForFunction(() => Store.songs.has('zluty'), null, { timeout: 15000 });
   assert(true, 'prohlížeč: připojení kódem kapely (Mega) a stažení písní');
   assert((await D.p.evaluate(() => Store.songs.get('zluty').text)).includes('doplnila Jana'), 'prohlížeč má aktuální verzi písně');
-  assert(await D.p.evaluate(() => Sync.mode()) === 'mega' && await D.p.isVisible('text=synchronizováno'), 'prohlížeč: stav „synchronizováno“');
+  assert(await D.p.evaluate(() => Sync.mode()) === 'mega' && await D.p.waitForFunction(() => (document.querySelector('.sync-pill').dataset.state || '').includes('synchronizováno'), null, { timeout: 8000 }).then(() => true, () => false), 'prohlížeč: stav „synchronizováno“');
   const lsRaw = await D.p.evaluate(() => localStorage.getItem('prompter-settings'));
   assert(!lsRaw.includes('heslo123'), 'prohlížeč: heslo není v úložišti čitelně');
   // úprava v prohlížeči přes editor → program ji uvidí

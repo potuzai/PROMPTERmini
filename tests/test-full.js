@@ -89,7 +89,7 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   await more('Export .txt');
   const d = await dl; const dpath = path.join(tmp, 'exp.txt'); await d.saveAs(dpath);
   assert(fs.readFileSync(dpath, 'utf8').startsWith('# Holubí dům'), 'export písně do .txt');
-  await p.click('.ed-panel button:has-text("Uložit jako")');
+  await p.click('.ed-top button:has-text("Uložit jako")');
   await p.fill('.modal input', 'Holubí dům (kopie)'); await p.keyboard.press('Enter');
   await sleep(500);
   assert(await p.evaluate(() => Store.sortedSongs().some(s => s.title === 'Holubí dům (kopie)')) && await p.evaluate(() => SongsView.editor.inTitle.value) === 'Holubí dům (kopie)', 'Uložit jako – nová píseň pod jiným názvem');

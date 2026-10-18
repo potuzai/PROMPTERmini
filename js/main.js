@@ -6,6 +6,8 @@ const App = {
 
   async init() {
     Settings.load();
+    this.applyTheme();
+    matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => this.applyTheme());
     try { await Store.init(); }
     catch (e) {
       document.body.innerHTML = `<div class="empty"><div class="big">⚠</div>Nepodařilo se otevřít úložiště dat.<br><small>${esc(e.message)}</small></div>`;
@@ -53,6 +55,14 @@ const App = {
     if (window.native) window.native.onFolderChange(() => { if (Sync.mode() === 'folder') Sync.schedule(); });
   },
 
+  /* Světlý / tmavý motiv (jen ovládání aplikace – barvy stránky čtečky určuje šablona) */
+  applyTheme() {
+    const t = Settings.get('theme') || 'dark';
+    const light = t === 'light' || (t === 'auto' && matchMedia('(prefers-color-scheme: light)').matches);
+    document.documentElement.dataset.theme = light ? 'light' : 'dark';
+    const m = document.querySelector('meta[name=theme-color]'); if (m) m.content = light ? '#f0f0f2' : '#202022';
+  },
+
   canEdit() { return !Settings.get('pinHash') || sessionStorage.getItem('unlocked') === '1'; },
 
   async unlock() {
@@ -63,14 +73,17 @@ const App = {
     return false;
   },
 
+  /* Boční lišta vlevo (návrh 20): sekce aplikace, čtečka, nastavení, stav synchronizace */
   buildTopbar() {
-    const tabs = [['songs', '🎵 Písně'], ['playlists', '📋 Playlisty'], ['templates', '🎨 Šablony'], ['singers', '🎤 Obsazení'], ['settings', '⚙ Nastavení']];
+    const tabs = [['songs', '🎵 Písně'], ['playlists', '📋 Playlisty'], ['templates', '🎨 Šablony'], ['singers', '🎤 Obsazení']];
     this.tabEls = {};
-    const bar = h('div', { id: 'topbar' },
+    const tab = (k, l) => (this.tabEls[k] = h('button', { class: 'tab', title: l.replace(/^\S+ /, ''), onclick: () => { location.hash = '#/' + k; } }, l));
+    const bar = h('nav', { id: 'topbar' },
       h('div', { class: 'logo', title: 'Prompter písní ' + APP_VERSION }, 'Prompter', h('span', {}, APP_VERSION)),
-      h('div', { class: 'tabs' }, tabs.map(([k, l]) => (this.tabEls[k] = h('button', { class: 'tab', onclick: () => { location.hash = '#/' + k; } }, l)))),
-      this.syncPill = h('button', { class: 'sync-pill', title: 'Stav synchronizace – kliknutím synchronizuješ', onclick: () => this.syncClick() }, h('span', { class: 'dot' }), h('span', { class: 'lbl' }, '')),
-      h('button', { class: 'btn primary', title: 'Otevřít čtečku (výběr playlistu)', onclick: () => { location.hash = '#/reader/' + (Settings.get('lastPlaylist') || ''); } }, '▶ Čtečka'));
+      h('div', { class: 'tabs' }, tabs.map(([k, l]) => tab(k, l))),
+      h('button', { class: 'rail-btn play', title: 'Otevřít čtečku (výběr playlistu)', onclick: () => { location.hash = '#/reader/' + (Settings.get('lastPlaylist') || ''); } }, '▶', h('span', {}, 'Čtečka')),
+      tab('settings', '⚙ Nastavení'),
+      this.syncPill = h('button', { class: 'sync-pill', title: 'Stav synchronizace – kliknutím synchronizuješ', onclick: () => this.syncClick() }, h('span', { class: 'dot' }), h('span', { class: 'lbl' }, '')));
     document.body.prepend(bar);
     this.paintSync();
   },
@@ -78,9 +91,13 @@ const App = {
   paintSync() {
     const st = Sync.state;
     const labels = { off: 'připojit ke kapele', idle: 'synchronizováno', pending: 'neodeslané změny', syncing: 'synchronizuji…', error: 'chyba synchronizace', offline: 'offline' };
+    const short = { off: 'Kapela', idle: 'Sdíleno', pending: 'Odeslat', syncing: 'Sdílím…', error: 'Chyba', offline: 'Offline' };
+    const ro = Settings.get('readOnly') && st !== 'off' ? ' · jen čtení' : '';
     this.syncPill.className = 'sync-pill ' + st;
-    $('.lbl', this.syncPill).textContent = (labels[st] || st) + (Settings.get('readOnly') && st !== 'off' ? ' · jen čtení' : '');
-    this.syncPill.title = st === 'error' ? Sync.lastError : (Sync.lastSync ? 'Poslední synchronizace ' + Sync.lastSync.toLocaleTimeString('cs-CZ') : 'Kliknutím synchronizuješ');
+    $('.lbl', this.syncPill).textContent = short[st] || st;
+    const full = (labels[st] || st) + ro;
+    this.syncPill.dataset.state = full;
+    this.syncPill.title = full + ' – ' + (st === 'error' ? Sync.lastError : (Sync.lastSync ? 'poslední synchronizace ' + Sync.lastSync.toLocaleTimeString('cs-CZ') : 'kliknutím synchronizuješ'));
   },
 
   async syncClick() {
@@ -130,7 +147,7 @@ const App = {
     SongsView.editor = null;
     const views = { songs: SongsView, playlists: PlaylistsView, templates: TemplatesView, singers: SingersView, settings: SettingsView };
     (views[view] || SongsView).render(main, param);
-    if (!Settings.get('welcomed') && Sync.mode() === 'off' && !$('.modal')) setTimeout(() => welcomeDialog(), 200);
+    if (!Settings.get('welcomed') && !$('.modal') && !$('.wizard')) setTimeout(() => setupWizard(), 200);
   },
 };
 

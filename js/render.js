@@ -234,3 +234,19 @@ function stripes(colors, soft) {
   const step = 100 / colors.length;
   return `linear-gradient(${soft ? '90deg' : '180deg'}, ${colors.map((c, i) => `${c} ${i * step}% ${(i + 1) * step}%`).join(', ')})`;
 }
+
+/* Malý náhled první stránky písně (seznam písní, průvodce) – přesně jako ve čtečce, jen zmenšený */
+function miniPage(box, song, info) {
+  const W = Settings.get('screenW'), H = Settings.get('screenH');
+  const tpl = applySongStyle(Store.template((song && song.templateId) || Settings.get('defaultTemplate')), song);
+  const lay = Render.layout(song, tpl, W, H);
+  const st = Render.makeStage(tpl, W, H);
+  box.innerHTML = '';
+  box.style.aspectRatio = W + ' / ' + H;
+  box.appendChild(st);
+  Render.renderPage(st, lay, tpl, 0, Object.assign({ title: song.title, artist: song.artist, key: song.key, tempo: song.tempo, pos: '', next: '' }, info || {}));
+  const fit = () => { if (box.isConnected) Render.fit(st, box, W, H); };
+  requestAnimationFrame(fit);
+  if (window.ResizeObserver) new ResizeObserver(fit).observe(box);
+  return st;
+}

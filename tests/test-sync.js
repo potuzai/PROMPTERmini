@@ -77,9 +77,11 @@ const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode
   const C = await ctxC.newPage();
   C.on('pageerror', e => console.log('PAGEERR', e.message));
   await C.goto('http://localhost:8123/index.html#/songs');
-  await C.waitForSelector('.modal-title:has-text("Vítej")');
+  await C.waitForSelector('.wizard');
+  assert(true, 'při prvním spuštění se zobrazí průvodce nastavením zařízení');
+  for (let i = 0; i < 3; i++) await C.click('.wz-foot .btn.primary');
   await C.evaluate(t => navigator.clipboard.writeText(t), code);
-  await C.click('.modal button:has-text("Mám kód kapely")');
+  await C.click('.wizard button:has-text("Mám kód kapely")');
   await C.waitForSelector('.modal textarea');
   assert((await C.inputValue('.modal textarea')) === code, 'kód kapely se sám vložil ze schránky');
   await C.click('.modal button:has-text("Připojit")');
@@ -88,7 +90,7 @@ const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode
   assert(await C.evaluate(() => !Store.songs.size || ![...Store.songs.values()].some(s => s.sample)), 'ukázková píseň se nenahrála');
   st = await (await fetch('http://localhost:8124/__state')).json();
   assert(!Object.values(st.files).some(t => t.includes('"sample": true')), 'v úložišti kapely není ukázková píseň');
-  assert(await C.isVisible('text=synchronizováno'), 'stav synchronizace v liště');
+  assert(await C.waitForFunction(() => (document.querySelector('.sync-pill').dataset.state || '').includes('synchronizováno'), null, { timeout: 8000 }).then(() => true, () => false), 'stav synchronizace v liště');
   await C.evaluate(async () => { await Store.put('songs', { id: 'c1', title: 'Od člena C', text: '' }); await Sync.run(); });
   await A.evaluate(() => Sync.run());
   assert(await A.evaluate(() => Store.songs.has('c1')), 'změna od člena připojeného kódem dorazila');
@@ -98,7 +100,7 @@ const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode
   await C.evaluate(async () => { await Store.put('songs', { id: 'c2', title: 'Nesmí ven', text: '' }); await Sync.run(); });
   const after = JSON.stringify((await (await fetch('http://localhost:8124/__state')).json()).files);
   assert(before === after, 'kód jen pro čtení: nic se neodešle');
-  assert(await C.isVisible('text=jen čtení'), 'lišta ukazuje „jen čtení“');
+  assert((await C.getAttribute('.sync-pill', 'data-state')).includes('jen čtení'), 'lišta ukazuje „jen čtení“');
   const badErr = await C.evaluate(c => BandCode.join(c).then(() => '').catch(e => e.message), 'PROMPTER-' + btoa('{"v":1,"k":"xyz"}'));
   assert(/Neznámý formát/.test(badErr), 'neznámý typ kódu → srozumitelná chyba');
   assert(await C.evaluate(() => Sync.mode()) === 'github', 'po chybném kódu zůstane původní připojení');

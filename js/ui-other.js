@@ -273,9 +273,10 @@ async function renameSingerCode(oldC, newC) {
 
 /* ===== Nastavení ===== */
 const SettingsView = {
-  render(main) {
-    const c = h('div', { class: 'content' });
-    main.appendChild(h('div', { class: 'view' }, c));
+  render(main, section) {
+    const c = h('div', { class: 'content set-content' });
+    const nav = h('div', { class: 'side set-nav' }, h('h2', {}, 'Nastavení'));
+    main.appendChild(h('div', { class: 'view set-view' }, nav, c));
     const S = Settings.data;
     const chk = (k, label, help) => h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: !!S[k], onchange: e => { Settings.set(k, e.target.checked); } }), label, help ? h('span', { class: 'help' }, ' – ' + help) : null);
 
@@ -310,10 +311,7 @@ const SettingsView = {
     const saveRes = () => {
       Settings.set('screenW', Math.max(320, +wIn.value | 0)); Settings.set('screenH', Math.max(240, +hIn.value | 0));
       Settings.set('diagonal', +diag.value); Settings.set('distance', +dist.value);
-      const pxPerCm = Math.hypot(G('screenW'), G('screenH')) / (G('diagonal') * 2.54);
-      // Pravidlo čitelnosti: výška velkého písmene ≈ 1 cm na každé 2 m vzdálenosti (pohodlně ~1,5 cm)
-      const capCm = Math.max(0.6, G('distance') * 0.5);
-      const px = Math.round(capCm * 1.4 * pxPerCm / 0.72);
+      const { pxPerCm, px } = fontAdvice(G('screenW'), G('screenH'), G('diagonal'), G('distance'));
       rec.innerHTML = `Monitor ${G('diagonal')}" při ${G('screenW')}×${G('screenH')} ≈ ${pxPerCm.toFixed(1)} px/cm. Pro pohodlné čtení ze vzdálenosti ${G('distance')} m doporučuji písmo alespoň <b>${px} px</b> (nastavíš v šabloně).`;
     };
     [wIn, hIn, diag, dist].forEach(i => i.addEventListener('change', () => { saveRes(); paintOrient(); }));
@@ -332,13 +330,22 @@ const SettingsView = {
     const nameIn = h('input', { class: 'inp', value: S.userName, placeholder: S.gh.login || 'např. Petr' });
     nameIn.onchange = () => Settings.set('userName', nameIn.value.trim());
 
+    const roleSel = h('select', { class: 'inp set-sel' }, h('option', { value: '', disabled: true, selected: !S.deviceRole }, '— nevybráno —'),
+      DEVICE_ROLES.map(r => h('option', { value: r.id, selected: r.id === S.deviceRole }, r.name)));
+    roleSel.onchange = () => { applyDeviceRole(roleSel.value); toast('Uloženo: ' + roleName(roleSel.value), 'ok'); App.go(true); };
+
     const tplSel = h('select', { class: 'inp' }, [...Store.templates.values()].map(t => h('option', { value: t.id, selected: t.id === S.defaultTemplate }, t.name)));
     tplSel.onchange = () => Settings.set('defaultTemplate', tplSel.value);
 
     c.append(
-      h('h2', {}, 'Nastavení'),
       h('div', { class: 'settings-grid' },
-      h('fieldset', {}, h('legend', {}, '🖥 Monitor čtečky'),
+      h('fieldset', { id: 'set-device', class: 'span2' }, h('legend', {}, '🖥 Toto zařízení', h('span', { class: 'grow' }), h('button', { class: 'btn small', onclick: () => setupWizard() }, 'Spustit průvodce znovu')),
+        h('p', { class: 'help' }, 'Platí jen pro tento počítač či telefon.'),
+        h('div', { class: 'set-rows' },
+          h('div', { class: 'set-row' }, h('div', {}, h('b', {}, 'K čemu zařízení slouží'), h('span', { class: 'help' }, 'Určuje, co se otevře po zapnutí.')), roleSel),
+          h('div', { class: 'set-row' }, h('div', {}, h('b', {}, 'Vzhled aplikace'), h('span', { class: 'help' }, 'Barvy stránky na čtečce určuje šablona písně.')),
+            segControl(THEMES, Settings.get('theme') || 'dark', v => { Settings.set('theme', v); App.applyTheme(); }))),
+        h('h3', {}, 'Monitor čtečky'),
         h('p', { class: 'help' }, 'Zadej rozlišení monitoru čtečky. Stránka se navrhuje přesně pro tento rozměr – náhled v editoru pak odpovídá tomu, co uvidíš na pódiu. Nastavení se sdílí s celou kapelou, takže náhled sedí i na ostatních počítačích.'),
         h('div', { class: 'row' },
           h('label', { class: 'f' }, h('span', {}, 'Šířka (px)'), wIn), h('label', { class: 'f' }, h('span', {}, 'Výška (px)'), hIn),
@@ -350,7 +357,7 @@ const SettingsView = {
           h('label', { class: 'f' }, h('span', {}, 'Otočit obraz čtečky (jen tento počítač)'), rotSel)),
         h('p', { class: 'help' }, 'Když máš monitor fyzicky na výšku a ve Windows je nastavené otočení obrazovky (Nastavení → Systém → Obrazovka → Orientace: Na výšku), nech „neotáčet“. Když Windows obrazovku neotáčí, otočí obraz čtečka sama.'),
         h('p', {}, rec)),
-      h('fieldset', {}, h('legend', {}, '▶ Čtečka'),
+      h('fieldset', { id: 'set-reader' }, h('legend', {}, '▶ Čtečka a ovládání'),
         chk('readerFullscreen', 'Čtečka přes celou obrazovku'),
         chk('startInReader', 'Po spuštění aplikace rovnou otevřít čtečku s posledním playlistem', 'pro PC čtečky'),
         chk('hideCursor', 'Skrývat kurzor myši'),
@@ -360,11 +367,11 @@ const SettingsView = {
         window.native ? h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: window.native.getAutoStart(), onchange: e => window.native.setAutoStart(e.target.checked) }), 'Spustit program automaticky po zapnutí počítače') : null,
         h('div', { class: 'row', style: { marginTop: '8px', maxWidth: '520px' } }, h('label', { class: 'f' }, h('span', {}, 'Výchozí šablona'), tplSel)),
         h('p', { class: 'help' }, 'Ovládání: pravé tlačítko / → / PgDn = další stránka · levé / ← / PgUp = zpět · prostřední / L = seznam písní · Shift+→/← = další/předchozí píseň · B = zatemnit · M = zrcadlit · +/− = písmo · F = celá obrazovka · H = nápověda · Esc = zpět.')),
-      h('fieldset', {}, h('legend', {}, '👤 Uživatel a zabezpečení'),
+      h('fieldset', { id: 'set-user' }, h('legend', {}, '👤 Uživatel a PIN'),
         h('div', { class: 'row', style: { maxWidth: '640px' } }, h('label', { class: 'f' }, h('span', {}, 'Moje jméno (u změn)'), nameIn), h('div', { class: 'nogrow' }, pinBtn)),
         h('p', { class: 'help' }, 'PIN chrání úpravy na tomto počítači (např. na čtečce, aby nikdo omylem nic nezměnil). Čtečka funguje i bez PINu. Kdo smí vidět a upravovat sdílené písně, určuješ přes GitHub níže.')),
       this.shareBlock('span2'),
-      h('fieldset', {}, h('legend', {}, '💾 Záloha a import'),
+      h('fieldset', { id: 'set-backup' }, h('legend', {}, '💾 Záloha a import'),
         h('div', { class: 'row' },
           h('button', { class: 'btn nogrow', onclick: () => exportBackup() }, '⇩ Stáhnout zálohu (vše)'),
           h('button', { class: 'btn nogrow', onclick: () => pickFile('.json').then(f => f && importBackup(f)) }, '⇪ Obnovit ze zálohy'),
@@ -372,6 +379,20 @@ const SettingsView = {
         h('p', { class: 'help' }, 'Záloha je jeden soubor .json se všemi písněmi, playlisty, šablonami a zpěváky. Obnova je slučovací – nic nesmaže, jen doplní/přepíše stejné položky.'),
         window.native ? h('p', { class: 'help' }, 'Data čtečky jsou uložena jako soubory ve složce: ', h('code', {}, window.native.dataDir), ' ', h('button', { class: 'btn small', onclick: () => window.native.openDataDir() }, 'Otevřít složku')) : null),),
       h('p', { class: 'help' }, 'Verze ' + APP_VERSION + (window.native ? ' · program pro Windows' : ' · webová verze')));
+    // navigace vlevo: skok na sekci (šipky + OK fungují přes Tab)
+    const secs = $$('fieldset[id]', c);
+    const items = secs.map(f => h('button', { class: 'item set-item', onclick: () => { f.scrollIntoView({ behavior: 'smooth', block: 'start' }); mark(f.id); } },
+      $('legend', f).firstChild.cloneNode(true), ' ', $('legend', f).childNodes[1] ? $('legend', f).childNodes[1].cloneNode(true) : ''));
+    const mark = id => items.forEach((b, i) => b.classList.toggle('active', secs[i].id === id));
+    nav.append(...items);
+    c.addEventListener('scroll', () => {
+      const top = c.getBoundingClientRect().top + 40;
+      let cur = secs[0];
+      for (const f of secs) if (f.getBoundingClientRect().top <= top) cur = f;
+      if (cur) mark(cur.id);
+    });
+    mark('set-device');
+    if (section) setTimeout(() => { const f = $('#set-' + section, c); if (f) { f.scrollIntoView({ block: 'start' }); mark(f.id); } }, 0);
   },
 
   shareBlock(cls) {
@@ -440,7 +461,7 @@ const SettingsView = {
         : 'jen v programu Prompter.exe', !window.native),
       detail);
     paint(cur);
-    return h('fieldset', { class: cls }, h('legend', {}, '☁ Sdílení s kapelou'), top, body,
+    return h('fieldset', { class: cls, id: 'set-share' }, h('legend', {}, '☁ Sdílení s kapelou'), top, body,
       h('label', { class: 'chk', style: { marginTop: '10px' } }, h('input', { type: 'checkbox', checked: Settings.get('autoSync'), onchange: e => Settings.set('autoSync', e.target.checked) }), 'Synchronizovat automaticky'));
   },
 
