@@ -174,7 +174,7 @@ const MegaProvider = {
 };
 function ipcError(e) { return String((e && e.message) || e).replace(/^Error invoking remote method '[^']+': (Error: )?/, ''); }
 
-const DATA_PATH_RE = /^data\/(songs|playlists|templates|config)\/[A-Za-z0-9_-]+\.json$/;
+const DATA_PATH_RE = /^data\/(songs|playlists|templates|config|events|rsvps)\/[A-Za-z0-9_-]+\.json$/;
 
 const Sync = {
   state: 'off',   // off | idle | syncing | error | pending | offline

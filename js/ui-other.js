@@ -666,7 +666,7 @@ function pickFile(accept) {
 function exportBackup() {
   const data = {
     app: 'prompter', version: 1, exportedAt: new Date().toISOString(),
-    songs: [...Store.songs.values()], playlists: [...Store.playlists.values()], templates: [...Store.templates.values()], config: [...Store.config.values()],
+    ...Object.fromEntries(Object.keys(TYPES).map(t => [t, [...Store[t].values()]])),
   };
   downloadFile(`zaloha-pisne-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(data, null, 1));
 }
@@ -676,7 +676,7 @@ async function importBackup(file) {
   try { data = JSON.parse(await readFileText(file)); } catch (e) { return toast('Soubor není platná záloha.', 'err'); }
   if (!data || data.app !== 'prompter') return toast('Soubor není záloha této aplikace.', 'err');
   let n = 0;
-  for (const type of ['songs', 'playlists', 'templates', 'config']) {
+  for (const type of Object.keys(TYPES)) {
     for (const o of data[type] || []) { if (o && o.id) { await Store.put(type, o, { silent: true, noStamp: true }); n++; } }
   }
   Store.emit('sync', null);

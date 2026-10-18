@@ -48,6 +48,7 @@ const ICONS = {
   stagemon: '<rect x="7" y="2" width="10" height="17" rx="1.5"/><path d="M12 19v3M8.5 22h7"/>',
   both: '<rect x="2" y="5" width="13" height="10" rx="1.2"/><rect x="17" y="3" width="5" height="9" rx="1"/><path d="M6 19h5M8.5 15v4"/>',
   rotate: '<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>',
+  cal: '<rect x="3.5" y="5" width="17" height="15.5" rx="1.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M7.5 14h2M11 14h2M14.5 14h2M7.5 17h2M11 17h2"/>',
   help: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5v.7M12 17h.01"/>',
 };
 
@@ -66,7 +67,7 @@ const GLYPH_ICONS = {
   '⇩': 'download', '⧉': 'copy', '🗑': 'trash', '🔑': 'key', '⚠': 'warn', '🔍': 'search', '✎': 'edit', '👥': 'users',
   '★': 'star', '◀': 'left', '🔒': 'lock', '🔓': 'unlock', '💾': 'save', '⟳': 'sync', '🔗': 'link', '🧹': 'clean',
   '🖨': 'print', '⏻': 'power', '↩': 'back', '🖥': 'monitor', '⌖': 'target', '👤': 'user', '✅': 'check', '☁': 'cloud',
-  '📁': 'folder', '⤓': 'pagebreak', '✕': 'x', '✓': 'check', '🎸': 'guitar',
+  '📁': 'folder', '📅': 'cal', '⤓': 'pagebreak', '✕': 'x', '✓': 'check', '🎸': 'guitar',
 };
 const GLYPH_RE = new RegExp('^(' + Object.keys(GLYPH_ICONS).map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')\\uFE0F?\\s*');
 function glyphToIcon(text) {

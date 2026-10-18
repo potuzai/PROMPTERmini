@@ -1,9 +1,9 @@
 'use strict';
 /* ===== Lokální úložiště (IndexedDB) + výchozí data ===== */
-const APP_VERSION = '1.17.0';
+const APP_VERSION = '1.18.0';
 const DB_NAME = 'prompter-pisne';
-const DB_VER = 1;
-const STORES = ['songs', 'playlists', 'templates', 'config', 'meta'];
+const DB_VER = 2;
+const STORES = ['songs', 'playlists', 'templates', 'config', 'events', 'rsvps', 'meta'];
 
 const DEFAULT_SINGERS = [
   { code: 'J', name: 'Já', color: '#ffd23f', bold: false, italic: false },
@@ -162,10 +162,12 @@ const TYPES = {
   playlists: { dir: 'playlists' },
   templates: { dir: 'templates' },
   config: { dir: 'config' },
+  events: { dir: 'events' },   // kalendář kapely: koncerty, zkoušky, nepřítomnost
+  rsvps: { dir: 'rsvps' },     // potvrzení účasti – každý člen má vlastní soubor (nepřepisují se navzájem)
 };
 
 const Store = {
-  songs: new Map(), playlists: new Map(), templates: new Map(), config: new Map(),
+  songs: new Map(), playlists: new Map(), templates: new Map(), config: new Map(), events: new Map(), rsvps: new Map(),
   meta: { id: 'sync', remote: {}, local: {}, tombstones: {} }, // remote: path->sha, local: path->sha obsahu při poslední synchronizaci
   listeners: new Set(),
 

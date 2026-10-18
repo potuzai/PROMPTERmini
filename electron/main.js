@@ -10,7 +10,7 @@ const path = require('path');
 if (process.env.PROMPTER_DATA_DIR) app.setPath('userData', path.join(process.env.PROMPTER_DATA_DIR, '_profil'));
 if (!app.requestSingleInstanceLock()) { app.quit(); process.exit(0); }
 
-const STORES = ['songs', 'playlists', 'templates', 'config'];
+const STORES = ['songs', 'playlists', 'templates', 'config', 'events', 'rsvps'];
 const ID_RE = /^[A-Za-z0-9_-]{1,80}$/;
 
 function pickDataDir() {
@@ -98,7 +98,7 @@ ipcMain.on('dataDir', e => { e.returnValue = DATA; });
 
 /* ===== Sdílená složka (Mega, Proton Drive, OneDrive…) =====
    Struktura: <složka>/songs/*.json, playlists/, templates/, config/ – stejné soubory jako v „data“ */
-const REL_RE = /^data\/(songs|playlists|templates|config)\/([A-Za-z0-9_-]+)\.json$/;
+const REL_RE = /^data\/(songs|playlists|templates|config|events|rsvps)\/([A-Za-z0-9_-]+)\.json$/;
 const gitSha = buf => crypto.createHash('sha1').update(Buffer.concat([Buffer.from('blob ' + buf.length + '\0'), buf])).digest('hex');
 function sharedPath(dir, rel) {
   const m = REL_RE.exec(rel);
@@ -129,7 +129,7 @@ ipcMain.handle('folderList', (e, dir) => {
   return { files, extras };
 });
 function extraPath(dir, rel) {
-  const m = /^data\/(songs|playlists|templates|config)\/([^/\\]+\.json)$/i.exec(rel);
+  const m = /^data\/(songs|playlists|templates|config|events|rsvps)\/([^/\\]+\.json)$/i.exec(rel);
   if (!m || m[2].includes('..')) throw new Error('Neplatná cesta ' + rel);
   return path.join(dir, m[1], m[2]);
 }

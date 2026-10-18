@@ -69,6 +69,16 @@ const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode
   await B.evaluate(() => Sync.run());
   assert(await B.evaluate(() => Settings.get('screenH')) === 1200, 'rozměr monitoru sdílen');
 
+  // Kalendář: akce a potvrzení obou členů najednou
+  await A.evaluate(async () => { await Store.put('events', { id: 'ev1', type: 'concert', status: 'confirmed', date: '2030-05-01', title: 'Lucerna' }); await Sync.run(); });
+  await B.evaluate(() => Sync.run());
+  assert(await B.evaluate(() => Store.events.has('ev1')), 'akce z kalendáře se přenesla');
+  await A.evaluate(() => Band.answer('ev1', 'mA', 'yes'));
+  await B.evaluate(() => Band.answer('ev1', 'mB', 'no'));
+  await A.evaluate(() => Sync.run()); await B.evaluate(() => Sync.run()); await A.evaluate(() => Sync.run());
+  const ans = await A.evaluate(() => Band.rsvpsOf('ev1').map(r => r.member + ':' + r.answer).sort().join(','));
+  assert(ans === 'mA:yes,mB:no', 'potvrzení dvou členů současně – bez konfliktu');
+
   // Kód kapely: nový člen se připojí jen vložením kódu (bez GitHub účtu)
   const code = await A.evaluate(() => BandCode.make({ name: 'Rusted', ro: false }));
   const ctxC = await b.newContext({ viewport: { width: 1400, height: 850 } });

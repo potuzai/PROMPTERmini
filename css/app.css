@@ -561,6 +561,82 @@ legend .btn { font-weight: 400; }
   .wz-sum span { width: 110px; }
 }
 
+/* ===== Kalendář kapely ===== */
+.cal-body { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; }
+.cal-nav { display: flex; align-items: center; gap: 8px; padding: 0 22px 10px; }
+.cal-nav[hidden] { display: none; }
+.cal-month { min-width: 150px; text-align: center; font-size: 17px; font-weight: 600; text-transform: capitalize; }
+.cal-grid { flex: 1; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); grid-template-rows: auto; grid-auto-rows: minmax(88px, 1fr); border-top: 1px solid var(--line); }
+.cal-wd { padding: 6px 8px; font-size: 12px; color: var(--dim); border-bottom: 1px solid var(--line); }
+.cal-day { min-width: 0; display: flex; flex-direction: column; gap: 3px; padding: 4px 5px 6px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); cursor: pointer; overflow: hidden; }
+.cal-day:nth-child(7n) { border-right: 0; }
+.cal-day:hover { background: var(--hover); }
+.cal-day.out { color: var(--faint); background: color-mix(in srgb, var(--bg) 40%, transparent); }
+.cal-day.we .cal-dn { color: var(--dim); }
+.cal-day.sel { background: var(--sel); }
+.cal-dn { font-size: 12.5px; align-self: flex-start; min-width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; }
+.cal-day.today .cal-dn { background: var(--acc); color: #fff; font-weight: 600; }
+.cal-chip { display: flex; align-items: center; gap: 5px; width: 100%; min-height: 22px; padding: 1px 6px; border: 0; border-left: 3px solid var(--c); border-radius: 3px; background: color-mix(in srgb, var(--c) 18%, transparent); color: var(--text); font: 12px var(--font); text-align: left; cursor: pointer; overflow: hidden; white-space: nowrap; }
+.cal-chip .cal-n { overflow: hidden; text-overflow: ellipsis; flex: 1; }
+.cal-chip .cal-t { color: var(--dim); }
+.cal-chip.on { outline: 2px solid var(--text); outline-offset: -1px; }
+.cal-chip.cancelled .cal-n { text-decoration: line-through; color: var(--faint); }
+.cal-chip.tentative { border-left-style: dashed; }
+.cal-my { font-weight: 700; }
+.cal-my.yes, .cal-cnt .yes, .cal-m.yes span { color: var(--ok); }
+.cal-my.maybe, .cal-cnt .maybe, .cal-m.maybe span { color: var(--warn); }
+.cal-my.no, .cal-cnt .no, .cal-m.no span { color: var(--err); }
+.cal-my.none { color: var(--faint); font-weight: 400; }
+.cal-away { font-size: 11px; color: var(--err); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cal-row { display: grid !important; grid-template-columns: 60px minmax(0, 1fr) auto 100px; gap: 14px; align-items: center; padding: 10px 22px !important; border-bottom: 1px solid var(--line); border-radius: 0 !important; }
+.cal-row.cancelled .cal-rt b { text-decoration: line-through; color: var(--faint); }
+.cal-date { display: flex; flex-direction: column; align-items: center; padding: 4px 0; border-left: 3px solid var(--c); border-radius: 4px; background: var(--well); line-height: 1.1; }
+.cal-date b { font-size: 20px; }
+.cal-date span, .cal-date small { font-size: 11.5px; color: var(--dim); }
+.cal-rt { display: flex; flex-direction: column; min-width: 0; }
+.cal-rt span { color: var(--dim); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cal-cnt { display: flex; gap: 10px; font-size: 13px; }
+.cal-row .cal-my { text-align: right; font-size: 12.5px; }
+.cal-sep { padding: 14px 22px 6px; color: var(--faint); font-size: 12.5px; font-weight: 600; }
+.cal-st { display: inline-block; padding: 0 7px; border-radius: 999px; font-size: 11.5px; border: 1px solid var(--line2); color: var(--dim); }
+.cal-st.tentative { color: var(--warn); border-color: var(--warn); }
+.cal-st.cancelled { color: var(--err); border-color: var(--err); }
+.cal-badges { display: flex; gap: 6px; margin-bottom: 6px; }
+.cal-badge { padding: 1px 9px; border-radius: 999px; background: color-mix(in srgb, var(--c) 22%, transparent); border: 1px solid var(--c); font-size: 12px; }
+.cal-kvs { display: flex; flex-direction: column; border-top: 1px solid var(--line); }
+.cal-kv { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+.cal-kv > span { color: var(--dim); }
+.cal-kv b { font-weight: 500; overflow-wrap: anywhere; }
+.cal-note { margin: 8px 0 0; padding: 10px 12px; border-radius: var(--r); background: var(--well); white-space: pre-wrap; font-size: 13.5px; }
+.cal-ans { display: flex; width: 100%; }
+.cal-ans button { flex: 1; min-height: 40px; font-weight: 600; }
+.cal-ans button.yes.on { background: color-mix(in srgb, var(--ok) 28%, transparent); color: var(--text); }
+.cal-ans button.maybe.on { background: color-mix(in srgb, var(--warn) 28%, transparent); color: var(--text); }
+.cal-ans button.no.on { background: color-mix(in srgb, var(--err) 28%, transparent); color: var(--text); }
+.cal-who { display: flex; flex-direction: column; gap: 2px; }
+.cal-m { display: grid; grid-template-columns: 10px 110px minmax(0, 1fr); gap: 10px; align-items: center; padding: 5px 0; font-size: 13.5px; }
+.cal-m i { width: 10px; height: 10px; border-radius: 50%; }
+.cal-m span { color: var(--dim); }
+.cal-m.away span { color: var(--err); }
+.cal-form { display: flex; flex-direction: column; gap: 12px; }
+.cal-times { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.cal-members { display: flex; flex-direction: column; gap: 8px; }
+.cal-mrow { display: grid; grid-template-columns: 52px 40px minmax(0, 1.2fr) minmax(0, 1fr) 30px; gap: 8px; align-items: center; }
+@media (max-width: 820px) {
+  .cal-grid { grid-auto-rows: minmax(64px, 1fr); }
+  .cal-chip .cal-t, .cal-away { display: none; }
+  .cal-chip { padding: 0 3px; font-size: 10.5px; }
+  .cal-row { grid-template-columns: 52px minmax(0, 1fr) 70px; }
+  .cal-row .cal-cnt { display: none; }
+  .cal-times { grid-template-columns: 1fr 1fr; }
+  .cal-mrow { grid-template-columns: 44px 34px minmax(0, 1fr) 30px; }
+  .cal-mrow input.inp:nth-of-type(2) { display: none; }
+  .cal-list.m-open .pl-main { display: none; }
+  .cal-list.m-open .pl-prev { display: flex; border: 0; border-radius: 0; }
+}
+.cal-back { display: none; }
+@media (max-width: 820px) { .cal-back { display: inline-flex; align-self: flex-start; } }
+
 /* ===== Plátno čtečky (stage) ===== */
 #measure { position: fixed; left: -30000px; top: 0; visibility: hidden; pointer-events: none; }
 .stage { position: absolute; left: 0; top: 0; display: flex; flex-direction: column; overflow: hidden; padding: var(--pady) var(--padx);

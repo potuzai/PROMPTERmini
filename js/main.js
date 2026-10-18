@@ -75,7 +75,7 @@ const App = {
 
   /* Boční lišta vlevo (návrh 20): sekce aplikace, čtečka, nastavení, stav synchronizace */
   buildTopbar() {
-    const tabs = [['songs', '🎵 Písně'], ['playlists', '📋 Playlisty'], ['templates', '🎨 Šablony'], ['singers', '🎤 Obsazení']];
+    const tabs = [['songs', '🎵 Písně'], ['playlists', '📋 Playlisty'], ['calendar', '📅 Kalendář'], ['templates', '🎨 Šablony'], ['singers', '🎤 Obsazení']];
     this.tabEls = {};
     const tab = (k, l) => (this.tabEls[k] = h('button', { class: 'tab', title: l.replace(/^\S+ /, ''), onclick: () => { location.hash = '#/' + k; } }, l));
     const bar = h('nav', { id: 'topbar' },
@@ -116,6 +116,7 @@ const App = {
     }
     if (view === 'songs' && SongsView.paintList) SongsView.paintList();
     if (view === 'playlists' && PlaylistsView.paintSide) PlaylistsView.paintSide();
+    if (view === 'calendar' && CalendarView.paintSide && ['events', 'rsvps', 'config', 'playlists'].includes(type)) CalendarView.paintSide();
     if (view === 'templates' && TemplatesView.paintSide && type === 'templates') TemplatesView.paintSide();
     Sync.refreshState();
   },
@@ -142,10 +143,10 @@ const App = {
     for (const [k, el] of Object.entries(this.tabEls)) el.classList.toggle('active', k === view);
     const main = $('#main');
     main.innerHTML = '';
-    SongsView.paintList = null; PlaylistsView.paintSide = null; TemplatesView.paintSide = null;
+    SongsView.paintList = null; PlaylistsView.paintSide = null; TemplatesView.paintSide = null; CalendarView.paintSide = null;
     if (SongsView.editor && SongsView.editor.ro) SongsView.editor.ro.disconnect();
     SongsView.editor = null;
-    const views = { songs: SongsView, playlists: PlaylistsView, templates: TemplatesView, singers: SingersView, settings: SettingsView };
+    const views = { songs: SongsView, playlists: PlaylistsView, calendar: CalendarView, templates: TemplatesView, singers: SingersView, settings: SettingsView };
     (views[view] || SongsView).render(main, param);
     // první spuštění: program (čtečka) → průvodce zařízením; web → jen uvítání a připojení ke kapele
     if (!Settings.get('welcomed')) setTimeout(() => {

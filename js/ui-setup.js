@@ -82,7 +82,9 @@ function setupWizard() {
       onclick: () => { value = it.id; onPick(it.id); paint(); },
       ondblclick: () => next() }, h('span', { class: 'wz-radio' }), it.art || ic(it.icon), h('b', {}, it.name), h('span', {}, it.desc))));
     box.addEventListener('keydown', e => {
-      const opts = $$('.wz-opt', box); const i = opts.indexOf(document.activeElement);
+      const opts = $$('.wz-opt', box);
+      let i = opts.indexOf(document.activeElement);
+      if (i < 0) i = opts.findIndex(o => o.classList.contains('on'));
       if (i < 0 || !['ArrowLeft', 'ArrowRight'].includes(e.key)) return;
       e.preventDefault();
       const n = opts[Math.max(0, Math.min(opts.length - 1, i + (e.key === 'ArrowRight' ? 1 : -1)))];
@@ -101,8 +103,7 @@ function setupWizard() {
   };
   let paintAdvice = () => {};
 
-  function go(n) {
-    st.step = Math.max(0, Math.min(3, n));
+  function paintSteps() {
     stepsEl.innerHTML = '';
     steps.forEach((s, i) => {
       if (i) stepsEl.appendChild(h('span', { class: 'wz-line' }));
@@ -110,6 +111,10 @@ function setupWizard() {
       stepsEl.appendChild(h('span', { class: 'wz-step' + (i === st.step ? ' on' : i < st.step ? ' done' : '') + (skipped ? ' skip' : '') },
         h('span', { class: 'wz-num' }, i < st.step ? ic('check') : String(i + 1)), s));
     });
+  }
+  function go(n) {
+    st.step = Math.max(0, Math.min(3, n));
+    paintSteps();
     backBtn.style.visibility = st.step ? 'visible' : 'hidden';
     nextBtn.textContent = st.step === 3 ? (st.role === 'reader' ? 'Spustit čtečku' : 'Hotovo') : 'Pokračovat';
     body.innerHTML = '';
@@ -117,7 +122,7 @@ function setupWizard() {
     if (st.step === 0) {
       title.textContent = 'K čemu bude toto zařízení sloužit?';
       sub.textContent = 'Podle toho se aplikace po zapnutí otevře a nabídne jen to, co potřebuješ.';
-      body.append(cards(DEVICE_ROLES, st.role, v => { st.role = v; go(0); }, 'four'),
+      body.append(cards(DEVICE_ROLES, st.role, v => { st.role = v; paintSteps(); }, 'four'),
         h('p', { class: 'wz-note' }, 'Nevadí, když si nejsi jistý – všechno změníš později v Nastavení › Toto zařízení.'));
       hint.textContent = '←→ vybrat · OK pokračovat';
     } else if (st.step === 1) {
@@ -217,6 +222,12 @@ function setupWizard() {
   const onKey = e => {
     if (!el.isConnected || $('.modal')) return;
     const inField = e.target.matches('input, select, textarea');
+    const grp = $('.wz-cards', el);
+    if (grp && !inField && !grp.contains(e.target) && ['ArrowLeft', 'ArrowRight'].includes(e.key)) {
+      e.preventDefault(); e.stopPropagation();
+      grp.dispatchEvent(new KeyboardEvent('keydown', { key: e.key, bubbles: false }));
+      return;
+    }
     if (e.key === 'Enter' && !(e.target.matches('button') && !e.target.classList.contains('wz-opt'))) { e.preventDefault(); e.stopPropagation(); next(); }
     else if (e.key === 'Escape' && st.step) { e.preventDefault(); go(st.step === 3 && skipSize() ? 0 : st.step - 1); }
     else if (inField) e.stopPropagation();

@@ -123,7 +123,21 @@ Obrazovky se sdílí s celou kapelou. **Každé zařízení si vybere, kterou ob
 
 V editoru pod stránkou přepínáš **Náhled pro: …** a vidíš píseň přesně tak, jak ji uvidí daná obrazovka.
 
-## 3. Sdílení s kapelou
+## 3. Kalendář kapely
+
+V boční liště **Kalendář**: koncerty, zkoušky, nahrávání a další akce. Sdílí se s kapelou stejně jako písně (Mega, GitHub nebo složka).
+
+- **Akce** má druh a stav (potvrzeno / předběžně / zrušeno), datum (i vícedenní), časy *příjezd, zvuková zkouška, začátek, konec*, místo a adresu (odkaz na mapu), pořadatele a kontakt (telefon jde rovnou vytočit), s kým se hraje, **honorář** se stavem (dohodnuto / vyfakturováno / zaplaceno) a poznámkou, připojený **setlist** (playlist, rovnou do čtečky) a poznámku.
+- **Potvrzení účasti**: každý člen klikne *Jedu / Možná / Nejedu* a může připsat poznámku. U akce je vidět, kdo jede, kdo ne a kdo ještě neodpověděl. Každá odpověď se ukládá zvlášť, takže se odpovědi členů nikdy nepřepíšou, ani když potvrzují současně.
+- **Nemůžu…**: dovolená, nemoc a jiná nepřítomnost (od–do). Je vidět v kalendáři i u akcí, které do ní padnou.
+- **Členové**: seznam členů kapely se sdílí; u sebe zaškrtni **já** (platí jen na tom zařízení).
+- **Měsíc / Seznam**: měsíční mřížka, nebo seznam nadcházejících akcí s počty odpovědí a tvou odpovědí.
+- **⇩ Do kalendáře / .ics**: stáhne akce jako soubor pro kalendář v telefonu, Google nebo Outlook.
+- V telefonu se akce otevře přes celou obrazovku, potvrzení je jedno ťuknutí.
+
+Aplikace nemá vlastní server, proto neposílá upozornění; změny se ukážou při otevření aplikace (nebo po synchronizaci).
+
+## 4. Sdílení s kapelou
 
 ### Člen kapely (1 minuta)
 1. Stáhne a spustí Prompter.
@@ -146,7 +160,7 @@ Když dva lidé upraví stejnou píseň najednou, nic se neztratí: druhá verze
 
 > Připojení k Mega používá neoficiální knihovnu `megajs`. Kdyby ho Mega někdy změnou na své straně rozbila, přepni na GitHub. Písně v programu zůstanou.
 
-## 4. Pro vývoj
+## 5. Pro vývoj
 
 ```
 npm install
