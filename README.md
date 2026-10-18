@@ -103,6 +103,8 @@ Pokročilí můžou přes **Zdrojový text…** v levém sloupci upravit text ta
 
 Nástroje (kytara, basa, bicí, klávesy…) a jejich zkratky a barvy nastavíš v záložce **Obsazení**. Když vložíš text z webu s akordy nad řádky, akordy se samy převedou do textu a tabulatury se zabalí do bloku pro kytaru.
 
+**Barva textu** může být podle zpěváka, nebo **podle části písně** (šablona *Barvy podle částí písně*: sloka bílá, refrén žlutý, mezičást zelená; zpěváka pak ukazuje jen barevný pruh). Část se pozná podle názvu sekce: „Refrén…“, „Mezičást / Bridge / Předrefrén…“, ostatní je sloka.
+
 Zpěváky (jména, barvy) upravíš v záložce **Zpěváci**. Vzhled stránky (písmo, velikost, barvy, okraje, zarovnání, sloupce, zmenšení dlouhých písní, zrcadlení) nastavíš v záložce **Šablony**. Šablonu přiřadíš písni (Údaje… → Šablona písně). Formátování drží každá píseň sama, playlist ho nemění – rozměr stránky určuje jen nastavení monitoru.
 
 ### Obrazovky kapely a osobní zobrazení

@@ -24,6 +24,14 @@ const RE_MUSBLOCK = /^%%([A-Za-z0-9+]*)\s*(.*)$/;
 const RE_INLINE_CHORD = /\[([^\]\s]{1,12})\]/g;
 // konec stránky: „---“ platí pro hlavní čtečku, „--- tablet“ jen pro obrazovku s tímto id
 const RE_BREAK = /^---\s*([A-Za-z0-9][A-Za-z0-9_-]*)?\s*$/;
+/* druh části podle názvu sekce: refrén / mezičást / sloka */
+function sectionKind(name) {
+  const n = String(name || '').toLowerCase();
+  if (!n) return '';
+  if (/refr|chorus|ref\b|^r\s*\d*$/.test(n)) return 'chorus';
+  if (/mezi|bridge|předrefr|predrefr|pre-?chorus|most/.test(n)) return 'bridge';
+  return 'verse';
+}
 function breakScreen(t) { const m = RE_BREAK.exec(String(t).trim()); return m ? (m[1] || 'main') : null; }
 
 function parseCodes(s) {
@@ -104,7 +112,7 @@ function parseSong(text) {
       const text = body.trim();
       const chordsOnly = hasChords(text) && stripChords(text) === '';
       lines.push({ kind: chordsOnly ? 'chords' : 'line', singers, inherited, chords: hasChords(text) });
-      const b = chordsOnly ? { type: 'chords', text, src: i } : { type: 'line', text, singers, src: i, chords: hasChords(text) };
+      const b = chordsOnly ? { type: 'chords', text, src: i } : { type: 'line', text, singers, src: i, chords: hasChords(text), sec: curSection ? curSection.name : '' };
       blocks.push(b); if (curSection) curSection.blocks.push(b);
     }
   }

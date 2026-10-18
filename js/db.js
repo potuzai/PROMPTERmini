@@ -1,6 +1,6 @@
 'use strict';
 /* ===== Lokální úložiště (IndexedDB) + výchozí data ===== */
-const APP_VERSION = '1.18.1';
+const APP_VERSION = '1.19.0';
 const DB_NAME = 'prompter-pisne';
 const DB_VER = 2;
 const STORES = ['songs', 'playlists', 'templates', 'config', 'events', 'rsvps', 'meta'];
@@ -29,12 +29,18 @@ const DEFAULT_TEMPLATE = {
   noteColor: '#b0b0b0', showNotes: true,
   padX: 70, padY: 36, columns: 1, colGap: 70, stanzaGap: 0.55,
   singerText: true, singerBar: true, singerBg: false, singerBadge: false, barWidth: 14,
+  // barva textu: 'singer' = podle zpěváka, 'section' = podle části písně (zpěvák jen pruhem)
+  textBy: 'singer', verseColor: '#ffffff', chorusColor: '#ffff00', bridgeColor: '#33ff33',
   fit: 'shrink', minScale: 0.7,
   showHeader: true, showFooter: true, headerSize: 30, headerColor: '#9e9e9e',
   mirror: 'none',
 };
 
 const EXTRA_TEMPLATES = [
+  Object.assign({}, DEFAULT_TEMPLATE, {
+    id: 'casti-pisne', name: 'Barvy podle částí písně (sloka / refrén / mezičást)',
+    textBy: 'section', singerText: false, singerBar: true, barWidth: 16,
+  }),
   Object.assign({}, DEFAULT_TEMPLATE, {
     id: 'velke-stred', name: 'Velké písmo – na střed', fontSize: 80, align: 'center',
     singerBar: false, singerText: true, fit: 'paginate',

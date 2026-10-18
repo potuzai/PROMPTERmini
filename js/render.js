@@ -76,9 +76,11 @@ const Render = {
     // řádek textu
     const sgs = b.singers.map(c => singerMap[c]).filter(Boolean);
     const el = h('div', { class: 'b-line', 'data-src': b.src });
+    const bySec = tpl.textBy === 'section';
+    if (bySec) { const k = sectionKind(b.sec); if (k) el.style.color = tpl[k + 'Color'] || ''; }
     if (sgs.length) {
       const first = sgs[0];
-      if (tpl.singerText) el.style.color = first.color;
+      if (tpl.singerText && !bySec) el.style.color = first.color;
       if (sgs.some(s => s.bold)) el.style.fontWeight = 900;
       if (sgs.some(s => s.italic)) el.style.fontStyle = 'italic';
       el.style.setProperty('--barbg', stripes(sgs.map(s => s.color)));

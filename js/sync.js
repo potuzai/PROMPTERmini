@@ -220,7 +220,11 @@ const Sync = {
   },
 
   run(opts = {}) {
-    if (this.running) return this.running;
+    // už běží: změny z mezitímu by se nepřenesly – navázat jedno další kolo hned po něm
+    if (this.running) {
+      if (!this.again) this.again = this.running.catch(() => {}).then(() => { this.again = null; return this.run(opts); });
+      return this.again;
+    }
     this.running = this._run(opts).finally(() => { this.running = null; });
     return this.running;
   },

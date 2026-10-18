@@ -119,6 +119,22 @@ const URL = 'http://localhost:8123/index.html';
       await c3.close();
     }
 
+    /* ----- Šablona: barva textu podle části písně ----- */
+    {
+      const c4 = await b.newContext({ viewport: { width: 1280, height: 800 } });
+      await c4.addInitScript(() => { if (!localStorage.getItem('prompter-settings')) localStorage.setItem('prompter-settings', JSON.stringify({ welcomed: true })); });
+      const t = await c4.newPage();
+      await t.goto(URL + '#/songs'); await t.waitForFunction(() => typeof Store !== 'undefined' && Store.ready);
+      const cols = await t.evaluate(() => {
+        const tpl = Object.assign(clone(DEFAULT_TEMPLATE), { textBy: 'section', singerText: false });
+        const lay = Render.layout({ text: '## Sloka 1\n@J a\n## Refrén @V\nb\n## Mezičást\n@T c\n>> Refrén' }, tpl, 1080, 1920);
+        return lay.blocks.filter(b => b.type === 'line').map(b => { const e = Render.blockEl(b, tpl, lay.singerMap); return e.style.color + '|' + e.classList.contains('has-sg'); });
+      });
+      assert(cols[0].startsWith('rgb(255, 255, 255)') && cols[1].startsWith('rgb(255, 255, 0)') && cols[2].startsWith('rgb(51, 255, 51)') && cols[3].startsWith('rgb(255, 255, 0)'), 'šablona: text podle části (sloka bílá, refrén žlutý, mezičást zelená, i opakovaný refrén)');
+      assert(cols.every(c => c.endsWith('true')), 'zpěvák zůstává vyznačený pruhem');
+      await c4.close();
+    }
+
     /* ----- Seznam písní s náhledem, boční lišta ----- */
     const c2 = await b.newContext({ viewport: { width: 1400, height: 850 } });
     await c2.addInitScript(() => { if (!localStorage.getItem('prompter-settings')) localStorage.setItem('prompter-settings', JSON.stringify({ welcomed: true, readerFullscreen: false })); });
