@@ -145,6 +145,18 @@ async function browserMember(browser) {
   await D.p.evaluate(async () => { const api = MegaProvider.api(); const c = Object.assign({}, MegaProvider.cfg(), { folder: 'Soubezna' }); await Promise.all([api.test(c), api.snapshot(c), api.test(c), api.snapshot(c)]); });
   const dirsNamed = n => Object.values(cloud().nodes).filter(x => x.dir && x.name === n).length;
   assert(dirsNamed('Soubezna') === 1, 'souběžné připojení k Mega vytvoří jen jednu složku kapely');
+  // už existující duplicitní složka kapely (vznikla dřív, např. z jiného okna) se sloučí do jedné
+  {
+    const st = cloud();
+    st.nodes.dupbase = { name: 'Prompter kapela', parent: 'root', dir: true, ts: 1 };
+    st.nodes.dupsongs = { name: 'songs', parent: 'dupbase', dir: true, ts: 1 };
+    st.nodes.dupfile = { name: 'zdvojena.json', parent: 'dupsongs', dir: false, ts: 2, data: Buffer.from(JSON.stringify({ id: 'zdvojena', title: 'Ze zdvojené složky', text: '@J ahoj' })).toString('base64') };
+    st.nodes.dupempty = { name: 'Prompter kapela', parent: 'root', dir: true, ts: 1 };
+    fs.writeFileSync(STATE, JSON.stringify(st));
+  }
+  await D.p.evaluate(() => Sync.run());
+  assert(dirsNamed('Prompter kapela') === 1, 'duplicitní složky kapely se sloučí do jedné');
+  assert(await D.p.evaluate(() => Store.songs.has('zdvojena')), 'písně z duplicitní složky se nepřišly nazmar');
   // čtečka v prohlížeči z playlistu
   await D.p.evaluate(() => { location.hash = '#/reader/plweb'; }); await sleep(500);
   assert(await D.p.evaluate(() => !!document.querySelector('#reader .stage') && document.querySelector('#reader').textContent.includes('Žlutý pes')), 'prohlížeč: čtečka zobrazí playlist');

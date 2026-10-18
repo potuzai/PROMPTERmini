@@ -42,9 +42,15 @@ class MutableFile {
     if (!n) throw new Error('ENOENT (-9): Object (typically, node or user) not found');
     return fromB64(n.data);
   }
+  async moveTo(target) {
+    await delay();
+    const st = load(); st.nodes[this.nodeId].parent = target.nodeId; save(st);
+    if (this.parent) this.parent.children = this.parent.children.filter(c => c !== this);
+    this.parent = target; target.children.push(this);
+  }
   async delete(permanent) {
     await delay();
-    if (!permanent) throw new Error('mock: jen trvalé mazání');
+    // (koš Mega napodobenina nemá – nevratné i vratné smazání odstraní uzel)
     const st = load(); delete st.nodes[this.nodeId]; save(st);
     if (this.parent) this.parent.children = this.parent.children.filter(c => c !== this);
   }

@@ -39,12 +39,24 @@
 
   const dirs = f => (f.children || []).filter(c => c.directory);
   const fileCount = f => (f.children || []).reduce((n, c) => n + (c.directory ? fileCount(c) : 1), 0);
-  /* Složka podle jména. Když jich je víc stejného jména (dřív vznikly souběžným připojením),
-     použije se ta s daty a prázdné kopie se přesunou do koše Mega. */
-  async function ensureDir(parent, name) {
+  /* Přesune obsah složky src do dst (stejně pojmenované podsložky se slučují rekurzivně). */
+  async function mergeInto(src, dst) {
+    for (const c of [...(src.children || [])]) {
+      const same = c.directory && dirs(dst).find(d => d.name === c.name);
+      if (same) await mergeInto(c, same);
+      else await c.moveTo(dst);
+    }
+  }
+  /* Složka podle jména. Když jich je víc stejného jména (vznikly souběžným připojením z více oken
+     nebo zařízení), použije se ta s nejvíc daty, obsah ostatních se do ní přesune a prázdné
+     kopie jdou do koše Mega. Duplicitní soubory pak vyřeší synchronizace (nejnovější platí). */
+  async function ensureDir(parent, name, st) {
     const found = dirs(parent).filter(c => c.name === name).sort((a, b) => fileCount(b) - fileCount(a));
     if (!found.length) return parent.mkdir(name);
-    for (const dup of found.slice(1)) if (!fileCount(dup)) { try { await dup.delete(false); } catch (e) { /* nevadí */ } }
+    for (const dup of found.slice(1)) {
+      try { if (fileCount(dup)) { await mergeInto(dup, found[0]); if (st) st.merged = true; } await dup.delete(false); if (st) st.merged = true; }
+      catch (e) { /* zkusí se příště */ }
+    }
     return found[0];
   }
 
@@ -56,7 +68,9 @@
   async function openNow(cfg, fresh) {
     const storage = await login(cfg, fresh);
     const folderName = (cfg.folder || 'Prompter kapela').trim();
-    const base = await ensureDir(storage.root, folderName);
+    const st = {};
+    let base = await ensureDir(storage.root, folderName, st);
+    if (st.merged) { await storage.reload(true); base = await ensureDir(storage.root, folderName); }
     const folders = {};
     for (const s of STORES) folders[s] = await ensureDir(base, s);
     current = { storage, base, folders, cfgKey: cfg.email + '|' + folderName };
