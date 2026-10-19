@@ -1,5 +1,13 @@
 'use strict';
 /* ===== Čtečka (prompter) ===== */
+/* Ovládání čtečky – nápověda ve čtečce (H) i v Nastavení › Čtečka a ovládání */
+const READER_KEYS = [
+  ['Pravé tlačítko / → / PgDn / mezera', 'další stránka'], ['Levé tlačítko / ← / PgUp', 'předchozí stránka'],
+  ['Shift + → / ←', 'další / předchozí píseň'], ['Prostřední tlačítko / L / Tab', 'seznam písní (skok)'],
+  ['P', 'výběr playlistu'], ['Q / klávesa menu', 'rychlá nabídka (dlaždice)'], ['F / F11', 'celá obrazovka'], ['B', 'zatemnit obrazovku'], ['M', 'zrcadlení (pro sklo prompteru)'],
+  ['+ / − / 0', 'větší / menší / výchozí písmo'], ['S', 'synchronizovat (stáhnout změny)'], ['E', 'upravit aktuální píseň'], ['H', 'tato nápověda'], ['Esc', 'zavřít / zpět'],
+];
+
 const Reader = {
   el: null, wrap: null, stage: null, stageTplKey: '',
   plId: null, items: [], songIdx: 0, pageIdx: 0,
@@ -450,12 +458,6 @@ const Reader = {
   },
 
   showHelp() {
-    const rows = [
-      ['Pravé tlačítko / → / PgDn / mezera', 'další stránka'], ['Levé tlačítko / ← / PgUp', 'předchozí stránka'],
-      ['Shift + → / ←', 'další / předchozí píseň'], ['Prostřední tlačítko / L / Tab', 'seznam písní (skok)'],
-      ['P', 'výběr playlistu'], ['Q / klávesa menu', 'rychlá nabídka (dlaždice)'], ['F / F11', 'celá obrazovka'], ['B', 'zatemnit obrazovku'], ['M', 'zrcadlení (pro sklo prompteru)'],
-      ['+ / − / 0', 'větší / menší / výchozí písmo'], ['S', 'synchronizovat (stáhnout změny)'], ['E', 'upravit aktuální píseň'], ['Esc', 'zavřít / zpět'],
-    ];
-    this.showMenu('Ovládání čtečky', rows.map(r => ({ n: '', label: r[0], sub: r[1] })), 0, () => this.closeMenu(), 'Esc nebo Enter zavře nápovědu');
+    this.showMenu('Ovládání čtečky', READER_KEYS.map(r => ({ n: '', label: r[0], sub: r[1] })), 0, () => this.closeMenu(), 'Esc nebo Enter zavře nápovědu');
   },
 };

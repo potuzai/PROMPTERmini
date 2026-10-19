@@ -45,7 +45,7 @@ function segControl(items, value, onPick) {
 function setupWizard() {
   if ($('.wizard')) return;
   const isPortrait = () => +st.h >= +st.w;
-  const detected = () => [Math.round(screen.width * devicePixelRatio), Math.round(screen.height * devicePixelRatio)];
+  const detected = screenPx;
   const st = {
     step: 0,
     role: Settings.get('deviceRole') || (Settings.get('startInReader') ? 'reader' : 'editor'),

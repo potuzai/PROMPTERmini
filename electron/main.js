@@ -37,8 +37,7 @@ for (const s of STORES) fs.mkdirSync(path.join(DATA, s), { recursive: true });
 fs.mkdirSync(path.dirname(META_FILE), { recursive: true });
 
 /* Bezpečný zápis: dočasný soubor → fsync → přejmenování (odolné proti výpadku proudu) */
-function writeAtomic(file, text) {
-  const tmp = file + '.tmp';
+function writeAtomic(file, text, tmp = file + '.tmp') {
   const fd = fs.openSync(tmp, 'w');
   try { fs.writeSync(fd, text, null, 'utf8'); fs.fsyncSync(fd); } finally { fs.closeSync(fd); }
   fs.renameSync(tmp, file);
@@ -142,11 +141,8 @@ ipcMain.handle('folderWrite', (e, dir, rel, text) => {
   checkDir(dir);
   const file = sharedPath(dir, rel);
   fs.mkdirSync(path.dirname(file), { recursive: true });
-  // dočasný soubor začíná tečkou → aplikace ho při čtení ignoruje
-  const tmp = path.join(path.dirname(file), '.' + path.basename(file) + '.tmp');
-  const fd = fs.openSync(tmp, 'w');
-  try { fs.writeSync(fd, text, null, 'utf8'); fs.fsyncSync(fd); } finally { fs.closeSync(fd); }
-  fs.renameSync(tmp, file);
+  // dočasný soubor začíná tečkou → aplikace (i ostatní členové) ho při čtení ignoruje
+  writeAtomic(file, text, path.join(path.dirname(file), '.' + path.basename(file) + '.tmp'));
   const readme = path.join(dir, 'CTI-ME.txt');
   if (!fs.existsSync(readme)) fs.writeFileSync(readme, 'Tuto složku spravuje aplikace PROMPTER mini.\r\nSoubory needituj ručně. Složku sdílej jen s členy kapely.\r\n');
 });

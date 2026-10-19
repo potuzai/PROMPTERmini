@@ -76,7 +76,7 @@ const SongsView = {
       }
       if (!songs.length) list.appendChild(h('div', { class: 'help', style: { padding: '16px 22px' } }, q ? 'Nic nenalezeno.' : 'Zatím žádné písně. Vytvoř novou nebo importuj .txt soubory.'));
       count.textContent = q ? `${songs.length} z ${Store.songs.size} písní` : 'Klik = náhled · dvojklik = upravit · Enter = upravit';
-      total.textContent = `${Store.songs.size} ${Store.songs.size === 1 ? 'píseň' : Store.songs.size >= 2 && Store.songs.size <= 4 ? 'písně' : 'písní'}`;
+      total.textContent = plural(Store.songs.size, 'píseň', 'písně', 'písní');
       if (!song) { const keep = songs.find(x => x.id === this.selected) || songs[0]; select(keep ? keep.id : null); }
     };
     // šipky v seznamu (airmouse): ↑↓ vybírá, Enter otevře editor
@@ -603,11 +603,7 @@ class SongEditor {
       h('div', { class: 'row', style: { marginTop: '6px' } },
         h('button', { class: 'btn small nogrow', onclick: () => { for (const k of Object.keys(st)) delete st[k]; apply(); m.remove(); } }, 'Zpět na šablonu'),
         h('span', { class: 'help' }, 'Pro všechny písně najednou se písmo nastavuje v Šablonách.')));
-    document.body.appendChild(m);
-    const r = anchor.getBoundingClientRect();
-    m.style.left = Math.max(8, Math.min(r.left, innerWidth - m.offsetWidth - 8)) + 'px';
-    m.style.top = Math.max(8, Math.min(r.bottom + 4, innerHeight - m.offsetHeight - 8)) + 'px';
-    setTimeout(() => document.addEventListener('mousedown', function off(e) { if (!m.contains(e.target) && e.target !== anchor) { m.remove(); document.removeEventListener('mousedown', off); } }), 0);
+    placePopover(m, anchor);
   }
 
   async cleanDialog() {
@@ -673,23 +669,24 @@ function layersPopover(anchor, onChange) {
     h('div', { class: 'menu-head' }, 'Ukázat pro muzikanty'),
     row('Akordy', CHORD_COLOR, mv.chords, v => { mv.chords = v; }),
     ...Store.instruments().map(i => row(i.name, i.color, !!mv.inst[i.code], v => { mv.inst[i.code] = v; })));
-  document.body.appendChild(m);
-  const r = anchor.getBoundingClientRect();
-  m.style.left = Math.max(8, Math.min(r.left, innerWidth - m.offsetWidth - 8)) + 'px';
-  m.style.top = Math.max(8, Math.min(r.bottom + 4, innerHeight - m.offsetHeight - 8)) + 'px';
-  setTimeout(() => document.addEventListener('mousedown', function off(e) { if (!m.contains(e.target) && e.target !== anchor) { m.remove(); document.removeEventListener('mousedown', off); } }), 0);
+  placePopover(m, anchor);
 }
 
 /* ===== Sdílené pomocníky pro UI ===== */
+/* Plovoucí nabídka u tlačítka: vejde se do okna (když se pod tlačítko nevejde, otevře se nad ním)
+   a zavře se kliknutím mimo */
+function placePopover(m, anchor) {
+  document.body.appendChild(m);
+  const r = anchor.getBoundingClientRect(), mh = m.offsetHeight;
+  m.style.left = Math.max(8, Math.min(r.left, innerWidth - m.offsetWidth - 8)) + 'px';
+  m.style.top = (r.bottom + mh + 8 > innerHeight && r.top - mh - 4 >= 8 ? r.top - mh - 4 : Math.max(8, Math.min(r.bottom + 4, innerHeight - mh - 8))) + 'px';
+  setTimeout(() => document.addEventListener('mousedown', function off(e) { if (!m.contains(e.target) && e.target !== anchor) { m.remove(); document.removeEventListener('mousedown', off); } }), 0);
+}
+
 function popupMenu(anchor, items) {
   $$('.menu').forEach(m => m.remove());
-  const r = anchor.getBoundingClientRect();
   const m = h('div', { class: 'menu' }, items.map(it => h('div', { onclick: () => { m.remove(); it.action(); } }, it.label)));
-  document.body.appendChild(m);
-  const mh = m.offsetHeight;
-  m.style.left = Math.min(r.left, innerWidth - m.offsetWidth - 8) + 'px';
-  m.style.top = (r.bottom + mh + 8 > innerHeight ? Math.max(8, r.top - mh - 4) : r.bottom + 4) + 'px';
-  setTimeout(() => document.addEventListener('mousedown', function off(e) { if (!m.contains(e.target)) { m.remove(); document.removeEventListener('mousedown', off); } }), 0);
+  placePopover(m, anchor);
 }
 
 function addToPlaylistMenu(anchor, songIds) {

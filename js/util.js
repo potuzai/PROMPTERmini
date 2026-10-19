@@ -34,6 +34,12 @@ function uid() {
   return t + r;
 }
 
+/* český tvar podle počtu: plural(3, 'píseň', 'písně', 'písní') → „3 písně“ */
+function plural(n, one, few, many) { return n + ' ' + (n === 1 ? one : n >= 2 && n <= 4 ? few : many); }
+
+/* fyzické rozlišení obrazovky, na které je aplikace otevřená */
+function screenPx() { return [Math.round(screen.width * devicePixelRatio), Math.round(screen.height * devicePixelRatio)]; }
+
 function isMobile() { return window.matchMedia('(max-width: 820px)').matches; }
 
 function debounce(fn, ms) {

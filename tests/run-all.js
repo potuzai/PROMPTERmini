@@ -16,6 +16,15 @@ for (const f of fs.readdirSync(path.join(root, 'css'))) {
   else console.log(`ok: css/${f} – závorky v pořádku`);
 }
 
+// Verze musí sedět na všech třech místech (jinak se nová verze webu nenačte nebo program ukáže jinou)
+{
+  const v = require(path.join(root, 'package.json')).version;
+  const app = (/APP_VERSION = '([^']+)'/.exec(fs.readFileSync(path.join(root, 'js/db.js'), 'utf8')) || [])[1];
+  const sw = (/CACHE = 'prompter-v([^']+)'/.exec(fs.readFileSync(path.join(root, 'sw.js'), 'utf8')) || [])[1];
+  if (v !== app || v !== sw) { console.log(`FAIL: verze nesedí – package.json ${v}, db.js ${app}, sw.js ${sw}`); process.exitCode = 1; }
+  else console.log(`ok: verze ${v} sedí v package.json, db.js i sw.js`);
+}
+
 setTimeout(() => {
   let failed = process.exitCode === 1;
   const xvfb = process.platform === 'linux' && !process.env.DISPLAY;

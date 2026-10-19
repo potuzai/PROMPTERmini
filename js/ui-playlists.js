@@ -72,13 +72,13 @@ const PlaylistsView = {
           ondblclick: () => { location.hash = '#/playlists/' + p.id; } },
           h('span', { class: 'sl-artist' }, p.date ? new Date(p.date).toLocaleDateString('cs-CZ') : '—'),
           h('b', { class: 'sl-title' }, p.name || '(bez názvu)'),
-          h('span', { class: 'sl-key' }, p.items.length + (p.items.length === 1 ? ' píseň' : p.items.length >= 2 && p.items.length <= 4 ? ' písně' : ' písní')),
+          h('span', { class: 'sl-key' }, plural(p.items.length, 'píseň', 'písně', 'písní')),
           h('span', { class: 'sl-artist' }, p.note || ''),
           h('button', { class: 'btn small icon', title: 'Spustit ve čtečce', onclick: e => { e.stopPropagation(); location.hash = '#/reader/' + p.id; } }, '▶')));
       }
       if (!pls.length) list.appendChild(h('div', { class: 'help', style: { padding: '16px' } }, q ? 'Nic nenalezeno.' : 'Zatím žádné playlisty. Playlist = seznam písní v pořadí, jak je budete hrát.'));
       count.textContent = q ? `${pls.length} z ${Store.playlists.size} playlistů` : 'Klik = náhled · dvojklik = upravit';
-      total.textContent = `${Store.playlists.size} ${Store.playlists.size === 1 ? 'playlist' : Store.playlists.size >= 2 && Store.playlists.size <= 4 ? 'playlisty' : 'playlistů'}`;
+      total.textContent = plural(Store.playlists.size, 'playlist', 'playlisty', 'playlistů');
       const keep = pls.find(p => p.id === this.selected) || pls[0];
       select(keep ? keep.id : null);
     };

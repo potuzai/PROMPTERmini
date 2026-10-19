@@ -583,7 +583,7 @@ const SettingsView = {
         h('div', { class: 'row' },
           h('label', { class: 'f' }, h('span', {}, 'Šířka (px)'), wIn), h('label', { class: 'f' }, h('span', {}, 'Výška (px)'), hIn),
           h('label', { class: 'f' }, h('span', {}, 'Úhlopříčka (palce)'), diag), h('label', { class: 'f' }, h('span', {}, 'Vzdálenost čtení (m)'), dist),
-          h('button', { class: 'btn nogrow', title: 'Převezme rozlišení obrazovky, na které je aplikace právě otevřená', onclick: () => applyRes(Math.round(screen.width * devicePixelRatio), Math.round(screen.height * devicePixelRatio)) }, '⌖ Z této obrazovky')),
+          h('button', { class: 'btn nogrow', title: 'Převezme rozlišení obrazovky, na které je aplikace právě otevřená', onclick: () => applyRes(...screenPx()) }, '⌖ Z této obrazovky')),
         h('div', { class: 'row', style: { marginTop: '10px', alignItems: 'center' } }, h('span', { class: 'nogrow help' }, 'Orientace:'), orientBtns.p, orientBtns.l),
         presetBox,
         h('p', {}, rec),
@@ -603,9 +603,6 @@ const SettingsView = {
     const S = Settings.data;
     const tplSel = h('select', { class: 'inp set-sel' }, [...Store.templates.values()].map(t => h('option', { value: t.id, selected: t.id === S.defaultTemplate }, t.name)));
     tplSel.onchange = () => Settings.set('defaultTemplate', tplSel.value);
-    const keys = [['→ · PgDn · pravé tlačítko', 'další stránka'], ['← · PgUp · levé tlačítko', 'předchozí stránka'], ['Shift + → / ←', 'další / předchozí píseň'],
-      ['L · Tab · prostřední tlačítko', 'seznam písní'], ['Q · klávesa menu', 'rychlá nabídka'], ['B', 'zatemnit'], ['M', 'zrcadlit (sklo prompteru)'],
-      ['+ / −', 'větší / menší písmo'], ['F', 'celá obrazovka'], ['H', 'nápověda'], ['Esc', 'zpět']];
     return h('div', { class: 'set-sec' },
       h('div', { class: 'set-rows' },
         setFlag('readerFullscreen', 'Přes celou obrazovku', 'Čtečka se otevře bez lišt prohlížeče či okna.'),
@@ -617,7 +614,7 @@ const SettingsView = {
         setFlag('wheelNav', 'Listovat kolečkem myši', ''),
         setRow('Výchozí šablona', 'Vzhled písní, které nemají vlastní šablonu.', tplSel)),
       h('h3', {}, 'Ovládání'),
-      h('div', { class: 'set-rows set-keys' }, keys.map(([k, v]) => h('div', { class: 'set-row' }, h('div', {}, h('b', {}, v)), h('kbd', {}, k)))));
+      h('div', { class: 'set-rows set-keys' }, READER_KEYS.map(([k, v]) => h('div', { class: 'set-row' }, h('div', {}, h('b', {}, v)), h('kbd', {}, k)))));
   },
 
   /* ---------- Záloha a import ---------- */
