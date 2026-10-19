@@ -640,13 +640,16 @@ const SettingsView = {
 };
 
 /* Co aplikace v účtu Mega vidí (bez hesla a textů písní) */
-async function megaDiagDialog() {
+async function megaDiagDialog(cfg) {
   toast('Načítám obsah Mega…', 'info', 2000);
-  const m = MegaProvider.cfg();
+  const m = cfg || MegaProvider.cfg();
   let text;
   try { text = `PROMPTER mini ${APP_VERSION}\nsložka: ${m.folder}\nchyba: ${Sync.lastError || '–'}\n` + await MegaProvider.api().diag(m); }
   catch (e) { text = 'Diagnostika selhala: ' + ipcError(e); }
-  await modal({ title: 'Diagnostika Mega', wide: true, body: h('textarea', { class: 'inp', rows: 12, readonly: true, style: { fontFamily: 'Consolas, monospace', fontSize: '12px' } }, text) });
+  const ta = h('textarea', { class: 'inp', rows: 16, readonly: true, style: { fontFamily: 'Consolas, monospace', fontSize: '12px' } }, text);
+  const v = await modal({ title: 'Diagnostika Mega', wide: true, body: h('div', {}, h('p', { class: 'help' }, 'Výpis neobsahuje heslo ani texty písní. Zkopíruj ho a pošli.'), ta),
+    buttons: [{ label: 'Zavřít', value: null }, { label: '📋 Kopírovat', primary: true, value: true }] });
+  if (v) { try { await navigator.clipboard.writeText(text); toast('Výpis zkopírován', 'ok'); } catch (e) { ta.select(); } }
 }
 
 function pickFile(accept) {

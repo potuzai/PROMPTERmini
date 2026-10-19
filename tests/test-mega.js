@@ -8,7 +8,8 @@ const EL = path.join(ROOT, 'node_modules/electron/dist/electron');
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'prompter-mega-'));
 const STATE = path.join(tmp, 'mega-cloud.json');
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-const cloud = () => JSON.parse(fs.readFileSync(STATE, 'utf8'));
+// stav „cloudu“ – jiný proces ho může právě zapisovat, pak čtení zopakovat
+const cloud = () => { for (let i = 0; ; i++) { try { return JSON.parse(fs.readFileSync(STATE, 'utf8')); } catch (e) { if (i > 50) throw e; const t = Date.now() + 20; while (Date.now() < t); } } };
 const cloudFiles = () => { const st = cloud(); const p = id => st.nodes[id] ? (p(st.nodes[id].parent) + '/' + st.nodes[id].name) : ''; return Object.entries(st.nodes).filter(([, n]) => !n.dir).map(([id, n]) => ({ path: p(id).replace('/Cloud Drive/', ''), text: Buffer.from(n.data, 'base64').toString() })); };
 
 async function launch(name, settings, env = {}) {
@@ -187,18 +188,41 @@ async function browserMember(browser) {
   await D.p.click('.modal button:has-text("Přihlásit")');
   await D.p.waitForFunction(() => Sync.mode() === 'mega' && Sync.state === 'idle', null, { timeout: 15000 });
   assert(await D.p.evaluate(() => !localStorage.getItem('prompter-settings').includes('b64:') && Settings.get('rememberBand') === false), 'nezůstat přihlášen: heslo se do prohlížeče natrvalo neuloží');
-  const D2 = await D.ctx.newPage(); // nové otevření prohlížeče = nové sessionStorage
+  // další okno, zatímco první je otevřené: přihlášení si půjčí, na heslo se neptá
+  const D2 = await D.ctx.newPage();
   D2.on('pageerror', e => console.log('WEB PAGEERR', e.message));
-  await D2.goto(APP_URL + '#/songs');
-  await D2.waitForSelector('.modal form.login');
-  assert(await D2.evaluate(() => Sync.locked() && document.querySelector('.sync-pill').dataset.state.includes('odhlášeno') && Store.songs.has('zluty')), 'po novém otevření: odhlášeno, písně jsou ale k dispozici');
-  await D2.fill('.modal input[type=password]', 'heslo123');
-  await D2.check('.modal label.chk:has-text("Zůstat přihlášen") input');
-  await D2.click('.modal button:has-text("Přihlásit")');
-  await D2.waitForFunction(() => !Sync.locked() && Sync.state === 'idle', null, { timeout: 15000 });
+  await D2.goto(APP_URL + '#/songs'); await sleep(1500);
+  assert(!(await D2.isVisible('.modal form.login')) && await D2.evaluate(() => !Sync.locked() && Sync.mode() === 'mega'), 'nezůstat přihlášen: další okno se nepřihlašuje, dokud je jiné otevřené');
+  // po zavření všech oken se heslo zapomene
+  await D.p.close(); await D2.close();
   const D3 = await D.ctx.newPage();
-  await D3.goto(APP_URL + '#/songs'); await sleep(1500);
-  assert(!(await D3.isVisible('.modal')) && await D3.evaluate(() => !Sync.locked() && Sync.mode() === 'mega'), 'zůstat přihlášen: další otevření bez ptaní');
+  D3.on('pageerror', e => console.log('WEB PAGEERR', e.message));
+  await D3.goto(APP_URL + '#/songs');
+  await D3.waitForSelector('.modal form.login');
+  assert(await D3.evaluate(() => Sync.locked() && document.querySelector('.sync-pill').dataset.state.includes('odhlášeno') && Store.songs.has('zluty')), 'po zavření všech oken: odhlášeno, písně jsou ale k dispozici');
+  // přihlášení v jednom okně odemkne i jiné, které na přihlášení čeká
+  const D4 = await D.ctx.newPage();
+  D4.on('pageerror', e => console.log('WEB PAGEERR', e.message));
+  await D4.goto(APP_URL + '#/songs'); await D4.waitForSelector('.modal form.login');
+  await D3.fill('.modal input[type=password]', 'heslo123');
+  await D3.click('.modal button:has-text("Přihlásit")');
+  await D3.waitForFunction(() => !Sync.locked() && Sync.state === 'idle', null, { timeout: 15000 });
+  assert(await D4.waitForFunction(() => !Sync.locked() && !document.querySelector('.modal form.login'), null, { timeout: 5000 }).then(() => true, () => false), 'přihlášení v jednom okně odemkne i druhé');
+  // odhlášení v jednom okně odhlásí i ostatní
+  await D4.evaluate(() => { location.hash = '#/settings/band'; }); await sleep(400);
+  await D4.click('.set-actions button:has-text("Odhlásit")'); await D4.click('.modal button:has-text("Odhlásit")');
+  assert(await D3.waitForFunction(() => Sync.mode() === 'off' && !sessionStorage.getItem('prompter-secret-mega'), null, { timeout: 5000 }).then(() => true, () => false), 'odhlášení v jednom okně odhlásí i druhé');
+  // zůstat přihlášen: další otevření bez ptaní
+  await D3.evaluate(() => { location.hash = '#/settings/band'; }); await sleep(400);
+  await D3.click('.set-actions button:has-text("Přihlásit ke kapele")'); await D3.waitForSelector('.modal form.login');
+  await D3.fill('.modal input[type=password]', 'heslo123');
+  await D3.check('.modal label.chk:has-text("Zůstat přihlášen") input');
+  await D3.click('.modal button:has-text("Přihlásit")');
+  await D3.waitForFunction(() => !Sync.locked() && Sync.state === 'idle', null, { timeout: 15000 });
+  await D3.close(); await D4.close();
+  const D5 = await D.ctx.newPage();
+  await D5.goto(APP_URL + '#/songs'); await sleep(1500);
+  assert(!(await D5.isVisible('.modal')) && await D5.evaluate(() => !Sync.locked() && Sync.mode() === 'mega'), 'zůstat přihlášen: další otevření bez ptaní');
   await D.ctx.close(); await browser.close();
 
   /* ----- Konflikt ----- */

@@ -110,6 +110,10 @@
       if (k) return k;
       // právě založenou složku Mega neukazuje – nezakládat hned další (rozhodne openNow: počkat, nebo byla smazaná)
       if (mk) { const e = new Error(`V účtu Mega nevidím složku „${name}“, kterou aplikace právě založila (${stats(parent.storage || {}, name)}).`); e.invisible = key; throw e; }
+      // dřív používaná složka kapely chybí a Mega nevrací v kořeni nic → seznam je neúplný, nezakládat další
+      if (o.preferId && !dirs(parent).length && parent === (parent.storage || {}).root) {
+        throw new Error(`V účtu Mega nevidím žádné složky, ani dříve používanou „${name}“ (${stats(parent.storage || {}, name)}). Seznam od Mega je zřejmě neúplný – nic nezakládám. Pošli prosím výpis z Diagnostiky.`);
+      }
       if (o.create === false) {
         const other = dirs(parent).map(d => d.name).filter(Boolean);
         const e = new Error(`V účtu Mega zatím není složka „${name}“.` + (other.length ? ` Jsou tam: ${other.map(n => '„' + n + '“').join(', ')}.` : ''));
@@ -145,7 +149,9 @@
       } catch (e) {
         if (!e.invisible || i >= 4) throw e;
         // složku, kterou jsme založili, Mega nevrací: chvíli počkat; když pořád chybí, někdo ji smazal → založit znovu
-        if (!waited) { waited = true; await new Promise(r => setTimeout(r, 2000)); } else delete made[e.invisible];
+        if (!waited) { waited = true; await new Promise(r => setTimeout(r, 2000)); }
+        else if (!dirs(storage.root || {}).length) throw new Error(e.message + ' Seznam od Mega je zřejmě neúplný – nic dalšího nezakládám. Pošli prosím výpis z Diagnostiky.');
+        else delete made[e.invisible];
         storage = await login(cfg);
         continue;
       }
@@ -257,6 +263,26 @@
 
   function logout() { session = null; current = null; for (const k of Object.keys(made)) delete made[k]; obsolete.clear(); }
 
+  /* Přímé dotazy na seznam souborů s různými parametry – co přesně Mega vrací (jen počty, žádné názvy ani klíče) */
+  async function rawListing(s) {
+    if (!s.api || typeof s.api.request !== 'function') return [];
+    const raw = q => new Promise((res, rej) => s.api.request(Object.assign({}, q), (err, r) => err ? rej(err) : res(r)));
+    const out = ['přímé dotazy (počet uzlů podle typu: 0 soubor, 1 složka, 2 kořen, 3 doručené, 4 koš):'];
+    for (const [label, q] of [['f c', { a: 'f', c: 1 }], ['f c r', { a: 'f', c: 1, r: 1 }], ['f c r ca', { a: 'f', c: 1, r: 1, ca: 1 }]]) {
+      try {
+        const r = await timeout(raw(q), 60000);
+        if (!r || typeof r !== 'object') { out.push(`  ${label}: ${JSON.stringify(r)}`); continue; }
+        const f = Array.isArray(r.f) ? r.f : [], types = {};
+        for (const n of f) types[n.t] = (types[n.t] || 0) + 1;
+        const rootH = (f.find(n => n.t === 2) || {}).h;
+        out.push(`  ${label}: klíče ${Object.keys(r).join(',')}; uzlů ${f.length} (${Object.entries(types).map(([t, n]) => t + ':' + n).join(' ')}); v kořeni ${f.filter(n => rootH && n.p === rootH).length}` +
+          `; s klíčem uživatele ${f.filter(n => typeof n.k === 'string' && s.user && n.k.split('/').some(p => p.split(':')[0] === s.user)).length}` +
+          Object.keys(r).filter(k => k !== 'f' && Array.isArray(r[k])).map(k => `; ${k}=${r[k].length}`).join(''));
+      } catch (e) { out.push(`  ${label}: chyba ${code(e)}`); }
+    }
+    return out;
+  }
+
   /* Co aplikace v účtu Mega vidí – pro hledání chyb (bez obsahu souborů) */
   async function diag(cfg) {
     try {
@@ -271,6 +297,7 @@
         `složek „${name}“ kdekoli: ${all.filter(f => f.directory && f.name === name).length}`,
         `zapamatovaná složka: ${cfg.folderId ? (known(s, cfg.folderId) ? 'nalezena' : 'NENALEZENA') : '–'}`,
         'v kořeni:', ...dirs(s.root).map(f => '  ' + line(f)),
+        ...(await rawListing(s)),
       ].join('\n');
     } catch (e) { throw new Error(friendly(e)); }
   }

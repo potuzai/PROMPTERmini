@@ -41,7 +41,9 @@ const App = {
       if (Settings.get('startInReader') || (window.native && window.native.readerMode)) history.replaceState(null, '', '#/reader/' + (Settings.get('lastPlaylist') || ''));
       else if (location.hash) history.replaceState(null, '', this.homeUrl());
     }
-    // „Zůstat přihlášen“ vypnuté a prohlížeč byl zavřený → přihlásit znovu
+    // „Zůstat přihlášen“ vypnuté: přihlášení si půjčit od jiného otevřeného okna; když žádné není → přihlásit znovu
+    SessionShare.init();
+    if (Sync.locked()) await SessionShare.ask();
     if (Sync.locked()) setTimeout(() => loginDialog({ expired: true }), 50);
     this.go();
     Sync.refreshState();

@@ -8,6 +8,50 @@ function appUrl() {
   return window.native || !/^https?:$/.test(location.protocol) ? 'https://potuzai.github.io/PROMPTERmini/' : location.origin + location.pathname.replace(/index\.html$/, '');
 }
 
+/* „Zůstat přihlášen“ vypnuté: heslo žije jen v otevřených oknech aplikace. Nové okno (záložka,
+   nainstalovaná aplikace) si ho půjčí od už otevřeného; po zavření všech oken se zapomene.
+   Odhlášení v jednom okně odhlásí i ostatní. */
+const SessionShare = {
+  KEY: 'prompter-secret-mega',
+  ch: null, waiting: null,
+  init() {
+    if (window.native || typeof BroadcastChannel === 'undefined') return;
+    this.ch = new BroadcastChannel('prompter-session:' + location.pathname);
+    this.ch.onmessage = e => this.onMsg(e.data || {});
+  },
+  mine() { try { return JSON.parse(sessionStorage.getItem(this.KEY) || 'null'); } catch (e) { return null; } },
+  email() { return ((Settings.data.mega || {}).email || '').toLowerCase(); },
+  send(type, extra) { if (this.ch) this.ch.postMessage(Object.assign({ type, email: this.email() }, extra)); },
+  onMsg(d) {
+    if (d.type === 'ask') {
+      const s = this.mine();
+      if (Settings.data.rememberBand === false && d.email === this.email() && s && s.pass) this.send('pass', { pass: s.pass });
+    } else if (d.type === 'pass') {
+      Settings.load();   // nastavení mohlo změnit jiné okno (přihlášení)
+      if (!d.pass || d.email !== this.email() || Settings.data.rememberBand !== false || (this.mine() || {}).pass) return;
+      sessionStorage.setItem(this.KEY, JSON.stringify({ pass: d.pass }));
+      if (this.waiting) return this.waiting();
+      // čekalo se na přihlášení – odemknout i toto okno
+      if (loginDialog.close) loginDialog.close(null);
+      Sync.lastError = ''; Sync.refreshState(); App.go(true);
+      Sync.run().catch(() => {});
+    } else if (d.type === 'logout') {
+      sessionStorage.removeItem(this.KEY);
+      Settings.load(); MegaProvider.api().logout();
+      Sync.lastError = ''; Sync.state = 'off'; Sync.refreshState(); App.go(true);
+    }
+  },
+  /* při otevření: zeptat se ostatních oken (nic neodpoví = žádné jiné okno není otevřené) */
+  ask(ms = 600) {
+    if (!this.ch) return Promise.resolve(false);
+    return new Promise(res => {
+      const t = setTimeout(() => { this.waiting = null; res(false); }, ms);
+      this.waiting = () => { clearTimeout(t); this.waiting = null; res(true); };
+      this.send('ask');
+    });
+  },
+};
+
 /* nové připojení ke kapele: porovnat s úložištěm od nuly (nic se nesmaže, jen sloučí); ukázková píseň do kapely nepatří */
 async function freshSync() {
   for (const s of [...Store.songs.values()]) if (s.sample) await Store.remove('songs', s.id, { silent: true });
@@ -37,6 +81,7 @@ async function bandLogin({ email, password, folder, remember = true, ro = false 
   Settings.set('mega', { email: cfg.email, pass: remember ? Secret.protect(cfg.password) : '', folder: cfg.folder, folderId: r.folderId || '' });
   if (remember) sessionStorage.removeItem('prompter-secret-mega');
   else sessionStorage.setItem('prompter-secret-mega', JSON.stringify({ pass: Secret.protect(cfg.password) }));
+  if (!remember) SessionShare.send('pass', { pass: Secret.protect(cfg.password) });   // odemknout i ostatní otevřená okna
   Settings.set('syncMode', 'mega');
   Settings.set('readOnly', !!ro);
   Settings.set('welcomed', true);
@@ -54,6 +99,7 @@ async function bandLogout() {
   const mega = Sync.mode() === 'mega', verb = mega ? 'Odhlásit' : 'Odpojit';
   if (!await confirmDlg(verb + ' toto zařízení od kapely? Písně v něm zůstanou, jen se přestanou synchronizovat.', verb)) return;
   await Sync.idle();
+  SessionShare.send('logout');
   Settings.set('syncMode', 'none'); Settings.set('readOnly', false); Settings.set('rememberBand', true);
   sessionStorage.removeItem('prompter-secret-mega');
   // přístupové údaje se z tohoto zařízení smažou (důležité na cizím PC), e-mail zůstane předvyplněný
@@ -108,11 +154,16 @@ async function loginDialog(opts = {}) {
       h('label', { class: 'f' }, h('span', {}, 'Složka v Mega'), folder),
       h('label', { class: 'chk' }, ro, 'Jen pro čtení', h('span', { class: 'help' }, ' – čtečka nic neodešle')),
       h('p', { class: 'help' }, 'Zakládáš kapelu? Na ', h('a', { href: 'https://mega.io/register', target: '_blank' }, 'mega.io/register'),
-        ' založ nový účet jen pro kapelu (ne svůj osobní, bez dvoufázového ověření) a přihlas se jím. Aplikace si v něm vše připraví sama.')),
+        ' založ nový účet jen pro kapelu (ne svůj osobní, bez dvoufázového ověření) a přihlas se jím. Aplikace si v něm vše připraví sama.'),
+      h('button', { type: 'button', class: 'btn small', onclick: () => {
+        if (!email.value || !pass.value) return toast('Vyplň e-mail a heslo.', 'warn');
+        megaDiagDialog({ email: email.value.trim(), password: pass.value, folder: folder.value.trim() || 'PROMPTERmini', folderId: (Settings.data.mega || {}).folderId || '' });
+      } }, 'Diagnostika Mega (nic nezakládá)')),
     err,
     h('div', { class: 'login-actions' }, cancel, submit));
   return !!(await modal({ title: '🔑 Přihlásit ke kapele', body: form, buttons: [],
-    onOpen: (box, c) => { close = c; cancel.onclick = () => c(null); if (email.value) setTimeout(() => pass.focus(), 40); } }));
+    onOpen: (box, c) => { close = loginDialog.close = c; cancel.onclick = () => c(null); if (email.value) setTimeout(() => pass.focus(), 40); } })
+  .finally(() => { loginDialog.close = null; }));
 }
 
 /* Pozvánka pro členy: adresa aplikace + e-mail kapely (heslo se říká zvlášť) */
