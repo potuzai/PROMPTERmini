@@ -288,8 +288,8 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   assert(await p.evaluate(() => Settings.get('screenW') === 1920 && Settings.get('screenH') === 1200), 'přepnutí na šířku');
   await p.click('button:has-text("1920×1200")'); await sleep(200);
   assert(await p.isVisible('text=doporučuji písmo alespoň'), 'doporučená velikost písma');
-  assert(await p.isVisible('text=GitHub – program se připojí sám') && await p.isVisible('text=Mám kód kapely'), 'volby sdílení a připojení kódem v nastavení');
-  assert(!(await p.isDisabled('label.chk:has-text("Mega – program") input')), 'Mega jde zvolit i v prohlížeči');
+  assert(await p.isVisible('text=GitHub – program se připojí sám') && await p.isVisible('#set-share button:has-text("Přihlásit ke kapele")'), 'volby sdílení a přihlášení ke kapele v nastavení');
+  assert(!(await p.isDisabled('label.chk:has-text("Mega (doporučeno)") input')), 'Mega jde zvolit i v prohlížeči');
   assert(await p.isDisabled('label.chk:has-text("Synchronizovaná složka") input'), 'synchronizovaná složka jen v programu');
 
   /* ---------- Data přežijí obnovení stránky ---------- */

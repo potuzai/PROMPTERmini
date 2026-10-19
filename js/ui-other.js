@@ -386,6 +386,7 @@ const SettingsView = {
       rotSel.onchange = () => Settings.set('readerRotate', +rotSel.value);
       const row = (t, help, ctl) => h('div', { class: 'set-row' }, h('div', {}, h('b', {}, t), help ? h('span', { class: 'help' }, help) : null), ctl);
       devBox.append(
+        App.canInstall() ? row('Nainstalovat aplikaci', 'Ikona na ploše, celá obrazovka a data zůstanou v zařízení i bez internetu.', h('button', { class: 'btn primary nogrow', onclick: () => App.install() }, '📲 Nainstalovat')) : null,
         row('K čemu zařízení slouží', 'Určuje, co se otevře po zapnutí.', roleSel),
         row('Toto zařízení je obrazovka', 'Na webu a v telefonu se stránka přizpůsobí oknu. Obrazovku kapely zvol jen pro pevně umístěný displej (čtečka, tablet na stojanu).', scrSel),
         row('Co vidím já', my ? 'Vlastní výběr jen pro toto zařízení.' : 'Jako obrazovka „' + Screens.mine().name + '“.',
@@ -469,35 +470,35 @@ const SettingsView = {
     const names = { github: 'GitHub', mega: 'Mega', folder: 'sdílenou složku' };
     const top = h('div', { style: { marginBottom: '12px' } });
     if (mode !== 'off') {
-      const canInvite = (mode === 'github' || mode === 'mega') && !Settings.get('readOnly');
+      const mg = mode === 'mega' ? MegaProvider.cfg() : null;
       top.append(
-        h('p', {}, '✅ Připojeno ke kapele ', h('b', {}, Settings.get('bandName') || ''), ' přes ', h('b', {}, names[mode]),
+        h('p', {}, mg ? ['✅ Přihlášeno ke kapele jako ', h('b', {}, mg.email), mg.folder !== 'Prompter kapela' ? ` (složka ${mg.folder})` : ''] : ['✅ Sdílení přes ', h('b', {}, names[mode])],
           Settings.get('readOnly') ? h('span', { class: 'tag', style: { marginLeft: '6px' } }, 'jen pro čtení') : null,
           Sync.lastError ? h('span', { style: { color: 'var(--err)', marginLeft: '8px' } }, Sync.lastError) : null),
         h('div', { class: 'row' },
-          canInvite ? h('button', { class: 'btn primary nogrow', onclick: () => inviteDialog() }, '👥 Pozvat členy (odkaz kapely)') : null,
-          h('button', { class: 'btn nogrow', onclick: () => App.syncClick() }, '⟳ Synchronizovat teď'),
+          mg && !Settings.get('readOnly') ? h('button', { class: 'btn primary nogrow', onclick: () => inviteDialog() }, '👥 Pozvat členy') : null,
+          Sync.locked() ? h('button', { class: 'btn primary nogrow', onclick: () => loginDialog({ expired: true }) }, '🔑 Přihlásit') : h('button', { class: 'btn nogrow', onclick: () => App.syncClick() }, '⟳ Synchronizovat teď'),
           h('button', { class: 'btn danger nogrow', onclick: async () => {
-            if (!await confirmDlg('Odpojit tento počítač od kapely? Písně v něm zůstanou, jen se přestanou synchronizovat.', 'Odpojit')) return;
-            Settings.set('syncMode', 'none'); Settings.set('readOnly', false); Settings.set('bandLink', ''); Settings.set('rememberBand', true);
+            if (!await confirmDlg('Odhlásit toto zařízení od kapely? Písně v něm zůstanou, jen se přestanou synchronizovat.', mg ? 'Odhlásit' : 'Odpojit')) return;
+            Settings.set('syncMode', 'none'); Settings.set('readOnly', false); Settings.set('rememberBand', true);
             sessionStorage.removeItem('prompter-secret-mega'); sessionStorage.removeItem('prompter-secret-gh');
-            // přístupové údaje se z tohoto počítače smažou (důležité na cizím PC)
-            Settings.set('mega', Object.assign({}, Settings.get('mega'), { pass: '' }));
+            // přístupové údaje se z tohoto zařízení smažou (důležité na cizím PC), e-mail zůstane předvyplněný
+            Settings.set('mega', Object.assign({}, Settings.data.mega, { pass: '' }));
             Settings.set('gh', Object.assign({}, Settings.get('gh'), { token: '', login: '', canPush: null }));
             MegaProvider.api().logout();
             if (window.native) window.native.watchFolder('');
             await Sync.resetMeta(); Sync.lastError = ''; Sync.state = 'off'; Sync.refreshState(); App.go(true);
-          } }, 'Odpojit')),
-        window.native ? null : h('label', { class: 'chk', style: { marginTop: '10px' } },
+          } }, mg ? 'Odhlásit' : 'Odpojit')),
+        mg && !window.native ? h('label', { class: 'chk', style: { marginTop: '10px' } },
           h('input', { type: 'checkbox', checked: Settings.data.rememberBand !== false, onchange: e => setRememberBand(e.target.checked) }),
-          'Pamatovat si heslo kapely na tomto zařízení',
-          h('span', { class: 'help' }, ' – vypni na cizím počítači: heslo kapely pak bude potřeba po každém otevření prohlížeče')));
+          'Zůstat přihlášen na tomto zařízení',
+          h('span', { class: 'help' }, ' – vypni na cizím počítači: po zavření prohlížeče bude potřeba přihlásit se znovu')) : null);
     } else {
       top.append(
-        h('p', {}, 'Písně jsou zatím jen v tomto počítači.'),
+        h('p', {}, 'Písně jsou zatím jen v tomto zařízení.'),
         h('div', { class: 'row' },
-          h('button', { class: 'btn primary nogrow', onclick: () => joinBandDialog() }, '🔑 Mám kód kapely'),
-          h('span', { class: 'help', style: { alignSelf: 'center' } }, '← člen kapely: stačí vložit kód od správce. Správce: zvol níže, kde budou písně uložené.')));
+          h('button', { class: 'btn primary nogrow', onclick: () => loginDialog() }, '🔑 Přihlásit ke kapele'),
+          h('span', { class: 'help', style: { alignSelf: 'center' } }, '← e-mail a heslo kapely (společný účet Mega)')));
     }
 
     const body = h('div');
@@ -526,9 +527,9 @@ const SettingsView = {
       else detail.appendChild(h('p', { class: 'help' }, 'Bez sdílení. Přenést písně jde i ručně: Záloha → Stáhnout zálohu → na druhém PC Obnovit ze zálohy.'));
     };
     body.append(
-      h('div', { class: 'help', style: { marginBottom: '6px' } }, 'Kde budou písně kapely uložené (nastavuje správce, členové pak jen vloží kód kapely):'),
+      h('div', { class: 'help', style: { marginBottom: '6px' } }, 'Kde jsou písně kapely uložené (běžně Mega – stačí se přihlásit výše):'),
       opt('none', 'Nesdílet', 'vše jen v tomto počítači'),
-      opt('mega', 'Mega – program se připojí sám', 'zdarma 20 GB · stačí jeden společný účet Mega pro kapelu · nic dalšího se neinstaluje'),
+      opt('mega', 'Mega (doporučeno)', 'zdarma 20 GB · jeden společný účet pro kapelu · členové se přihlásí jeho e-mailem a heslem'),
       opt('github', 'GitHub – program se připojí sám', 'zdarma · nejspolehlivější při souběžných úpravách · správce potřebuje účet na GitHubu'),
       opt('folder', 'Synchronizovaná složka (pokročilé)', window.native
         ? 'složka, kterou synchronizuje jiná aplikace (MEGA Desktop, OneDrive, Dropbox, síťový disk…)'
@@ -540,42 +541,15 @@ const SettingsView = {
   },
 
   megaBlock() {
-    const m = Settings.get('mega') || {};
-    const email = h('input', { class: 'inp', type: 'email', value: m.email || '', placeholder: 'kapela@email.cz' });
-    const pass = h('input', { class: 'inp', type: 'password', value: m.pass ? Secret.unprotect(m.pass) : '', placeholder: 'heslo k účtu Mega' });
-    const folder = h('input', { class: 'inp', value: m.folder || 'Prompter kapela' });
-    const status = h('div', { class: 'help', style: { marginTop: '8px' } });
-    const connect = async () => {
-      const cfg = { email: email.value.trim(), password: pass.value, folder: folder.value.trim() || 'Prompter kapela' };
-      if (!cfg.email || !cfg.password) return toast('Vyplň e-mail a heslo.', 'warn');
-      status.textContent = 'Přihlašuji k Mega…';
-      try {
-        const r = await MegaProvider.api().test(cfg);
-        Settings.set('mega', { email: cfg.email, pass: Secret.protect(cfg.password), folder: cfg.folder });
-        Settings.set('syncMode', 'mega'); Settings.set('readOnly', false);
-        await Sync.resetMeta(); Sync.lastError = '';
-        const free = r.space ? ` · volné místo ${((r.space.total - r.space.used) / 1e9).toFixed(1)} GB` : '';
-        status.textContent = `Přihlášeno (${r.email})${free}. Synchronizuji…`;
-        const res = await Sync.run();
-        toast(`Mega připojena · staženo ${res.downloaded}, nahráno ${res.pushed}`, 'ok', 5000);
-        App.go(true);
-        setTimeout(() => inviteDialog(), 300);
-      } catch (e) { status.innerHTML = `<span style="color:var(--err)">${esc(ipcError(e))}</span>`; }
-    };
     return h('div', {},
       h('ol', { class: 'help', style: { lineHeight: 1.7, marginTop: 0 } },
-        h('li', {}, 'Na ', h('a', { href: 'https://mega.io/register', target: '_blank' }, 'mega.io/register'), ' založ ', h('b', {}, 'nový společný účet pro kapelu'), ' (ne svůj osobní – heslo budou znát všichni členové přes kód kapely). Dvoufázové ověření u něj nezapínej.'),
-        h('li', {}, 'Vyplň e-mail a heslo tohoto účtu a klikni na Připojit. Program si v Mega sám vytvoří složku a nahraje do ní písně.'),
-        h('li', {}, 'Pak ti ukáže ', h('b', {}, 'kód kapely'), ' – ten pošli členům. Oni nic nezakládají ani neinstalují.')),
-      h('div', { class: 'grid3' },
-        h('label', { class: 'f' }, h('span', {}, 'E-mail účtu Mega'), email),
-        h('label', { class: 'f' }, h('span', {}, 'Heslo'), pass),
-        h('label', { class: 'f' }, h('span', {}, 'Složka v Mega'), folder)),
-      h('div', { class: 'row', style: { marginTop: '10px' } }, h('button', { class: 'btn primary nogrow', onclick: connect }, '🔗 Připojit k Mega')),
-      status,
+        h('li', {}, 'Na ', h('a', { href: 'https://mega.io/register', target: '_blank' }, 'mega.io/register'), ' založ ', h('b', {}, 'nový společný účet pro kapelu'), ' (ne svůj osobní – heslo budou znát všichni členové). Dvoufázové ověření u něj nezapínej.'),
+        h('li', {}, 'Přihlas se jím tady v aplikaci. Aplikace si v Mega sama vytvoří složku a nahraje do ní písně.'),
+        h('li', {}, 'Klikni na ', h('b', {}, 'Pozvat členy'), ' a pošli jim zprávu s adresou aplikace. Heslo jim řekni zvlášť.')),
+      h('div', { class: 'row', style: { marginTop: '10px' } }, h('button', { class: 'btn primary nogrow', onclick: () => loginDialog() }, '🔑 Přihlásit ke kapele')),
       h('p', { class: 'help' }, window.native
         ? 'Heslo je v tomto počítači uložené šifrovaně (chrání ho Windows). '
-        : 'V prohlížeči je heslo uložené jen v tomto prohlížeči (nešifrovaně) – na cizím počítači se po práci odpoj (Nastavení → Odpojit). ',
+        : 'S volbou „Zůstat přihlášen“ si heslo pamatuje jen tento prohlížeč – na cizím počítači ji vypni nebo se po práci odhlas. ',
         'Připojení k Mega používá neoficiální knihovnu – kdyby Mega něco změnila a přestalo to fungovat, přepni na GitHub; písně v aplikaci zůstanou.'));
   },
 
@@ -643,11 +617,10 @@ const SettingsView = {
         Settings.set('gh', Object.assign({}, Settings.get('gh'), { login: r.login, canPush: r.canPush, branch: r.defaultBranch || 'main' }));
         Settings.set('readOnly', false);
         if (!r.private) toast('Pozor: repozitář je VEŘEJNÝ – texty uvidí kdokoli. Přepni ho na Private (Settings → General → Danger Zone).', 'warn', 9000);
-        await Sync.resetMeta(); Sync.lastError = '';
+        await dropSampleSongs(); await Sync.resetMeta(); Sync.lastError = '';
         const res = await Sync.run();
         toast(`GitHub připojen · staženo ${res.downloaded}, odesláno ${res.pushed}`, 'ok', 5000);
         App.go(true);
-        if (r.canPush) setTimeout(() => inviteDialog(), 300);
       } catch (e) {
         Settings.set('gh', prev); Settings.set('syncMode', prevMode);
         status.innerHTML = `<span style="color:var(--err)">Nepodařilo se připojit: ${esc(e.message)}</span>`;
@@ -659,7 +632,7 @@ const SettingsView = {
         h('li', { html: 'Přihlas se na GitHub (nebo si <a href="https://github.com/signup" target="_blank">zdarma založ účet</a>).' }),
         h('li', { html: '<a href="https://github.com/new?name=kapela-pisne&visibility=private" target="_blank">Vytvoř soukromý repozitář</a> – název nech „kapela-pisne“, musí být <b>Private</b>, klikni <b>Create repository</b>.' }),
         h('li', { html: `<a href="${tokenUrl}" target="_blank">Vytvoř přístupový token</a> – u <b>Repository access</b> zvol <b>Only select repositories</b> → kapela-pisne. U <b>Permissions → Contents</b> musí být <b>Read and write</b>. Dole klikni <b>Generate token</b> a token zkopíruj.` }),
-        h('li', {}, 'Vlož sem repozitář a token a klikni Připojit. Program pak ukáže kód kapely pro ostatní členy.')),
+        h('li', {}, 'Vlož sem repozitář a token a klikni Připojit. Ostatní členové zadají stejný repozitář a vlastní token (nebo tvůj).')),
       h('div', { class: 'grid2' },
         h('label', { class: 'f' }, h('span', {}, 'Repozitář'), repoIn),
         h('label', { class: 'f' }, h('span', {}, 'Token'), tokenIn)),
@@ -672,21 +645,13 @@ function pickFile(accept) {
   return new Promise(res => { const i = h('input', { type: 'file', accept }); i.onchange = () => res(i.files[0]); i.click(); });
 }
 
-/* Pamatovat / nepamatovat přístup ke kapele v tomto prohlížeči */
+/* „Zůstat přihlášen“: heslo kapely trvale v tomto prohlížeči, nebo jen do jeho zavření */
 function setRememberBand(on) {
-  const mode = Sync.mode();
-  if (!on && !Settings.get('bandLink')) { toast('Nejdřív se připoj odkazem kapely – jinak by nebylo čím heslo znovu zadat.', 'warn', 6000); App.go(true); return; }
-  if (on) {
-    const m = Settings.get('mega'), g = Settings.get('gh');
-    Settings.set('rememberBand', true);
-    if (mode === 'mega' && m && m.pass) Settings.set('mega', m);
-    if (mode === 'github' && g && g.token) Settings.set('gh', g);
-  } else {
-    if (mode === 'mega') { sessionStorage.setItem('prompter-secret-mega', JSON.stringify({ pass: Settings.data.mega.pass })); Settings.set('mega', Object.assign({}, Settings.data.mega, { pass: '' })); }
-    if (mode === 'github') { sessionStorage.setItem('prompter-secret-gh', JSON.stringify({ token: Settings.data.gh.token })); Settings.set('gh', Object.assign({}, Settings.data.gh, { token: '' })); }
-    Settings.set('rememberBand', false);
-  }
-  toast(on ? 'Heslo kapely si toto zařízení zapamatuje.' : 'Heslo kapely se po zavření prohlížeče zapomene.', 'ok');
+  const m = Settings.get('mega');
+  Settings.set('rememberBand', on);
+  if (on) { Settings.set('mega', m); sessionStorage.removeItem('prompter-secret-mega'); }
+  else { sessionStorage.setItem('prompter-secret-mega', JSON.stringify({ pass: m.pass })); Settings.set('mega', Object.assign({}, m, { pass: '' })); }
+  toast(on ? 'Toto zařízení zůstane přihlášené.' : 'Po zavření prohlížeče bude potřeba přihlásit se znovu.', 'ok');
 }
 
 function exportBackup() {

@@ -191,10 +191,9 @@ function setupWizard() {
         h('div', { class: 'wz-row' }, ic('sun'), h('div', { class: 'wz-row-t' }, h('b', {}, 'Vzhled aplikace'), h('span', {}, 'Světlý se hodí do jasné místnosti, „podle systému“ se přepíná sám.')),
           segControl(THEMES, st.theme, v => { st.theme = v; Settings.set('theme', v); App.applyTheme(); })),
         st.role === 'musician' ? null : h('div', { class: 'wz-row' }, ic('lock'), h('div', { class: 'wz-row-t' }, h('b', {}, 'Zamknout úpravy PINem'), h('span', {}, st.role === 'reader' ? 'Doporučeno: na pódiu nikdo omylem nesmaže píseň.' : 'Nepovinné – bez PINu půjde jen číst.')), pin),
-        h('div', { class: 'wz-row' }, ic('users'), h('div', { class: 'wz-row-t' }, h('b', {}, 'Kapela'), h('span', {}, 'Písně a playlisty se můžou samy sdílet s ostatními. Jde to i později.')),
+        h('div', { class: 'wz-row' }, ic('users'), h('div', { class: 'wz-row-t' }, h('b', {}, 'Kapela'), h('span', {}, 'E-mail a heslo kapely – písně a playlisty se pak samy synchronizují. Jde to i později.')),
           h('div', { class: 'wz-btns' },
-            h('button', { type: 'button', class: 'btn', onclick: () => finish('new') }, 'Založit kapelu'),
-            h('button', { type: 'button', class: 'btn', onclick: () => finish('join') }, '🔑 Mám kód kapely'))));
+            h('button', { type: 'button', class: 'btn', onclick: () => finish('join') }, '🔑 Přihlásit ke kapele'))));
       hint.textContent = 'OK dokončí nastavení';
       setTimeout(() => nextBtn.focus(), 0);
     }
@@ -213,8 +212,7 @@ function setupWizard() {
     Settings.set('welcomed', true);
     el.remove();
     document.removeEventListener('keydown', onKey, true);
-    if (band === 'join') return joinBandDialog();
-    if (band === 'new') { location.hash = '#/settings/share'; return; }
+    if (band === 'join') return loginDialog();
     if (st.role === 'reader') location.hash = '#/reader/' + (Settings.get('lastPlaylist') || '');
     else App.go(true);
   }

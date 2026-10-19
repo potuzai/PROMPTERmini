@@ -13,6 +13,7 @@ const App = {
       document.body.innerHTML = `<div class="empty"><div class="big">⚠</div>Nepodařilo se otevřít úložiště dat.<br><small>${esc(e.message)}</small></div>`;
       return;
     }
+    window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); this.installEvt = e; });
     // Webová verze: požádat prohlížeč, aby data nikdy nemazal
     if (!window.native && navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
     this.buildTopbar();
@@ -39,12 +40,8 @@ const App = {
         history.replaceState(null, '', '#/reader/' + (Settings.get('lastPlaylist') || ''));
       } else history.replaceState(null, '', '#/songs');
     }
-    // odkaz kapely (?kapela=…): připojit / odemknout jen krátkým heslem kapely
-    const q = new URLSearchParams(location.search), link = q.get('kapela');
-    if (link) {
-      if (!(Sync.enabled() && Settings.get('bandLink') === link)) { Settings.set('welcomed', true); setTimeout(() => joinByLinkDialog(link, q.get('n') || ''), 50); }
-      else if (Sync.locked()) setTimeout(() => unlockBandSession(link), 50);
-    } else if (Sync.locked() && Settings.get('bandLink')) setTimeout(() => unlockBandSession(Settings.get('bandLink')), 50);
+    // „Zůstat přihlášen“ vypnuté a prohlížeč byl zavřený → přihlásit znovu
+    if (Sync.locked()) setTimeout(() => loginDialog({ expired: true }), 50);
     this.go();
     Sync.refreshState();
     if (Sync.enabled() && !Sync.locked()) {
@@ -69,6 +66,25 @@ const App = {
     const m = document.querySelector('meta[name=theme-color]'); if (m) m.content = light ? '#f0f0f2' : '#202022';
   },
 
+  /* Instalace webové verze jako aplikace (PWA) – Android, iPhone/iPad, Chrome/Edge na PC */
+  installEvt: null,
+  canInstall() { return !window.native && /^https?:$/.test(location.protocol) && !matchMedia('(display-mode: standalone)').matches && !navigator.standalone; },
+  async install() {
+    if (this.installEvt) {
+      const e = this.installEvt; this.installEvt = null;
+      e.prompt();
+      if ((await e.userChoice).outcome === 'accepted') toast('Aplikace se instaluje – najdeš ji na ploše.', 'ok');
+      return;
+    }
+    const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const steps = ios
+      ? ['Otevři tuto stránku v Safari.', 'Klepni na Sdílet (čtvereček se šipkou nahoru).', 'Zvol „Přidat na plochu“ a potvrď.']
+      : /Android/.test(navigator.userAgent)
+        ? ['Otevři tuto stránku v Chrome.', 'Klepni na ⋮ vpravo nahoře.', 'Zvol „Nainstalovat aplikaci“ (nebo „Přidat na plochu“).']
+        : ['V Chrome nebo Edge klikni na ikonu instalace vpravo v adresním řádku,', 'nebo menu ⋮ → „Nainstalovat Prompter“ (Edge: Aplikace → Nainstalovat tento web jako aplikaci).', 'Pro čtečku na Windows je lepší program Prompter.exe.'];
+    await modal({ title: '📲 Nainstalovat aplikaci', body: h('ol', { style: { lineHeight: 1.8 } }, steps.map(t => h('li', {}, t))) });
+  },
+
   canEdit() { return !Settings.get('pinHash') || sessionStorage.getItem('unlocked') === '1'; },
 
   async unlock() {
@@ -81,7 +97,7 @@ const App = {
 
   /* Boční lišta vlevo (návrh 20): sekce aplikace, čtečka, nastavení, stav synchronizace */
   buildTopbar() {
-    const tabs = [['songs', '🎵 Písně'], ['playlists', '📋 Playlisty'], ['calendar', '📅 Kalendář'], ['templates', '🎨 Šablony'], ['singers', '🎤 Obsazení']];
+    const tabs = [['songs', '🎵 Písně'], ['playlists', '📋 Playlisty'], ['templates', '🎨 Šablony'], ['singers', '🎤 Obsazení']];
     this.tabEls = {};
     const tab = (k, l) => (this.tabEls[k] = h('button', { class: 'tab', title: l.replace(/^\S+ /, ''), onclick: () => { location.hash = '#/' + k; } }, l));
     const bar = h('nav', { id: 'topbar' },
@@ -96,8 +112,8 @@ const App = {
 
   paintSync() {
     const st = Sync.state;
-    const labels = { locked: 'zamčeno – zadej heslo kapely', off: 'připojit ke kapele', idle: 'synchronizováno', pending: 'neodeslané změny', syncing: 'synchronizuji…', error: 'chyba synchronizace', offline: 'offline' };
-    const short = { locked: 'Heslo', off: 'Kapela', idle: 'Sdíleno', pending: 'Odeslat', syncing: 'Sdílím…', error: 'Chyba', offline: 'Offline' };
+    const labels = { locked: 'odhlášeno – přihlas se ke kapele', off: 'přihlásit ke kapele', idle: 'synchronizováno', pending: 'neodeslané změny', syncing: 'synchronizuji…', error: 'chyba synchronizace', offline: 'offline' };
+    const short = { locked: 'Přihlásit', off: 'Přihlásit', idle: 'Sdíleno', pending: 'Odeslat', syncing: 'Sdílím…', error: 'Chyba', offline: 'Offline' };
     const ro = Settings.get('readOnly') && st !== 'off' ? ' · jen čtení' : '';
     this.syncPill.className = 'sync-pill ' + st;
     $('.lbl', this.syncPill).textContent = short[st] || st;
@@ -107,8 +123,8 @@ const App = {
   },
 
   async syncClick() {
-    if (!Sync.enabled()) return joinBandDialog();
-    if (Sync.locked()) return Settings.get('bandLink') ? unlockBandSession(Settings.get('bandLink')) : joinBandDialog();
+    if (!Sync.enabled()) return loginDialog();
+    if (Sync.locked()) return loginDialog({ expired: true });
     try { const r = await Sync.run(); toast(`Synchronizováno · staženo ${r.downloaded || 0}, odesláno ${r.pushed || 0}`, 'ok'); }
     catch (e) { toast(e.message, 'err', 6000); }
   },
@@ -123,7 +139,6 @@ const App = {
     }
     if (view === 'songs' && SongsView.paintList) SongsView.paintList();
     if (view === 'playlists' && PlaylistsView.paintSide) PlaylistsView.paintSide();
-    if (view === 'calendar' && CalendarView.paintSide && ['events', 'rsvps', 'config', 'playlists'].includes(type)) CalendarView.paintSide();
     if (view === 'templates' && TemplatesView.paintSide && type === 'templates') TemplatesView.paintSide();
     Sync.refreshState();
   },
@@ -150,10 +165,10 @@ const App = {
     for (const [k, el] of Object.entries(this.tabEls)) el.classList.toggle('active', k === view);
     const main = $('#main');
     main.innerHTML = '';
-    SongsView.paintList = null; PlaylistsView.paintSide = null; TemplatesView.paintSide = null; CalendarView.paintSide = null;
+    SongsView.paintList = null; PlaylistsView.paintSide = null; TemplatesView.paintSide = null;
     if (SongsView.editor && SongsView.editor.ro) SongsView.editor.ro.disconnect();
     SongsView.editor = null;
-    const views = { songs: SongsView, playlists: PlaylistsView, calendar: CalendarView, templates: TemplatesView, singers: SingersView, settings: SettingsView };
+    const views = { songs: SongsView, playlists: PlaylistsView, templates: TemplatesView, singers: SingersView, settings: SettingsView };
     (views[view] || SongsView).render(main, param);
     // první spuštění: program (čtečka) → průvodce zařízením; web → jen uvítání a připojení ke kapele
     if (!Settings.get('welcomed')) setTimeout(() => {

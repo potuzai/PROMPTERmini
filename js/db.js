@@ -1,9 +1,9 @@
 'use strict';
 /* ===== Lokální úložiště (IndexedDB) + výchozí data ===== */
-const APP_VERSION = '1.20.0';
+const APP_VERSION = '1.21.0';
 const DB_NAME = 'prompter-pisne';
 const DB_VER = 2;
-const STORES = ['songs', 'playlists', 'templates', 'config', 'events', 'rsvps', 'meta'];
+const STORES = ['songs', 'playlists', 'templates', 'config', 'meta'];
 
 const DEFAULT_SINGERS = [
   { code: 'J', name: 'Já', color: '#ffd23f', bold: false, italic: false },
@@ -75,8 +75,7 @@ const DEFAULT_SETTINGS = {
   readOnly: false,               // jen stahovat (např. čtečka)
   bandName: '',
   welcomed: false,
-  bandLink: '',                  // zašifrovaný odkaz kapely (bez hesla kapely je k ničemu)
-  rememberBand: true,            // false = heslo kapely zadat po každém otevření prohlížeče
+  rememberBand: true,            // „Zůstat přihlášen“ – false = heslo kapely jen do zavření prohlížeče
   deviceRole: '',                // k čemu zařízení slouží: reader | editor | both | musician (nastaví průvodce)
   theme: 'dark',                 // vzhled aplikace: dark | light | auto (podle systému)
   screenId: '',                  // kterou obrazovkou kapely je toto zařízení; '' = program: hlavní čtečka, web: podle okna
@@ -174,12 +173,10 @@ const TYPES = {
   playlists: { dir: 'playlists' },
   templates: { dir: 'templates' },
   config: { dir: 'config' },
-  events: { dir: 'events' },   // kalendář kapely: koncerty, zkoušky, nepřítomnost
-  rsvps: { dir: 'rsvps' },     // potvrzení účasti – každý člen má vlastní soubor (nepřepisují se navzájem)
 };
 
 const Store = {
-  songs: new Map(), playlists: new Map(), templates: new Map(), config: new Map(), events: new Map(), rsvps: new Map(),
+  songs: new Map(), playlists: new Map(), templates: new Map(), config: new Map(),
   meta: { id: 'sync', remote: {}, local: {}, tombstones: {} }, // remote: path->sha, local: path->sha obsahu při poslední synchronizaci
   listeners: new Set(),
 

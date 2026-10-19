@@ -1,12 +1,12 @@
 'use strict';
 /* Synchronizace přímo s Mega – společné jádro pro program (Node) i prohlížeč.
-   Struktura v Mega: <složka kapely>/songs|playlists|templates|config|events|rsvps/<id>.json
+   Struktura v Mega: <složka kapely>/songs|playlists|templates|config/<id>.json
    Verze souboru = nodeId (každé nahrání vytvoří nový uzel, starý se smaže). */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory;
   else root.createMegaCore = factory;
 })(typeof self !== 'undefined' ? self : this, function createMegaCore(Storage) {
-  const STORES = ['songs', 'playlists', 'templates', 'config', 'events', 'rsvps'];
+  const STORES = ['songs', 'playlists', 'templates', 'config'];
   const NAME_RE = /^[A-Za-z0-9_-]+\.json$/;
 
   let session = null;    // { email, json } – přihlášení se znovu nepoužívá heslo
@@ -106,7 +106,7 @@
   }
 
   function splitPath(p) {
-    const m = /^data\/(songs|playlists|templates|config|events|rsvps)\/([^#/]+)(?:#(.+))?$/.exec(p);
+    const m = /^data\/(songs|playlists|templates|config)\/([^#/]+)(?:#(.+))?$/.exec(p);
     if (!m) throw new Error('Neplatná cesta ' + p);
     return { store: m[1], name: m[2], nodeId: m[3] };
   }

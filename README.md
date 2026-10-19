@@ -4,7 +4,7 @@ Aplikace pro psaní, úpravy a zobrazování textů písní na čtečce (prompte
 
 - **Čtečka**: samostatný program pro Windows (`Prompter.exe`). Funguje **úplně bez internetu**, startuje rovnou přes celou obrazovku a data má jako soubory ve složce `data` vedle programu.
 - **Prohlížečová verze**: stejná aplikace na adrese https://potuzai.github.io/RUSTEDprompter/. Je to plnohodnotný editor i čtečka, který se synchronizuje s kapelou stejně jako program. Hodí se pro členy, kteří nechtějí nic instalovat, nebo když upravuješ z cizího počítače.
-- **Sdílení s kapelou**: písně se synchronizují samy přes internet (Mega nebo GitHub, obojí zdarma). Členové kapely nic nezakládají ani neinstalují, jen vloží **kód kapely**.
+- **Sdílení s kapelou**: písně se synchronizují samy přes internet (Mega nebo GitHub, obojí zdarma). Kapela má jeden společný účet Mega a členové se přihlásí jeho **e-mailem a heslem**. Data zůstávají v každém zařízení a s Mega se jen synchronizují.
 
 ---
 
@@ -45,12 +45,12 @@ Když myš sjede do spodní části obrazovky, objeví se **ovládací lišta** 
 
 Monitor čtečky během běhu programu neusne. Program se po případném pádu sám obnoví a každý den zálohuje data do `data\zalohy` (drží 14 dní).
 
-## 2. Prohlížečová verze (bez instalace)
+## 2. Prohlížečová verze a aplikace v telefonu (PWA)
 
-- Otevři **https://potuzai.github.io/RUSTEDprompter/** v Edge nebo Chrome. Napoprvé se objeví uvítání: zvol **🔑 Mám kód kapely** a vlož kód. Web se na monitor neptá: stránka čtečky se přizpůsobí oknu prohlížeče nebo telefonu (i po otočení). Pevnou obrazovku kapely zvolíš v Nastavení › Toto zařízení jen pro displej, který slouží jako čtečka.
+- Otevři **https://potuzai.github.io/RUSTEDprompter/** v Edge nebo Chrome. Napoprvé se objeví uvítání: zvol **🔑 Přihlásit ke kapele** a zadej e-mail a heslo kapely. Web se na monitor neptá: stránka čtečky se přizpůsobí oknu prohlížeče nebo telefonu (i po otočení). Pevnou obrazovku kapely zvolíš v Nastavení › Toto zařízení jen pro displej, který slouží jako čtečka.
 - Písně se uloží v tom prohlížeči a synchronizují se s kapelou, stejně jako v programu.
-- Ikonu na plochu přidáš v Edge přes **⋯ → Aplikace → Nainstalovat tento web jako aplikaci**.
-- Na **cizím počítači** se po práci odpoj: **Nastavení → Sdílení s kapelou → Odpojit**. Heslo se tím z prohlížeče smaže.
+- **Instalace jako aplikace** (ikona na ploše, celá obrazovka, funguje i bez internetu): **Nastavení → Toto zařízení → 📲 Nainstalovat**. V Chrome, Edge a na Androidu se rovnou nabídne instalace. Na iPhonu a iPadu: Safari → **Sdílet → Přidat na plochu**.
+- Na **cizím počítači** při přihlášení vypni **Zůstat přihlášen**, nebo se po práci odhlas: **Nastavení → Sdílení s kapelou → Odhlásit**. Heslo se tím z prohlížeče smaže.
 - Pro PC čtečky doporučuji program `Prompter.exe`: data má v souborech, startuje sám a nezávisí na aktualizacích prohlížeče.
 
 ### Psaní textu
@@ -125,46 +125,29 @@ Obrazovky se sdílí s celou kapelou. **Každé zařízení si vybere, kterou ob
 
 V editoru pod stránkou přepínáš **Náhled pro: …** a vidíš píseň přesně tak, jak ji uvidí daná obrazovka.
 
-## 3. Kalendář kapely
-
-V boční liště **Kalendář**: koncerty, zkoušky, nahrávání a další akce. Sdílí se s kapelou stejně jako písně (Mega, GitHub nebo složka).
-
-- **Akce** má druh a stav (potvrzeno / předběžně / zrušeno), datum (i vícedenní), časy *příjezd, zvuková zkouška, začátek, konec*, místo a adresu (odkaz na mapu), pořadatele a kontakt (telefon jde rovnou vytočit), s kým se hraje, **honorář** se stavem (dohodnuto / vyfakturováno / zaplaceno) a poznámkou, připojený **setlist** (playlist, rovnou do čtečky) a poznámku.
-- **Potvrzení účasti**: každý člen klikne *Jedu / Možná / Nejedu* a může připsat poznámku. U akce je vidět, kdo jede, kdo ne a kdo ještě neodpověděl. Každá odpověď se ukládá zvlášť, takže se odpovědi členů nikdy nepřepíšou, ani když potvrzují současně.
-- **Nemůžu…**: dovolená, nemoc a jiná nepřítomnost (od–do). Je vidět v kalendáři i u akcí, které do ní padnou.
-- **Členové**: seznam členů kapely se sdílí; u sebe zaškrtni **já** (platí jen na tom zařízení).
-- **Měsíc / Seznam**: měsíční mřížka, nebo seznam nadcházejících akcí s počty odpovědí a tvou odpovědí.
-- **⇩ Do kalendáře / .ics**: stáhne akce jako soubor pro kalendář v telefonu, Google nebo Outlook.
-- V telefonu se akce otevře přes celou obrazovku, potvrzení je jedno ťuknutí.
-
-Aplikace nemá vlastní server, proto neposílá upozornění; změny se ukážou při otevření aplikace (nebo po synchronizaci).
-
-## 4. Sdílení s kapelou
+## 3. Sdílení s kapelou
 
 ### Člen kapely (1 minuta)
-1. Otevře **odkaz kapely**, který mu poslal správce, a uloží si ho do záložek.
-2. Zadá **heslo kapely** (krátké, správce ho řekne zvlášť) a klikne na **Připojit**. Písně a playlisty se stáhnou samy.
-3. **Zapamatovat na tomto zařízení**: zapnuté = příště se na nic neptá. Vypnuté (cizí / sdílený počítač) = heslo kapely je potřeba po každém otevření prohlížeče.
+1. Otevře adresu aplikace ze zprávy od správce (nebo program `Prompter.exe`) a klikne na **🔑 Přihlásit ke kapele**.
+2. Zadá **e-mail a heslo kapely** (heslo mu správce řekne zvlášť). Písně a playlisty se stáhnou samy.
+3. **Zůstat přihlášen**: zapnuté = příště se na nic neptá. Vypnuté (cizí / sdílený počítač) = po zavření prohlížeče je potřeba přihlásit se znovu; písně v zařízení zůstanou.
 
-Když prohlížeč po zavření maže data webů, stačí otevřít odkaz ze záložek a zadat krátké heslo. Lepší je ale přidat `potuzai.github.io` do výjimek, které se nemažou. V programu `Prompter.exe` se odkaz vloží přes **Připojit ke kapele**; program si přístup pamatuje (heslo k Mega šifrované přes Windows).
+Prohlížeč, který po zavření maže data webů, zapomene i přihlášení. Pomůže aplikaci nainstalovat (viz výše) nebo přidat `potuzai.github.io` do výjimek. Program `Prompter.exe` si přihlášení pamatuje vždy (heslo šifrované přes Windows) a data drží v souborech.
 
-### Správce kapely (jednou, asi 10 minut)
-V **Nastavení → Sdílení s kapelou** zvol, kde budou písně uložené:
+Volba **Další možnosti** v přihlašovacím okně: jiná složka v Mega a **jen pro čtení** (pro čtečky: písně jen stahuje a nic neodešle).
 
-- **Mega** (v programu i v prohlížeči):
-  1. Na mega.io založ **nový společný účet pro kapelu**, ne svůj osobní, protože heslo se přes kód kapely dostane ke všem členům. Dvoufázové ověření nezapínej.
-  2. Vyplň e-mail a heslo tohoto účtu a klikni na **Připojit k Mega**. Program si sám vytvoří složku „Prompter kapela“ a nahraje do ní písně.
-- **GitHub**: program tě provede třemi odkazy: účet, soukromý repozitář a token.
+### Správce kapely (jednou, asi 5 minut)
+1. Na mega.io založ **nový společný účet pro kapelu**, ne svůj osobní, protože heslo budou znát všichni členové. Dvoufázové ověření nezapínej.
+2. V aplikaci klikni na **🔑 Přihlásit ke kapele** a zadej e-mail a heslo tohoto účtu. Aplikace si v Mega sama vytvoří složku „Prompter kapela“ a nahraje do ní písně.
+3. **Nastavení → Sdílení s kapelou → 👥 Pozvat členy** připraví zprávu s adresou aplikace a e-mailem kapely. Heslo pošli zvlášť (ústně, SMS).
 
-Po připojení se ukáže okno **Pozvat členy**: vymysli **heslo kapely** (aspoň 6 znaků), zkopíruj **odkaz kapely** a pošli ho členům; heslo jim řekni zvlášť (ústně, SMS). Přístup k úložišti je v odkazu zašifrovaný heslem kapely – samotný odkaz bez hesla je k ničemu. (Starý dlouhý **kód kapely** bez hesla je pod „Starý způsob“.) Pro PC čtečky můžeš vytvořit kód **jen pro čtení**: čtečka pak písně jen stahuje a nic neodešle.
+Když dva lidé upraví stejnou píseň najednou, nic se neztratí: druhá verze se uloží jako kopie „(konflikt)“. Bez internetu vše funguje dál a změny se odešlou při dalším připojení. Když někdo z kapely odejde nebo heslo unikne, změň heslo účtu Mega a řekni nové ostatním; každý se pak jednou přihlásí znovu.
 
-Když dva lidé upraví stejnou píseň najednou, nic se neztratí: druhá verze se uloží jako kopie „(konflikt)“. Bez internetu vše funguje dál a změny se odešlou při dalším připojení. Když kód unikne, změň heslo k Mega (nebo vytvoř nový token na GitHubu), připoj se znovu a pošli členům nový kód.
-
-**Pokročilá varianta:** synchronizovaná složka. Program může používat i složku, kterou synchronizuje jiná aplikace (MEGA Desktop, OneDrive, Dropbox, síťový disk).
+**Jiné úložiště:** místo Mega jde v Nastavení → Sdílení s kapelou zvolit GitHub (soukromý repozitář a token – každý člen zadá repozitář a token) nebo v programu synchronizovanou složku (MEGA Desktop, OneDrive, Dropbox, síťový disk).
 
 > Připojení k Mega používá neoficiální knihovnu `megajs`. Kdyby ho Mega někdy změnou na své straně rozbila, přepni na GitHub. Písně v programu zůstanou.
 
-## 5. Pro vývoj
+## 4. Pro vývoj
 
 ```
 npm install

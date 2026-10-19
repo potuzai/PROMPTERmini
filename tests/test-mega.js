@@ -1,4 +1,4 @@
-// Test přímého napojení na Mega + kódu kapely: správce založí kapelu, člen se připojí kódem.
+// Test přímého napojení na Mega: správce založí kapelu, členové se přihlásí e-mailem a heslem kapely.
 const { _electron, chromium } = require('playwright');
 const http = require('http');
 const fs = require('fs'); const path = require('path'); const os = require('os');
@@ -50,61 +50,49 @@ async function browserMember(browser) {
 }
 
 (async () => {
-  /* ----- Správce: přivítání → založit kapelu → Mega ----- */
+  /* ----- Správce: průvodce → Přihlásit ke kapele (nový účet Mega) ----- */
   const A = await launch('Petr', {});
   await A.w.evaluate(() => { location.hash = '#/songs'; });
   await A.w.waitForSelector('.wizard', { timeout: 5000 });
   assert(true, 'při prvním spuštění se zobrazí průvodce');
   for (let i = 0; i < 3; i++) await A.w.click('.wz-foot .btn.primary');
-  await A.w.click('.wizard button:has-text("Založit kapelu")');
-  await sleep(400);
-  assert(await A.w.evaluate(() => location.hash.startsWith('#/settings') && !document.querySelector('.wizard')), 'průvodce → nastavení sdílení');
-  await A.w.click('label.chk:has-text("Mega – program se připojí sám") input');
-  await sleep(200);
-  await A.w.fill('input[type=email]', 'kapela@test.cz');
-  await A.w.fill('input[placeholder="heslo k účtu Mega"]', 'spatne');
-  await A.w.click('button:has-text("Připojit k Mega")');
-  await sleep(800);
-  assert(await A.w.isVisible('text=špatný e-mail nebo heslo'), 'špatné heslo → srozumitelná chyba');
-  await A.w.fill('input[placeholder="heslo k účtu Mega"]', 'heslo123');
-  await A.w.click('button:has-text("Připojit k Mega")');
-  await A.w.waitForSelector('.modal-title:has-text("Pozvat členy")', { timeout: 15000 });
-  assert(true, 'po připojení se nabídne pozvání členů');
+  await A.w.click('.wizard button:has-text("Přihlásit ke kapele")');
+  await A.w.waitForSelector('.modal form.login');
+  assert(!(await A.w.isVisible('.modal :text("Zůstat přihlášen")')), 'program: bez volby „Zůstat přihlášen“ (pamatuje si vždy)');
+  await A.w.fill('.modal input[type=email]', 'kapela@test.cz');
+  await A.w.fill('.modal input[type=password]', 'spatne');
+  await A.w.click('.modal button:has-text("Přihlásit")');
+  await A.w.waitForSelector('.modal .login-err:has-text("špatný e-mail nebo heslo")', { timeout: 8000 });
+  assert(true, 'špatné heslo → srozumitelná chyba, okno zůstane otevřené');
+  await A.w.fill('.modal input[type=password]', 'heslo123');
+  await A.w.click('.modal button:has-text("Přihlásit")');
+  await A.w.waitForFunction(() => !document.querySelector('.modal') && Sync.mode() === 'mega' && Sync.state === 'idle', null, { timeout: 15000 });
   const files0 = cloudFiles();
-  assert(files0.some(f => /Prompter kapela\/songs\/.+\.json/.test(f.path) && f.text.includes('Ukázková')), 'písně nahrány do Mega do složky kapely');
-  assert(files0.some(f => f.path === 'Prompter kapela/config/singers.json'), 'zpěváci nahráni');
+  assert(files0.some(f => f.path === 'Prompter kapela/config/singers.json'), 'zpěváci nahráni do Mega do složky kapely');
+  assert(!files0.some(f => f.text.includes('"sample": true')), 'ukázková píseň se do kapely nenahrála');
   const savedPass = JSON.parse(fs.readFileSync(path.join(A.dir, 'settings.json'), 'utf8')).mega.pass;
   assert(savedPass && !savedPass.includes('heslo123'), 'heslo není v nastavení čitelně');
-  await A.w.fill('.modal input.inp >> nth=0', 'Rusted');
-  await A.w.fill('.modal input[placeholder^="krátké heslo"]', 'tajne123'); await sleep(1500);
-  const link = await A.w.inputValue('.modal textarea >> nth=0');
-  assert(/\?kapela=[A-Za-z0-9_-]{40,}&n=Rusted$/.test(link) && !link.includes('heslo123'), 'odkaz kapely vytvořen (přístup v něm zašifrovaný)');
-  const code = await A.w.inputValue('.modal details textarea');
-  await A.w.click('.modal label.chk:has-text("Jen pro čtení") input');
-  await sleep(300);
-  const roCode = await A.w.inputValue('.modal details textarea');
-  assert(code.startsWith('PROMPTER-') && roCode !== code, 'kód kapely (úpravy i jen pro čtení)');
-  await A.w.click('.modal label.chk:has-text("Jen pro čtení") input'); await sleep(300);
-  await A.w.click('.modal button:has-text("Hotovo")');
+  await A.w.evaluate(() => { location.hash = '#/settings/share'; }); await sleep(400);
+  assert(await A.w.isVisible('fieldset#set-share :text("kapela@test.cz")'), 'nastavení ukazuje, kdo je přihlášený');
+  await A.w.click('fieldset#set-share button:has-text("Pozvat členy")');
+  const invite = await A.w.inputValue('.modal textarea');
+  assert(invite.includes('kapela@test.cz') && invite.includes('https://') && !invite.includes('heslo123'), 'pozvánka: adresa aplikace a e-mail kapely, bez hesla');
+  await A.w.click('.modal button:has-text("Zavřít")');
   await A.w.evaluate(async () => { await Store.put('songs', { id: 'zluty', title: 'Žlutý pes', artist: '', key: 'C', tempo: '', tags: [], text: '@J Žlutý pes' }); await Sync.run(); });
 
-  /* ----- Člen: přivítání → Mám kód kapely ----- */
+  /* ----- Člen: průvodce → Přihlásit ke kapele ----- */
   const B = await launch('Jana', {});
   await B.w.evaluate(() => { location.hash = '#/songs'; });
   await B.w.waitForSelector('.wizard');
   for (let i = 0; i < 3; i++) await B.w.click('.wz-foot .btn.primary');
-  await B.w.click('.wizard button:has-text("Mám kód kapely")');
-  await B.w.waitForSelector('.modal textarea');
-  await B.w.fill('.modal textarea', 'nesmysl');
-  await B.w.click('.modal button:has-text("Připojit")');
-  await sleep(300);
-  assert(await B.w.isVisible('text=nevypadá jako kód kapely'), 'neplatný kód → chyba, dialog zůstane otevřený');
-  await B.w.fill('.modal textarea', '  ' + code + '\n');
-  await B.w.click('.modal button:has-text("Připojit")');
+  await B.w.click('.wizard button:has-text("Přihlásit ke kapele")');
+  await B.w.waitForSelector('.modal form.login');
+  await B.w.fill('.modal input[type=email]', 'kapela@test.cz');
+  await B.w.fill('.modal input[type=password]', 'heslo123');
+  await B.w.click('.modal button:has-text("Přihlásit")');
   await B.w.waitForFunction(() => Store.songs.has('zluty'), null, { timeout: 15000 });
-  assert(true, 'člen se připojil kódem a stáhl písně');
-  assert(await B.w.evaluate(() => Settings.get('bandName')) === 'Rusted', 'název kapely převzat');
-  assert(await B.w.evaluate(() => ![...Store.songs.values()].some(s => s.sample && s.title === 'Ukázková píseň' && !s.updatedBy?.includes('Petr'))) , 'ukázková píseň člena se do kapely nenahrála');
+  assert(true, 'člen se přihlásil e-mailem a heslem kapely a stáhl písně');
+  assert(await B.w.evaluate(() => ![...Store.songs.values()].some(s => s.sample)), 'ukázková píseň člena se do kapely nenahrála');
   const tplCopies = await B.w.evaluate(() => [...Store.templates.values()].filter(t => t.name.includes('konflikt')).length);
   assert(tplCopies === 0, 'výchozí šablony nezpůsobily konflikty');
 
@@ -116,15 +104,18 @@ async function browserMember(browser) {
   const r = await A.w.evaluate(() => Sync.run());
   assert(r.pushed === 0 && r.downloaded === 0, 'opakovaná synchronizace nic nepřenáší');
 
-  /* ----- Prohlížečová verze: člen se připojí stejným kódem ----- */
+  /* ----- Prohlížečová verze: člen se přihlásí stejně ----- */
   const browser = await chromium.launch();
   const D = await browserMember(browser);
   await D.p.waitForSelector('.modal-title:has-text("Vítej")');
-  await D.p.click('.modal button:has-text("Mám kód kapely")');
-  await D.p.fill('.modal textarea', code);
-  await D.p.click('.modal button:has-text("Připojit")');
+  await D.p.click('.modal button:has-text("Přihlásit ke kapele")');
+  await D.p.waitForSelector('.modal form.login');
+  assert(await D.p.isChecked('.modal label.chk:has-text("Zůstat přihlášen") input'), 'prohlížeč: „Zůstat přihlášen“ je nabídnuté a zapnuté');
+  await D.p.fill('.modal input[type=email]', 'kapela@test.cz');
+  await D.p.fill('.modal input[type=password]', 'heslo123');
+  await D.p.click('.modal button:has-text("Přihlásit")');
   await D.p.waitForFunction(() => Store.songs.has('zluty'), null, { timeout: 15000 });
-  assert(true, 'prohlížeč: připojení kódem kapely (Mega) a stažení písní');
+  assert(true, 'prohlížeč: přihlášení e-mailem a heslem kapely (Mega) a stažení písní');
   assert((await D.p.evaluate(() => Store.songs.get('zluty').text)).includes('doplnila Jana'), 'prohlížeč má aktuální verzi písně');
   assert(await D.p.evaluate(() => Sync.mode()) === 'mega' && await D.p.waitForFunction(() => (document.querySelector('.sync-pill').dataset.state || '').includes('synchronizováno'), null, { timeout: 8000 }).then(() => true, () => false), 'prohlížeč: stav „synchronizováno“');
   const lsRaw = await D.p.evaluate(() => localStorage.getItem('prompter-settings'));
@@ -165,13 +156,34 @@ async function browserMember(browser) {
   // čtečka v prohlížeči z playlistu
   await D.p.evaluate(() => { location.hash = '#/reader/plweb'; }); await sleep(500);
   assert(await D.p.evaluate(() => !!document.querySelector('#reader .stage') && document.querySelector('#reader').textContent.includes('Žlutý pes')), 'prohlížeč: čtečka zobrazí playlist');
-  // odpojení na cizím počítači smaže heslo z prohlížeče
+  // odhlášení na cizím počítači smaže heslo z prohlížeče
   await D.p.evaluate(() => { location.hash = '#/settings'; }); await sleep(400);
-  await D.p.click('fieldset:has-text("Sdílení s kapelou") button:has-text("Odpojit")');
-  await D.p.click('.modal button:has-text("Odpojit")'); await sleep(400);
-  assert(await D.p.evaluate(() => Sync.mode()) === 'off', 'prohlížeč: odpojení od kapely');
-  assert(await D.p.evaluate(() => !Settings.get('mega').pass && !localStorage.getItem('prompter-settings').includes('b64:')), 'odpojení smaže uložené heslo z prohlížeče');
-  assert(await D.p.evaluate(() => Store.songs.has('zluty')), 'písně po odpojení zůstanou');
+  await D.p.click('fieldset:has-text("Sdílení s kapelou") button:has-text("Odhlásit")');
+  await D.p.click('.modal button:has-text("Odhlásit")'); await sleep(400);
+  assert(await D.p.evaluate(() => Sync.mode()) === 'off', 'prohlížeč: odhlášení od kapely');
+  assert(await D.p.evaluate(() => !Settings.get('mega').pass && !localStorage.getItem('prompter-settings').includes('b64:')), 'odhlášení smaže uložené heslo z prohlížeče');
+  assert(await D.p.evaluate(() => Store.songs.has('zluty')), 'písně po odhlášení zůstanou');
+  // přihlášení bez „Zůstat přihlášen“: heslo jen do zavření prohlížeče
+  await D.p.click('fieldset#set-share button:has-text("Přihlásit ke kapele")');
+  await D.p.waitForSelector('.modal form.login');
+  assert(await D.p.inputValue('.modal input[type=email]') === 'kapela@test.cz', 'e-mail kapely zůstal předvyplněný');
+  await D.p.fill('.modal input[type=password]', 'heslo123');
+  await D.p.uncheck('.modal label.chk:has-text("Zůstat přihlášen") input');
+  await D.p.click('.modal button:has-text("Přihlásit")');
+  await D.p.waitForFunction(() => Sync.mode() === 'mega' && Sync.state === 'idle', null, { timeout: 15000 });
+  assert(await D.p.evaluate(() => !localStorage.getItem('prompter-settings').includes('b64:') && Settings.get('rememberBand') === false), 'nezůstat přihlášen: heslo se do prohlížeče natrvalo neuloží');
+  const D2 = await D.ctx.newPage(); // nové otevření prohlížeče = nové sessionStorage
+  D2.on('pageerror', e => console.log('WEB PAGEERR', e.message));
+  await D2.goto(APP_URL + '#/songs');
+  await D2.waitForSelector('.modal form.login');
+  assert(await D2.evaluate(() => Sync.locked() && document.querySelector('.sync-pill').dataset.state.includes('odhlášeno') && Store.songs.has('zluty')), 'po novém otevření: odhlášeno, písně jsou ale k dispozici');
+  await D2.fill('.modal input[type=password]', 'heslo123');
+  await D2.check('.modal label.chk:has-text("Zůstat přihlášen") input');
+  await D2.click('.modal button:has-text("Přihlásit")');
+  await D2.waitForFunction(() => !Sync.locked() && Sync.state === 'idle', null, { timeout: 15000 });
+  const D3 = await D.ctx.newPage();
+  await D3.goto(APP_URL + '#/songs'); await sleep(1500);
+  assert(!(await D3.isVisible('.modal')) && await D3.evaluate(() => !Sync.locked() && Sync.mode() === 'mega'), 'zůstat přihlášen: další otevření bez ptaní');
   await D.ctx.close(); await browser.close();
 
   /* ----- Konflikt ----- */
@@ -209,8 +221,8 @@ async function browserMember(browser) {
   const C = await launch('Ctecka', { startInReader: true });
   await sleep(500);
   assert(await C.w.evaluate(() => Reader.isOpen()), 'čtečka startuje do čtečky');
-  await C.w.evaluate(async c => { await BandCode.join(c); }, roCode);
-  assert(await C.w.evaluate(() => Settings.get('readOnly')) === true, 'kód jen pro čtení → čtečka nic neodesílá');
+  await C.w.evaluate(async () => { await bandLogin({ email: 'kapela@test.cz', password: 'heslo123', ro: true }); });
+  assert(await C.w.evaluate(() => Settings.get('readOnly')) === true, 'přihlášení jen pro čtení → čtečka nic neodesílá');
   const before = JSON.stringify(cloudFiles());
   await C.w.evaluate(async () => { await Store.put('songs', { id: 'loc', title: 'Jen lokálně', text: '' }); await Sync.run(); });
   assert(JSON.stringify(cloudFiles()) === before, 'změna na čtečce nešla do cloudu');
