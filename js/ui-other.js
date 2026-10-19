@@ -472,7 +472,7 @@ const SettingsView = {
     if (mode !== 'off') {
       const mg = mode === 'mega' ? MegaProvider.cfg() : null;
       top.append(
-        h('p', {}, mg ? ['✅ Přihlášeno ke kapele jako ', h('b', {}, mg.email), mg.folder !== 'PROMPTER mini' ? ` (složka ${mg.folder})` : ''] : ['✅ Sdílení přes ', h('b', {}, names[mode])],
+        h('p', {}, mg ? ['✅ Přihlášeno ke kapele jako ', h('b', {}, mg.email), mg.folder !== 'PROMPTERmini' ? ` (složka ${mg.folder})` : ''] : ['✅ Sdílení přes ', h('b', {}, names[mode])],
           Settings.get('readOnly') ? h('span', { class: 'tag', style: { marginLeft: '6px' } }, 'jen pro čtení') : null,
           Sync.lastError ? h('span', { style: { color: 'var(--err)', marginLeft: '8px' } }, Sync.lastError) : null),
         h('div', { class: 'row' },

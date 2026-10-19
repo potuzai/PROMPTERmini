@@ -76,7 +76,7 @@
 
   function open(cfg, fresh) { return serial(() => openNow(cfg, fresh)); }
   async function openNow(cfg, fresh) {
-    const folderName = (cfg.folder || 'PROMPTER mini').trim();
+    const folderName = (cfg.folder || 'PROMPTERmini').trim();
     const cfgKey = cfg.email.toLowerCase() + '|' + folderName;
     const storage = await login(cfg, fresh);
     for (let i = 0; ; i++) {

@@ -164,7 +164,7 @@ const MegaProvider = {
   },
   cfg() {
     const m = Settings.get('mega') || {};
-    return { email: m.email || '', password: Secret.unprotect(m.pass || ''), folder: m.folder || 'PROMPTER mini' };
+    return { email: m.email || '', password: Secret.unprotect(m.pass || ''), folder: m.folder || 'PROMPTERmini' };
   },
   canPush() { return !Settings.get('readOnly'); },
   async snapshot() { const r = await this.api().snapshot(this.cfg()); return { remote: r.files, extras: r.extras, ctx: {} }; },
