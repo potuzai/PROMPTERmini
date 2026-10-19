@@ -67,6 +67,9 @@ async function browserMember(browser) {
   await sleep(500);
   await A.w.fill('.modal input[type=password]', 'heslo123');
   await A.w.click('.modal button:has-text("Přihlásit")');
+  await A.w.waitForSelector('.modal button:has-text("Založit složku")', { timeout: 10000 });
+  assert(await A.w.isVisible('.modal :text("zatím není složka „PROMPTERmini“")'), 'chybějící složka kapely se založí jen se souhlasem');
+  await A.w.click('.modal button:has-text("Založit složku")');
   await A.w.waitForFunction(() => !document.querySelector('.modal') && Sync.mode() === 'mega' && Sync.state === 'idle', null, { timeout: 15000 }).catch(async e => { console.log('DBG', await A.w.evaluate(() => JSON.stringify({ modal: !!document.querySelector('.modal'), err: (document.querySelector('.login-err') || {}).textContent, mode: Sync.mode(), st: Sync.state, le: Sync.lastError }))); throw e; });
   const files0 = cloudFiles();
   assert(files0.some(f => f.path === 'PROMPTERmini/config/singers.json'), 'zpěváci nahráni do Mega do složky kapely');
@@ -144,15 +147,14 @@ async function browserMember(browser) {
   assert(dirsNamed('Soubezna') === 1, 'souběžné připojení k Mega vytvoří jen jednu složku kapely');
   // Mega ukazuje novou složku až po chvíli: další připojení ji nesmí založit znovu
   const staleRes = await D.p.evaluate(async () => {
-    window.MEGA_MOCK_ENV = { MEGA_MOCK_STALE_MS: '6000' };
-    const api = MegaProvider.api(); const c = Object.assign({}, MegaProvider.cfg(), { folder: 'Pomala' });
+    window.MEGA_MOCK_ENV = { MEGA_MOCK_STALE_MS: '1500' };
+    const api = MegaProvider.api(); const c = Object.assign({}, MegaProvider.cfg(), { folder: 'Pomala', folderId: '' });
     await api.test(c);
-    await new Promise(r => setTimeout(r, 3200));
     const r = await api.snapshot(c).then(() => 'ok', e => e.message);
     window.MEGA_MOCK_ENV = {};
     return r;
   });
-  assert(dirsNamed('Pomala') === 1 && staleRes === 'ok', 'opožděný seznam složek v Mega nezaloží druhou složku kapely (' + staleRes + ')');
+  assert(dirsNamed('Pomala') === 1 && staleRes === 'ok', 'opožděný seznam složek v Mega nezaloží druhou složku kapely (' + staleRes.slice(0, 60) + ')');
   // už existující duplicitní složka kapely (vznikla dřív, např. z jiného okna) se sloučí do jedné
   {
     const st = cloud();
@@ -223,6 +225,20 @@ async function browserMember(browser) {
   assert(!cloudFiles().some(f => f.path.endsWith('songs/zluty.json')), 'smazání odstraní soubor z Mega');
   await A.w.evaluate(() => Sync.run());
   assert(!(await A.w.evaluate(() => Store.songs.has('zluty'))), 'smazání se přeneslo');
+  assert(await A.w.evaluate(() => (Store.meta.trash || []).some(t => t.obj.id === 'zluty')), 'co smazala synchronizace, jde vrátit (místní koš)');
+
+  /* ----- Složka kapely zmizela (někdo ji smazal v Mega): písně se nesmažou, naopak znovu nahrají ----- */
+  const countA = await A.w.evaluate(() => Store.songs.size);
+  {
+    const s0 = cloud(); const base = Object.entries(s0.nodes).find(([, n]) => n.dir && n.name === 'PROMPTERmini' && n.parent === 'root')[0];
+    const drop = id => { for (const [k, n] of Object.entries(s0.nodes)) if (n.parent === id) drop(k); delete s0.nodes[id]; };
+    drop(base); fs.writeFileSync(STATE, JSON.stringify(s0));
+  }
+  const lostRes = await A.w.evaluate(() => Sync.run());
+  assert(await A.w.evaluate(() => Store.songs.size) === countA && lostRes.removed === 0, 'zmizelá složka kapely: v zařízení se nic nesmaže');
+  assert(cloudFiles().filter(f => /PROMPTERmini\/songs\//.test(f.path)).length === countA, 'písně se do nové složky kapely znovu nahrály');
+  await B.w.evaluate(() => Sync.run());
+  assert(await B.w.evaluate(() => Store.songs.size) === countA, 'druhý člen po obnově o nic nepřišel');
 
   /* ----- Relace: znovupoužití a obnova po vypršení ----- */
   const logins0 = cloud().calls.login;

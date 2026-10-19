@@ -1,6 +1,6 @@
 'use strict';
 /* ===== Lokální úložiště (IndexedDB) + výchozí data ===== */
-const APP_VERSION = '1.21.7';
+const APP_VERSION = '1.22.0';
 const DB_NAME = 'prompter-pisne';
 const DB_VER = 2;
 const STORES = ['songs', 'playlists', 'templates', 'config', 'meta'];
@@ -64,16 +64,15 @@ const DEFAULT_SETTINGS = {
   wheelNav: false,               // listovat kolečkem myši
   hideCursor: true,
   readerSyncOnStart: true,
+  readerZoom: 1,                 // osobní zvětšení písma ve čtečce (1 = 100 %)
   defaultTemplate: 'default',
   lastPlaylist: null,
   pinHash: '',                   // PIN pro úpravy (prázdné = bez PINu)
   userName: '',
-  editorFontSize: 16,
   autoSync: true,
   sharedFolder: '',              // sdílená složka (Mega, Proton Drive…)
-  mega: { email: '', pass: '', folder: 'PROMPTERmini' },
+  mega: { email: '', pass: '', folder: 'PROMPTERmini', folderId: '' },   // folderId = zapamatovaná složka kapely v Mega
   readOnly: false,               // jen stahovat (např. čtečka)
-  bandName: '',
   welcomed: false,
   rememberBand: true,            // „Zůstat přihlášen“ – false = heslo kapely jen do zavření prohlížeče
   deviceRole: '',                // k čemu zařízení slouží: reader | editor | both | musician (nastaví průvodce)
@@ -84,7 +83,10 @@ const DEFAULT_SETTINGS = {
   privateNotes: {},              // soukromé poznámky k písním (jen toto zařízení)
   musView: { on: false, chords: true, inst: {} },   // náhled „Pro muzikanty“ – co zobrazit (jen tento počítač)
   gh: { owner: '', repo: '', branch: 'main', token: '', login: '', canPush: null },
+  lastSyncAt: '',                // poslední úspěšná synchronizace (ISO)
+  songSort: 'artist', plSort: 'new', editScreen: '', printOpts: null,   // poslední volby v seznamech, editoru a tisku
 };
+const OBSOLETE_SETTINGS = ['bandName', 'bandLink', 'editorFontSize', 'pasteClean'];   // klíče zrušených funkcí
 
 const SHARED_DISPLAY_KEYS = ['screenW', 'screenH', 'diagonal', 'distance'];
 
@@ -96,6 +98,7 @@ const Settings = {
     try { s = JSON.parse((window.native ? window.native.loadSettings() : localStorage.getItem(this._key)) || '{}'); } catch (e) { s = {}; }
     this.data = Object.assign(clone(DEFAULT_SETTINGS), s);
     this.data.gh = Object.assign(clone(DEFAULT_SETTINGS.gh), s.gh || {});
+    for (const k of OBSOLETE_SETTINGS) delete this.data[k];
     return this.data;
   },
   save() {
@@ -109,7 +112,7 @@ const Settings = {
       if (d && d[k] !== undefined) return d[k];
     }
     // „nepamatovat si na tomto zařízení“: heslo / token kapely jen do zavření prohlížeče
-    if ((k === 'mega' || k === 'gh') && this.data.rememberBand === false) {
+    if (k === 'mega' && this.data.rememberBand === false) {
       try { const sec = JSON.parse(sessionStorage.getItem('prompter-secret-' + k) || 'null'); if (sec) return Object.assign({}, this.data[k], sec); } catch (e) { /* nic */ }
     }
     return this.data[k];
@@ -175,9 +178,15 @@ const TYPES = {
   config: { dir: 'config' },
 };
 
+/* Nové položky – výchozí pole na jednom místě */
+const newSong = o => Object.assign({ id: uid(), title: 'Nová píseň', artist: '', key: '', tempo: '', tags: [], templateId: '', text: '' }, o);
+const newPlaylist = (name, items = []) => ({ id: uid(), name, date: new Date().toISOString().slice(0, 10), note: '', items });
+const playlistNameHint = () => 'Koncert ' + new Date().toLocaleDateString('cs-CZ');
+
 const Store = {
   songs: new Map(), playlists: new Map(), templates: new Map(), config: new Map(),
-  meta: { id: 'sync', remote: {}, local: {}, tombstones: {} }, // remote: path->sha, local: path->sha obsahu při poslední synchronizaci
+  // remote: cesta → verze v úložišti, local: cesta → otisk obsahu při poslední synchronizaci, trash: co smazala synchronizace (lze obnovit)
+  meta: { id: 'sync', remote: {}, local: {}, tombstones: {}, trash: [] },
   listeners: new Set(),
 
   async init() {
@@ -194,7 +203,8 @@ const Store = {
     if (this.templates.size === 0) {
       for (const t of [DEFAULT_TEMPLATE, ...EXTRA_TEMPLATES]) await this.put('templates', clone(t), { silent: true, noStamp: true });
     }
-    if (this.songs.size === 0 && !Settings.get('gh').repo) await this.put('songs', sampleSong(), { silent: true });
+    // ukázková píseň jen bez kapely – do sdíleného úložiště nepatří
+    if (this.songs.size === 0 && !['mega', 'github', 'folder'].includes(Settings.get('syncMode')) && !Settings.get('gh').repo) await this.put('songs', sampleSong(), { silent: true });
     // Starší verze měly výchozí monitor na šířku – čtečka kapely je na výšku
     const disp = this.config.get('display');
     if (disp && !disp.portraitMigrated) {
@@ -287,7 +297,6 @@ function currentUserName() {
 function sampleSong() {
   return {
     id: uid(), sample: true, title: 'Ukázková píseň', artist: 'Kapela', key: 'G', tempo: 120, tags: ['ukázka'],
-    note: 'Smaž mě, až si přidáš vlastní písně.',
     text: [
       '## Sloka 1',
       '@J Tenhle řádek zpívám já',

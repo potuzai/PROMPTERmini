@@ -333,7 +333,7 @@ const SettingsView = {
       head = Sync.locked() ? 'Odhlášeno – přihlas se znovu' : mg ? 'Přihlášeno ke kapele' : 'Sdílení zapnuté';
       who = mg ? `${mg.email} · složka v Mega „${mg.folder || 'PROMPTERmini'}“`
         : mode === 'github' ? `GitHub · ${g.owner}/${g.repo}${g.login ? ' · ' + g.login : ''}` : `Složka · ${Settings.get('sharedFolder')}`;
-      const when = Sync.lastSync ? ' v ' + Sync.lastSync.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' }) : '';
+      const ls = Sync.lastSync, when = !ls ? '' : (ls.toDateString() === new Date().toDateString() ? ' v ' : ' ' + ls.toLocaleDateString('cs-CZ') + ' v ') + ls.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' });
       line = { idle: 'Synchronizováno' + when, syncing: 'Synchronizuji…', pending: `Neodeslané změny: ${Store.pendingCount()}`, offline: 'Offline – změny se odešlou po připojení',
         locked: 'Synchronizace čeká na přihlášení', error: Sync.lastError || 'Chyba synchronizace', off: 'Zatím nesynchronizováno' }[st] || st;
       if (st === 'error' || Sync.locked()) tone = 'err'; else if (st === 'pending' || st === 'offline') tone = 'warn';
@@ -392,7 +392,7 @@ const SettingsView = {
       if (!dir) return;
       Settings.set('sharedFolder', dir); Settings.set('syncMode', 'folder');
       inp.value = dir;
-      await Sync.resetMeta(); Sync.lastError = '';
+      await freshSync();
       window.native.watchFolder(dir);
       try {
         const r = await Sync.run();
@@ -430,7 +430,7 @@ const SettingsView = {
         Settings.set('gh', Object.assign({}, Settings.get('gh'), { login: r.login, canPush: r.canPush, branch: r.defaultBranch || 'main' }));
         Settings.set('readOnly', false);
         if (!r.private) toast('Pozor: repozitář je VEŘEJNÝ – texty uvidí kdokoli. Přepni ho na Private (Settings → General → Danger Zone).', 'warn', 9000);
-        await dropSampleSongs(); await Sync.resetMeta(); Sync.lastError = '';
+        await freshSync();
         const res = await Sync.run();
         toast(`GitHub připojen · staženo ${res.downloaded}, odesláno ${res.pushed}`, 'ok', 5000);
         App.go(true);
@@ -483,7 +483,7 @@ const SettingsView = {
       const pinBtn = h('button', { class: 'btn nogrow', onclick: async () => {
         const p = await promptDlg(S.pinHash ? 'Nový PIN (prázdné = zrušit PIN)' : 'Zvol PIN pro úpravy (čísla nebo text)');
         if (p === null) return;
-        Settings.set('pinHash', p ? sha1Bytes(utf8.enc('prompter:' + p)) : '');
+        Settings.set('pinHash', p ? pinHash(p) : '');
         sessionStorage.setItem('unlocked', '1');
         toast(p ? 'PIN nastaven. Bez něj půjde jen číst ve čtečce.' : 'PIN zrušen', 'ok');
         paint();
@@ -514,7 +514,7 @@ const SettingsView = {
 
   /* ---------- Obrazovky kapely (sdílené profily: rozměr, obsah, písmo) ---------- */
   screens(sub) {
-    let edId = sub || (Screens.myId() === 'auto' ? 'main' : Screens.myId());
+    let edId = sub || Screens.editId();
     const scrTabs = h('div', { class: 'scr-tabs' });
     const scrBox = h('div', { class: 'scr-box' });
     const presets = [[1920, 1080, 'Full HD (většina 24" monitorů)'], [1920, 1200, '24" 16:10'], [1680, 1050, '22" 16:10'], [1600, 900, ''], [1366, 768, 'notebook'], [1280, 1024, 'starší 4:3/5:4'], [2560, 1440, '27" QHD'], [2048, 1536, 'iPad'], [2340, 1080, 'mobil']];
@@ -627,6 +627,8 @@ const SettingsView = {
         setRow('Stáhnout zálohu', 'Jeden soubor .json se všemi písněmi, playlisty, šablonami a zpěváky.', h('button', { class: 'btn nogrow', onclick: () => exportBackup() }, '⇩ Stáhnout')),
         setRow('Obnovit ze zálohy', 'Slučovací – nic nesmaže, jen doplní a přepíše stejné položky. Při přihlášení ke kapele se pak odešlou do kapely.', h('button', { class: 'btn nogrow', onclick: () => pickFile('.json').then(f => f && importBackup(f)) }, '⇪ Vybrat soubor')),
         setRow('Import písní z textu', 'Soubory .txt – každý soubor jedna píseň. Jde i přetáhnout soubory do okna.', h('button', { class: 'btn nogrow', onclick: () => importTxtFiles() }, '⇪ Vybrat soubory')),
+        (Store.meta.trash || []).length ? setRow('Smazáno synchronizací', `${Store.meta.trash.length} položek smazal jiný člen nebo zmizely z úložiště kapely (naposledy ${new Date(Store.meta.trash[0].at).toLocaleString('cs-CZ')}).`,
+          h('button', { class: 'btn nogrow', onclick: () => restoreSyncTrash() }, '↶ Vrátit')) : null,
         window.native ? setRow('Složka s daty', window.native.dataDir, h('button', { class: 'btn nogrow', onclick: () => window.native.openDataDir() }, 'Otevřít')) : null));
   },
 
@@ -636,8 +638,7 @@ const SettingsView = {
       h('div', { class: 'set-rows' },
         setRow('Verze', null, h('b', {}, APP_VERSION)),
         setRow('Druh', null, h('span', {}, window.native ? 'program pro Windows' : (matchMedia('(display-mode: standalone)').matches || navigator.standalone ? 'nainstalovaná aplikace' : 'webová verze'))),
-        setRow('Adresa aplikace', 'Stejná aplikace pro telefon, tablet i počítač.', h('a', { href: appUrl(), target: '_blank' }, appUrl().replace(/^https:\/\//, ''))),
-        App.canInstall() ? setRow('Nainstalovat', 'Ikona na ploše a celá obrazovka.', h('button', { class: 'btn nogrow', onclick: () => App.install() }, 'Nainstalovat')) : null));
+        setRow('Adresa aplikace', 'Stejná aplikace pro telefon, tablet i počítač.', h('a', { href: appUrl(), target: '_blank' }, appUrl().replace(/^https:\/\//, '')))));
   },
 };
 
@@ -676,10 +677,29 @@ async function importBackup(file) {
   let data;
   try { data = JSON.parse(await readFileText(file)); } catch (e) { return toast('Soubor není platná záloha.', 'err'); }
   if (!data || data.app !== 'prompter') return toast('Soubor není záloha této aplikace.', 'err');
-  let n = 0;
+  // novější verze v zařízení (a tím i v kapele) má přednost – záloha doplní jen chybějící a starší
+  let n = 0, kept = 0;
   for (const type of Object.keys(TYPES)) {
-    for (const o of data[type] || []) { if (o && o.id) { await Store.put(type, o, { silent: true, noStamp: true }); n++; } }
+    for (const o of data[type] || []) {
+      if (!o || !o.id) continue;
+      const cur = Store[type].get(o.id);
+      if (cur && (cur.updatedAt || '') >= (o.updatedAt || '')) { kept++; continue; }
+      await Store.put(type, o, { silent: true, noStamp: true }); n++;
+    }
   }
   Store.emit('sync', null);
-  toast(`Obnoveno ${n} položek`, 'ok');
+  toast(`Obnoveno ${n} položek` + (kept ? ` · ${kept} ponecháno (v zařízení je stejná nebo novější verze)` : ''), 'ok', 6000);
+}
+
+/* Vrátit, co smazala synchronizace (smazal to jiný člen nebo zmizelo z úložiště) */
+async function restoreSyncTrash() {
+  const items = Store.meta.trash || [];
+  if (!items.length) return;
+  if (!await confirmDlg(`Vrátit ${items.length} položek, které smazala synchronizace? Znovu se nahrají i do kapely.`, 'Vrátit')) return;
+  for (const { type, obj } of items) if (TYPES[type] && !Store[type].has(obj.id)) await Store.put(type, obj, { silent: true });
+  Store.meta.trash = [];
+  await Store.saveMeta();
+  Store.emit('sync', null);
+  toast('Vráceno – odešle se při další synchronizaci.', 'ok');
+  App.go(true);
 }

@@ -24,8 +24,6 @@ class StageEditor {
     wrap.addEventListener('contextmenu', e => this.onContext(e));
     wrap.addEventListener('paste', e => this.onPaste(e));
     wrap.addEventListener('input', () => this.onEditInput());
-    wrap.addEventListener('focusin', () => this.paintHint());
-    wrap.addEventListener('focusout', () => setTimeout(() => this.paintHint(), 0));
     this.placeholder = h('div', { class: 'se-empty' },
       h('b', {}, 'Píseň je zatím prázdná'),
       h('span', {}, 'Vlož text (Ctrl+V) nebo začni psát. Text se automaticky vyčistí a rozdělí na sloky a refrény.'));
@@ -169,7 +167,6 @@ class StageEditor {
     for (const t of sel) for (const e of this.elsOf(t)) e.classList.add('is-sel');
     for (const e of this.elsOf(this.cur())) e.classList.add('is-cur');
     this.curLine = this.cur() ? this.cur().line : this.curLine;
-    this.paintHint();
     this.ed.onSelChange();
   }
 
@@ -193,23 +190,6 @@ class StageEditor {
     this.paintPage();
   }
 
-  /* ---------- Nápověda pod stránkou ---------- */
-  paintHint() {
-    const el = this.ed.hintEl;
-    if (!el) return;
-    const focused = this.wrap.contains(document.activeElement);
-    const k = (keys, label) => h('span', { class: 'hk' }, h('kbd', {}, keys), label);
-    el.innerHTML = '';
-    if (this.editing) {
-      el.append(h('b', { class: 'hm on' }, 'Píšeš'), k('Enter', 'nový řádek'), k('↑ ↓', 'jiný řádek'), k('Esc', 'hotovo'));
-    } else if (!focused) {
-      el.append(h('b', { class: 'hm' }, 'Klikni na stránku'), h('span', { class: 'hk' }, 'a ovládej šipkami a OK na airmouse'));
-    } else {
-      const t = this.cur();
-      el.append(h('b', { class: 'hm' }, t ? this.describe(t) : 'Prázdná stránka'),
-        k('↑ ↓', 'řádek'), k('← →', 'kdo zpívá'), k('OK', 'nabídka'), k('psaní', 'úprava textu'));
-    }
-  }
   describe(t) {
     const names = { line: 'Řádek', chords: 'Akordy', section: 'Nadpis sekce', note: 'Poznámka', repeat: 'Opakování', mus: 'Pro muzikanty', musblock: 'Blok pro muzikanty' };
     const who = this.singersOf(t);
@@ -365,7 +345,6 @@ class StageEditor {
     const ch = this.editing.ch;
     this.editing.ch = null;
     if (ch) { document.execCommand('insertText', false, ch); }
-    this.paintHint();
   }
   setCaret(caret) {
     const el = this.editEl;
@@ -427,7 +406,6 @@ class StageEditor {
     const line = this.editing.line;
     this.editing = null;
     this.editEl = null;
-    // prázdný nový řádek nenechávat (kromě mezery mezi slokami, ta už je vidět jako mezera)
     this.pushHist();
     this.curLine = line;
     this.render();
@@ -466,7 +444,7 @@ class StageEditor {
     this.render(); // prázdný řádek už není potřeba zobrazovat
     const t = this.targets[j];
     if (t && this.editable(t)) { this.editing = { line: t.line, caret: 'end' }; this.curKey = t.key; this.render(); }
-    else { this.curLine = line; this.wrap.focus({ preventScroll: true }); this.paintHint(); }
+    else { this.curLine = line; this.wrap.focus({ preventScroll: true }); }
   }
   joinPrev() {
     const i = this.editing.line, ls = this.lines();
@@ -523,9 +501,9 @@ class StageEditor {
     e.preventDefault();
     if (!t) return;
     if (this.editing && !t.includes('\n')) { document.execCommand('insertText', false, t); return; }
-    const clean = Settings.get('pasteClean') !== false ? cleanText(t) : t.replace(/\r\n?/g, '\n');
+    const clean = cleanText(t);
     this.insertText(clean);
-    if (Settings.get('pasteClean') !== false) toast('Vložený text vyčištěn – Ctrl+Z vrátí.', 'ok');
+    toast('Vložený text vyčištěn – Ctrl+Z vrátí.', 'ok');
   }
   /* víc řádků za vybraný řádek (do prázdné písně celý text) */
   insertText(text) {

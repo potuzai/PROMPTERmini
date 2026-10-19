@@ -8,34 +8,40 @@
 })(typeof self !== 'undefined' ? self : this, function createMegaCore(Storage) {
   const STORES = ['songs', 'playlists', 'templates', 'config'];
   const NAME_RE = /^[A-Za-z0-9_-]+\.json$/;
+  const DEFAULT_FOLDER = 'PROMPTERmini';
 
   let session = null;    // { email, json } – přihlášení se znovu nepoužívá heslo
-  let current = null;    // { storage, base, folders, byId } – stav poslední načtené struktury
+  let current = null;    // stav poslední synchronizace: { storage, base, folders, cfgKey, files, byId }
+  const made = {};       // „rodič/jméno“ → { id } složek, které tato aplikace založila
+  const obsolete = new Set();   // staré verze souborů, které se nepodařilo smazat – smažou se příště
+
+  const folderOf = cfg => (cfg.folder || DEFAULT_FOLDER).trim();
+  const keyOf = cfg => cfg.email.toLowerCase() + '|' + folderOf(cfg);
+  const code = e => String((e && e.message) || e);
 
   function friendly(e) {
-    const m = String((e && e.message) || e);
-    if (/ENOENT \(-9\)|EACCESS|-9\b|EKEY|-15\b|ESID|-16\b|EBLOCKED/.test(m)) return 'Mega: špatný e-mail nebo heslo (nebo je účet zablokovaný).';
+    const m = code(e);
     if (/-26\b|EMFAREQUIRED|second factor/i.test(m)) return 'Mega: účet má zapnuté dvoufázové ověření – pro kapelu použij účet bez něj.';
     if (/-3\b|EAGAIN|-4\b|ERATELIMIT|-6\b|ETOOMANY/.test(m)) return 'Mega je dočasně přetížená, zkusím to znovu později.';
     if (/-17\b|EOVERQUOTA/.test(m)) return 'Mega: došlo místo nebo přenosový limit účtu.';
+    if (/-9\b|ENOENT/.test(m)) return 'Mega: soubor nebo složka už v účtu není (možná je mezitím smazal jiný člen) – zkusím to znovu.';
     if (/fetch failed|ENOTFOUND|ECONNRE|ETIMEDOUT|EAI_AGAIN|network/i.test(m)) return 'Nelze se připojit k Mega (offline?).';
-    return 'Mega: ' + m;
+    return m.startsWith('Mega') ? m : 'Mega: ' + m;
   }
+  const gone = e => /-9\b|ENOENT/.test(code(e));   // uzel už neexistuje – mazání je tím hotové
+  const timeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('Mega neodpovídá (vypršel čas) – zkusím to znovu.')), ms))]);
 
-  /* Načte strom souborů. Knihovna zařadí uzel pod rodiče jen tehdy, když rodiče už zná –
-     pošle-li Mega podřízený uzel dřív než rodiče, „zmizel“ by (a složka kapely by se zakládala znovu).
-     Proto si zapamatujeme rodiče všech uzlů a osiřelé dodatečně zařadíme. */
+  /* Načte celý strom souborů účtu.
+     - Knihovna žádá o seznam bez „r: 1“ (rekurzivně) a Mega pak vrátí jen kořen, koš a doručené –
+       složka kapely v seznamu chyběla a aplikace ji zakládala stále znovu. Doplníme ho.
+     - Knihovna zařadí uzel pod rodiče jen tehdy, když rodiče už zná; osiřelé uzly zařadíme dodatečně. */
   async function loadTree(s) {
-    if (typeof s._importFile !== 'function') { await s.reload(true); return; }
     const parents = {};
-    const orig = s._importFile;
-    s._importFile = function (f) { if (f && f.h) parents[f.h] = f.p; return orig.call(this, f); };
-    // Knihovna žádá o strom bez „r: 1“ (rekurzivně) – Mega pak vrátí jen kořen, koš a doručené
-    // a složka kapely v seznamu chybí (proto vznikaly stále nové). Doplníme ho.
-    const api = s.api, req = api && api.request;
+    const api = s.api, req = api && api.request, imp = s._importFile;
     if (req) api.request = function (json, ...rest) { if (json && json.a === 'f' && !json.r) json = Object.assign({}, json, { r: 1 }); return req.call(this, json, ...rest); };
-    try { await s.reload(true); } finally { s._importFile = orig; if (req) api.request = req; }
-    s._parents = parents;
+    if (imp) s._importFile = function (f) { if (f && f.h) parents[f.h] = f.p; return imp.call(this, f); };
+    try { await timeout(s.reload(true), 90000); }
+    finally { if (req) api.request = req; if (imp) s._importFile = imp; }
     for (const [h, p] of Object.entries(parents)) {
       const f = s.files[h], par = p && s.files[p];
       if (f && par && !f.parent && par.children && f !== par) { f.parent = par; par.children.push(f); }
@@ -52,7 +58,11 @@
       } catch (e) { /* relace vypršela – přihlásit znovu */ }
     }
     const s = new Storage(Object.assign({ email: cfg.email.trim(), password: cfg.password, keepalive: false, autologin: true, autoload: false }, typeof window === 'undefined' ? { userAgent: 'PrompterMini/1.0' } : {}));
-    await s.ready;
+    try { await timeout(s.ready, 90000); }
+    catch (e) {
+      if (/-9\b|ENOENT|EACCESS|EKEY|-15\b|ESID|-16\b|EBLOCKED/.test(code(e))) { const err = new Error('Mega: špatný e-mail nebo heslo (nebo je účet zablokovaný).'); err.auth = true; throw err; }
+      throw e;
+    }
     await loadTree(s);
     if (!s.root) throw new Error('Mega nevrátila obsah účtu, zkus to znovu.');
     session = { email: cfg.email.toLowerCase(), json: s.toJSON() };
@@ -61,6 +71,7 @@
 
   const dirs = f => (f.children || []).filter(c => c.directory);
   const fileCount = f => (f.children || []).reduce((n, c) => n + (c.directory ? fileCount(c) : 1), 0);
+  const loose = n => String(n || '').toLowerCase().replace(/[\s_-]+/g, '');
   /* Přesune obsah složky src do dst (stejně pojmenované podsložky se slučují rekurzivně). */
   async function mergeInto(src, dst) {
     for (const c of [...(src.children || [])]) {
@@ -69,9 +80,6 @@
       else await c.moveTo(dst);
     }
   }
-  /* Složka podle jména. Když jich je víc stejného jména (vznikly souběžným připojením z více oken
-     nebo zařízení), použije se ta s nejvíc daty, obsah ostatních se do ní přesune a prázdné
-     kopie jdou do koše Mega. Duplicitní soubory pak vyřeší synchronizace (nejnovější platí). */
   /* Složka podle ID (zapamatovaná z dřívějška), pokud v účtu je a neleží v koši */
   function known(storage, id) {
     const f = id && storage.files && storage.files[id];
@@ -85,62 +93,76 @@
       `bez rodiče ${all.filter(f => !f.parent && f.type < 2).length}, bez jména ${all.filter(f => f.name == null && f.type < 2).length}`;
   }
 
-  async function ensureDir(parent, name, st, preferId) {
-    const found = dirs(parent).filter(c => c.name === name).sort((a, b) => fileCount(b) - fileCount(a));
+  /* Složka podle jména. Když jich je víc stejného jména (vznikly souběžným připojením z více oken
+     nebo zařízení), použije se ta s nejvíc daty, obsah ostatních se do ní přesune a prázdné
+     kopie jdou do koše Mega. Duplicitní soubory pak vyřeší synchronizace (nejnovější platí).
+     o.preferId = zapamatovaná složka, o.loose = najít i „PROMPTER mini“ / „prompterMINI“,
+     o.create = false → nezakládat, jen ohlásit, že chybí. */
+  async function ensureDir(parent, name, st, o = {}) {
+    let found = dirs(parent).filter(c => c.name === name);
+    if (!found.length && o.loose) found = dirs(parent).filter(c => loose(c.name) === loose(name));
+    found.sort((a, b) => fileCount(b) - fileCount(a));
     const key = parent.nodeId + '/' + name;
     if (!found.length) {
       // tuhle složku už známe (z dřívějška nebo jsme ji právě založili) – nezakládat znovu, i když ji Mega v seznamu neukázala
-      // (jen když jméno sedí nebo ho nejde přečíst – jiná složka se zapamatovaným ID se nepoužije)
-      const k = [known(parent.storage || {}, preferId), known(parent.storage || {}, made[key])].find(f => f && (f.name === name || f.name == null));
+      const mk = made[key];
+      const k = [known(parent.storage || {}, o.preferId), known(parent.storage || {}, mk && mk.id)].find(f => f && (f.name === name || f.name == null));
       if (k) return k;
-      if (made[key]) { const e = new Error('Mega ještě neukazuje novou složku kapely, zkusím to za chvíli.'); e.stale = true; throw e; }
+      // právě založenou složku Mega neukazuje – nezakládat hned další (rozhodne openNow: počkat, nebo byla smazaná)
+      if (mk) { const e = new Error(`V účtu Mega nevidím složku „${name}“, kterou aplikace právě založila (${stats(parent.storage || {}, name)}).`); e.invisible = key; throw e; }
+      if (o.create === false) {
+        const other = dirs(parent).map(d => d.name).filter(Boolean);
+        const e = new Error(`V účtu Mega zatím není složka „${name}“.` + (other.length ? ` Jsou tam: ${other.map(n => '„' + n + '“').join(', ')}.` : ''));
+        e.noFolder = true;
+        throw e;
+      }
       const d = await parent.mkdir(name);
-      made[key] = d.nodeId;
+      made[key] = { id: d.nodeId };
+      if (st) st.created = true;
       return d;
     }
     for (const dup of found.slice(1)) {
-      try { if (fileCount(dup)) { await mergeInto(dup, found[0]); if (st) st.merged = true; } await dup.delete(false); if (st) st.merged = true; }
+      try { if (fileCount(dup)) await mergeInto(dup, found[0]); await dup.delete(false); if (st) st.merged = true; }
       catch (e) { /* zkusí se příště */ }
     }
     return found[0];
   }
 
-  const made = {};   // „rodič/jméno“ → nodeId složek, které tato aplikace založila
-  const wait = ms => new Promise(r => setTimeout(r, ms));
-
   // Připojení se nikdy nesmí překrývat – jinak by si každé založilo vlastní složku kapely
   let lock = Promise.resolve();
   const serial = fn => { const r = lock.then(fn, fn); lock = r.catch(() => {}); return r; };
 
-  function open(cfg, fresh) { return serial(() => openNow(cfg, fresh)); }
-  async function openNow(cfg, fresh) {
-    const folderName = (cfg.folder || 'PROMPTERmini').trim();
-    const cfgKey = cfg.email.toLowerCase() + '|' + folderName;
-    const storage = await login(cfg, fresh);
+  function open(cfg, fresh, create) { return serial(() => openNow(cfg, fresh, create)); }
+  async function openNow(cfg, fresh, create) {
+    const name = folderOf(cfg);
+    let storage = await login(cfg, fresh), created = false, waited = false;
     for (let i = 0; ; i++) {
+      const st = {};
+      let base, folders = {};
       try {
-        const st = {};
-        let base = await ensureDir(storage.root, folderName, st, cfg.folderId);
-        if (st.merged) { await loadTree(storage); base = await ensureDir(storage.root, folderName, null, cfg.folderId); }
-        const folders = {};
-        for (const s of STORES) folders[s] = await ensureDir(base, s);
-        current = { storage, base, folders, cfgKey };
-        return current;
+        base = await ensureDir(storage.root, name, st, { preferId: cfg.folderId, loose: true, create });
+        for (const s of STORES) folders[s] = await ensureDir(base, s, st);
       } catch (e) {
-        if (e.stale && i >= 4) throw new Error(`V účtu Mega nevidím složku „${folderName}“ (${stats(storage, folderName)}). Pošli prosím tuto zprávu.`);
-        if (!e.stale) throw e;
-        await wait(1500 * (i + 1));
-        await loadTree(storage);
+        if (!e.invisible || i >= 4) throw e;
+        // složku, kterou jsme založili, Mega nevrací: chvíli počkat; když pořád chybí, někdo ji smazal → založit znovu
+        if (!waited) { waited = true; await new Promise(r => setTimeout(r, 2000)); } else delete made[e.invisible];
+        storage = await login(cfg);
+        continue;
       }
+      created = created || !!st.created;
+      // po sloučení duplicit je strom v paměti zastaralý (knihovna přesuny nepromítá) – načíst znovu
+      if (!st.merged || i >= 4) return { storage, base, folders, cfgKey: keyOf(cfg), created };
+      storage = await login(cfg);
     }
   }
 
-  /* Seznam souborů: { files: {cesta: verze}, extras: [cesty duplicit „cesta#nodeId“] } */
+  /* Seznam souborů: { files: {cesta: verze}, extras: [cesty duplicit „cesta#nodeId“], folderId } */
   async function snapshot(cfg) {
     let c;
     try { c = await open(cfg); } catch (e) {
-      if (session) { session = null; try { c = await open(cfg, true); } catch (e2) { throw new Error(friendly(e2)); } }
-      else throw new Error(friendly(e));
+      if (e.auth || !session) throw new Error(friendly(e));
+      session = null;
+      try { c = await open(cfg, true); } catch (e2) { throw new Error(friendly(e2)); }
     }
     const files = {}, extras = [];
     c.byId = {};
@@ -149,6 +171,7 @@
       for (const f of (c.folders[s].children || [])) {
         if (f.directory) continue;
         c.byId[f.nodeId] = f;
+        if (obsolete.has(f.nodeId)) continue;   // stará verze, kterou jsme už nahradili – není to konflikt
         (byName[f.name] = byName[f.name] || []).push(f);
       }
       for (const [name, list] of Object.entries(byName)) {
@@ -160,6 +183,8 @@
         } else if (/\.json$/i.test(name)) for (const f of list) extras.push(`data/${s}/${name}#${f.nodeId}`);
       }
     }
+    c.files = files;
+    current = c;
     return { files, extras, folderId: c.base.nodeId };
   }
 
@@ -168,57 +193,76 @@
     if (!m) throw new Error('Neplatná cesta ' + p);
     return { store: m[1], name: m[2], nodeId: m[3] };
   }
+  /* čtení a zápis patří k poslední synchronizaci téhož účtu a složky (jinak by mohly zapsat jinam) */
+  function cur(cfg) {
+    if (!current || current.cfgKey !== keyOf(cfg)) throw new Error('Mega: synchronizace se přerušila, zkusím to znovu.');
+    return current;
+  }
 
   async function read(cfg, p, version) {
-    if (!current) await snapshot(cfg);
+    const c = cur(cfg);
     const { nodeId } = splitPath(p);
-    const f = current.byId[nodeId || version];
+    const f = c.byId[nodeId || version];
     if (!f) throw new Error('Soubor už v Mega není: ' + p);
     try { return new TextDecoder('utf-8').decode(await f.downloadBuffer({})); } catch (e) { throw new Error(friendly(e)); }
   }
 
+  async function remove(node, permanent) {
+    try { await node.delete(permanent); return true; } catch (e) { if (gone(e)) return true; throw e; }
+  }
+
   async function commit(cfg, uploads, deletes) {
-    if (!current) await snapshot(cfg);
+    const c = cur(cfg);
     const versions = {};
     try {
+      for (const id of [...obsolete]) {
+        const o = c.byId[id];
+        if (!o) { obsolete.delete(id); continue; }
+        try { if (await remove(o, true)) obsolete.delete(id); } catch (e) { /* příště */ }
+      }
       for (const u of uploads) {
         const { store, name } = splitPath(u.path);
-        const folder = current.folders[store];
-        const old = (folder.children || []).filter(f => !f.directory && f.name === name);
+        const folder = c.folders[store];
+        const old = c.byId[c.files[u.path]];   // jen verze, se kterou synchronizace počítala – souběžné úpravy jiných zůstanou
         const buf = typeof Buffer !== 'undefined' ? Buffer.from(u.text, 'utf8') : new TextEncoder().encode(u.text);
         const file = await folder.upload({ name, size: buf.length }, buf).complete;
         versions[u.path] = file.nodeId;
-        current.byId[file.nodeId] = file;
+        c.byId[file.nodeId] = file; c.files[u.path] = file.nodeId;
         // Starou verzi smazat až po úspěšném nahrání nové (při výpadku se nic neztratí)
-        for (const o of old) { try { await o.delete(true); } catch (e) { /* smaže se příště jako duplicita */ } }
+        if (old) { try { await remove(old, true); } catch (e) { obsolete.add(old.nodeId); } }
       }
       for (const p of deletes) {
-        const { store, name, nodeId } = splitPath(p);
-        const folder = current.folders[store];
-        const targets = nodeId ? [current.byId[nodeId]].filter(Boolean) : (folder.children || []).filter(f => !f.directory && f.name === name);
-        for (const t of targets) await t.delete(true);
+        const { nodeId } = splitPath(p);
+        // konfliktní kopie (už uložené jako kopie v aplikaci) se mažou natrvalo, smazané písně do koše Mega (dají se obnovit)
+        const t = nodeId ? c.byId[nodeId] : c.byId[c.files[p]];
+        if (t) await remove(t, !!nodeId);
+        if (!nodeId) delete c.files[p];
       }
     } catch (e) { throw new Error(friendly(e)); }
     return versions;
   }
 
+  /* Ověří přihlášení a složku kapely. cfg.create === false → složku nezakládat (ohlásí noFolder). */
   async function test(cfg) {
-    try {
-      const c = await open(cfg, true);
-      let space = null;
-      try { const a = await c.storage.getAccountInfo(); space = { used: a.spaceUsed, total: a.spaceTotal }; } catch (e) { /* nevadí */ }
-      return { email: c.storage.email || cfg.email, name: c.storage.name || '', folder: c.base.name, folderId: c.base.nodeId, space };
-    } catch (e) { throw new Error(friendly(e)); }
+    let c;
+    try { c = await open(cfg, true, cfg.create); }
+    catch (e) {
+      if (e.noFolder) throw e;
+      throw new Error(friendly(e));
+    }
+    let space = null;
+    try { const a = await c.storage.getAccountInfo(); space = { used: a.spaceUsed, total: a.spaceTotal }; } catch (e) { /* nevadí */ }
+    return { email: c.storage.email || cfg.email, name: c.storage.name || '', folder: c.base.name, folderId: c.base.nodeId, created: c.created, space };
   }
 
-  function logout() { session = null; current = null; }
+  function logout() { session = null; current = null; for (const k of Object.keys(made)) delete made[k]; obsolete.clear(); }
 
   /* Co aplikace v účtu Mega vidí – pro hledání chyb (bez obsahu souborů) */
   async function diag(cfg) {
     try {
       const s = await login(cfg, true);
       const all = Object.values(s.files || {});
-      const name = (cfg.folder || 'PROMPTERmini').trim();
+      const name = folderOf(cfg);
       const line = f => `${f.name}  (souborů ${fileCount(f)}, ${f.timestamp ? new Date(f.timestamp * 1000).toLocaleString('cs-CZ') : '?'})`;
       return [
         `uzlů celkem: ${all.length}`,

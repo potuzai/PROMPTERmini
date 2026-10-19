@@ -30,7 +30,6 @@ const PlaylistsView = {
         h('div', { class: 'sl-row pl-row sl-cols' }, h('span', {}, 'Datum'), h('span', {}, 'Název'), h('span', {}, 'Písní'), h('span', {}, 'Poznámka'), h('span', {})),
         list, count),
       prev));
-    const narrow = () => matchMedia('(max-width: 820px)').matches;
     const paintPrev = p => {
       prev.innerHTML = '';
       if (!p) { prev.appendChild(h('div', { class: 'help pl-prev-empty' }, 'Klikni na playlist a tady uvidíš, co obsahuje.')); return; }
@@ -69,7 +68,7 @@ const PlaylistsView = {
       const pls = sorted(sortSel.value).filter(p => !q || normalizeForSearch([p.name, p.note, p.date, ...p.items.map(id => (Store.songs.get(id) || {}).title || '')].join(' ')).includes(q));
       for (const p of pls) {
         list.appendChild(h('div', { class: 'item sl-row pl-row', 'data-id': p.id, title: 'Klik = náhled, dvojklik = upravit',
-          onclick: () => narrow() ? (location.hash = '#/playlists/' + p.id) : select(p.id),
+          onclick: () => isMobile() ? (location.hash = '#/playlists/' + p.id) : select(p.id),
           ondblclick: () => { location.hash = '#/playlists/' + p.id; } },
           h('span', { class: 'sl-artist' }, p.date ? new Date(p.date).toLocaleDateString('cs-CZ') : '—'),
           h('b', { class: 'sl-title' }, p.name || '(bez názvu)'),
@@ -93,9 +92,9 @@ const PlaylistsView = {
   },
 
   async create() {
-    const name = await promptDlg('Název playlistu', 'Koncert ' + new Date().toLocaleDateString('cs-CZ'));
+    const name = await promptDlg('Název playlistu', playlistNameHint());
     if (!name) return;
-    const p = await Store.put('playlists', { id: uid(), name, date: new Date().toISOString().slice(0, 10), templateId: '', note: '', items: [] });
+    const p = await Store.put('playlists', newPlaylist(name));
     location.hash = '#/playlists/' + p.id;
   },
 

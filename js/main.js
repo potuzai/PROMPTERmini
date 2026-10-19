@@ -7,6 +7,7 @@ const App = {
   async init() {
     Settings.load();
     this.applyTheme();
+    if (Settings.get('lastSyncAt')) Sync.lastSync = new Date(Settings.get('lastSyncAt'));
     matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => this.applyTheme());
     try { await Store.init(); }
     catch (e) {
@@ -47,7 +48,7 @@ const App = {
     if (Sync.enabled() && !Sync.locked()) {
       Sync.run().then(r => { if (r && r.downloaded) toast(`Staženo ${r.downloaded} změn od ostatních`, 'ok'); }).catch(() => {});
     }
-    // Pravidelná kontrola změn od ostatních (složka každou minutu, GitHub každých 5 min)
+    // Pravidelná kontrola změn od ostatních (složka každou minutu, Mega a GitHub každých 5 min)
     let tick = 0;
     setInterval(() => {
       tick++;
@@ -90,7 +91,7 @@ const App = {
   async unlock() {
     const inp = h('input', { class: 'inp', type: 'password', placeholder: 'PIN' });
     const v = await modal({ title: '🔒 Úpravy jsou chráněné PINem', body: inp, buttons: [{ label: 'Jen číst (čtečka)', value: null }, { label: 'Odemknout', primary: true, value: () => inp.value }] });
-    if (v && sha1Bytes(utf8.enc('prompter:' + v)) === Settings.get('pinHash')) { sessionStorage.setItem('unlocked', '1'); return true; }
+    if (v && pinHash(v) === Settings.get('pinHash')) { sessionStorage.setItem('unlocked', '1'); return true; }
     if (v) toast('Špatný PIN', 'err');
     return false;
   },

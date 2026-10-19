@@ -111,22 +111,23 @@ function checkDir(dir) {
 }
 ipcMain.handle('folderList', (e, dir) => {
   checkDir(dir);
-  const files = {}, extras = [];
+  // skip = soubory, které teď nejde přečíst; keep = chybějící podsložky – nic z toho se nesmí brát jako smazané
+  const files = {}, extras = [], skip = [], keep = [];
   for (const s of STORES) {
     const sub = path.join(dir, s);
-    if (!fs.existsSync(sub)) continue;
+    if (!fs.existsSync(sub)) { keep.push(`data/${s}/`); continue; }
     for (const f of fs.readdirSync(sub)) {
       if (f.startsWith('.') || f.startsWith('~') || !f.toLowerCase().endsWith('.json')) continue;
       const full = path.join(sub, f);
-      let st; try { st = fs.statSync(full); } catch (err) { continue; }
+      const id = f.slice(0, -5), rel = `data/${s}/${id}.json`;
+      let st; try { st = fs.statSync(full); } catch (err) { skip.push(rel); continue; }
       if (!st.isFile()) continue;
-      const id = f.slice(0, -5);
       if (/^[A-Za-z0-9_-]+$/.test(id)) {
-        try { files[`data/${s}/${id}.json`] = gitSha(fs.readFileSync(full)); } catch (err) { /* soubor se zrovna stahuje */ }
+        try { files[rel] = gitSha(fs.readFileSync(full)); } catch (err) { skip.push(rel); } // soubor se zrovna stahuje
       } else extras.push(`data/${s}/${f}`); // např. „abc (1).json“ = konfliktní kopie od úložiště
     }
   }
-  return { files, extras };
+  return { files, extras, skip, keep };
 });
 function extraPath(dir, rel) {
   const m = /^data\/(songs|playlists|templates|config)\/([^/\\]+\.json)$/i.exec(rel);

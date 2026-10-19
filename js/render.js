@@ -243,7 +243,7 @@ function dimLabel(W, H) {
 }
 
 function stripes(colors, soft) {
-  if (colors.length === 1) return soft ? colors[0] : colors[0];
+  if (colors.length === 1) return colors[0];
   const step = 100 / colors.length;
   return `linear-gradient(${soft ? '90deg' : '180deg'}, ${colors.map((c, i) => `${c} ${i * step}% ${(i + 1) * step}%`).join(', ')})`;
 }

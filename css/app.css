@@ -103,7 +103,6 @@ label.chk { display: flex; gap: 9px; align-items: center; cursor: pointer; paddi
 .row > * { flex: 1; min-width: 90px; }
 .row > .nogrow { flex: 0 0 auto; }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; }
-.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 14px; }
 /* moduly nastavení */
 /* nastavení: moduly vedle sebe přes celou šířku */
 .field-help { display: block; white-space: normal !important; text-transform: none; letter-spacing: 0; font-family: var(--font); font-size: 12px; margin-top: 2px; }
@@ -231,16 +230,11 @@ kbd { font: 600 11px/1 var(--mono); padding: 3px 5px; border: 1px solid var(--li
 .ed-panel { flex: 0 0 236px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; padding: 16px 14px 14px; border-left: 1px solid var(--line); background: var(--panel); }
 .ed-left-panel { border-left: 0; border-right: 1px solid var(--line); }
 .ed-right-panel { flex-basis: 214px; }
-.ep-head { display: flex; flex-direction: column; gap: 6px; }
 .ep-back { align-self: flex-start; background: none; border: 0; padding: 0; color: var(--dim); font: 13px var(--font); cursor: pointer; }
 .ep-back:hover { color: var(--text); }
 .ep-title { width: 100%; background: transparent; border: 0; border-bottom: 1px solid transparent; padding: 2px 0; color: var(--text); font: 500 19px/1.25 var(--font); outline: none; }
 .ep-title:hover { border-bottom-color: var(--line2); }
 .ep-title:focus { border-bottom-color: var(--acc); }
-.ep-meta { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--dim); }
-.ep-meta .dot { color: var(--faint); }
-.ep-meta .saved-ind { margin: 0; font: inherit; letter-spacing: 0; text-transform: none; }
-.ep-meta .page-lbl { color: var(--text); }
 .ep-pg { background: none; border: 0; color: var(--dim); font-size: 17px; line-height: 1; padding: 0 3px; cursor: pointer; }
 .ep-pg:hover { color: var(--text); }
 .ep-sel { font-size: 13px; color: var(--text); padding-left: 10px; border-left: 2px solid var(--acc); min-height: 18px; }
@@ -269,43 +263,17 @@ kbd { font: 600 11px/1 var(--mono); padding: 3px 5px; border: 1px solid var(--li
 .tl.quiet:hover { color: var(--text); background: var(--panel2); }
 .tl[hidden] { display: none; }
 .ed-panel .grow { flex: 1; }
-.ep-foot { display: flex; flex-direction: column; gap: 6px; }
 .meta-dlg { display: flex; flex-direction: column; gap: 10px; min-width: min(420px, 80vw); }
 .src-ta { width: 100%; height: 60vh; font: 14px/1.5 var(--mono); white-space: pre; resize: vertical; }
-.preview-bar { display: flex; align-items: center; gap: 6px 8px; flex-wrap: wrap; }
-.preview-bar select.inp { width: auto; flex: 1 1 140px; min-width: 0; max-width: 100%; padding: 4px 8px; }
-.preview-bar > .help { font-family: var(--label); font-size: 10.5px; }
-.preview-bar > span:not(.grow) { font-family: var(--mono); font-size: 12px; color: var(--dim); white-space: nowrap; }
-.preview-bar .grow { flex: 1; }
-.toolbar { display: flex; flex-wrap: wrap; gap: 6px; }
-.tb-group { display: flex; flex-direction: column; gap: 5px; padding: 7px 10px 9px; background: var(--panel); border: 1px solid var(--line); flex: 1 1 auto; min-width: 0; }
-.tb-label { font-family: var(--label); font-size: 10.5px; font-weight: 600; color: var(--dim); white-space: nowrap; }
-.tb-btns { display: flex; flex-wrap: wrap; gap: 5px; }
-.sg-btn::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--c); box-shadow: 0 0 5px var(--c); opacity: .9; }
-.sg-btn b { display: none; }
-.sg-btn.brush { border-color: var(--c); box-shadow: inset 0 0 0 1px var(--c); }
-.split { flex: 1; display: flex; gap: 14px; min-height: 0; }
-.split > .pane { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
-.split > .pane:last-child { flex: 0 0 min(42%, 560px); }
 .pane-title { display: flex; align-items: center; gap: 8px; min-height: 30px; white-space: nowrap; font-family: var(--label); font-weight: 600; font-size: 11.5px; color: var(--dim); }
 .pane-title > span:not(.grow) { overflow: hidden; text-overflow: ellipsis; }
 .pane-title .grow { flex: 1; }
 .pane-title label.chk, .pane-title select { font-family: var(--font); font-weight: 400; font-size: 12.5px; letter-spacing: 0; text-transform: none; }
 .pane-title b { color: var(--text); }
-.ta-wrap { position: relative; flex: 1; min-height: 0; border: 1px solid var(--line); border-radius: var(--r); background: var(--well); overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,.6); }
-.ta-wrap:focus-within { border-color: #5c2a25; }
-.ta-back, .ta { position: absolute; inset: 0; margin: 0; padding: 12px 14px 12px 18px; font-family: var(--mono); font-size: var(--efs, 16px); line-height: 1.6; white-space: pre-wrap; overflow-wrap: break-word; word-break: normal; tab-size: 4; letter-spacing: 0; }
-.ta-back { color: transparent; overflow: hidden; pointer-events: none; }
-.ta-back > div { border-left: 4px solid transparent; margin-left: -14px; padding-left: 10px; min-height: 1.6em; }
-.ta-back > div.sec { background: rgba(255,255,255,.05); }
-.ta-back > div.mus { border-left-style: dashed; }
-.ta { width: 100%; height: 100%; background: transparent; border: 0; outline: none; resize: none; overflow-y: scroll; color: var(--text); caret-color: var(--acc-hi); }
 .preview-wrap { position: relative; flex: 1; min-height: 0; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden;
   background: var(--desk); }
 .preview-wrap .stage, .tpl-preview .stage { box-shadow: 0 0 0 1px rgba(0,0,0,.35), 0 12px 40px rgba(0,0,0,.45); }
 .preview-dim { position: absolute; right: 8px; bottom: 6px; font-family: var(--mono); font-size: 10.5px; color: var(--dim); background: rgba(0,0,0,.7); padding: 2px 7px; border-radius: var(--r); pointer-events: none; }
-.preview-wrap .stage { cursor: pointer; }
-.preview-wrap .stage .b-line:hover, .preview-wrap .stage .b-sec:hover { outline: 2px dashed rgba(239,82,69,.8); outline-offset: 2px; }
 .bottom-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .bottom-actions .grow { flex: 1; }
 .saved-ind { color: var(--dim); font-family: var(--mono); font-size: 11px; font-weight: 400; letter-spacing: 0; text-transform: none; margin-left: 8px; }
@@ -369,10 +337,6 @@ table.tbl { border-collapse: collapse; width: 100%; background: var(--panel); bo
 .menu .menu-head:hover { background: none; box-shadow: none; color: var(--dim); }
 .menu-chk { padding: 6px 10px !important; }
 .led { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
-.seg { display: inline-flex; }
-.seg .btn { border-radius: var(--r); }
-.seg .btn + .btn { margin-left: -1px; }
-.seg .btn.on { background: var(--sel); border-color: var(--acc); color: var(--text); font-weight: 600; }
 .print-mus { padding-left: 24px; }
 /* nápověda „Jak psát text písně“ */
 .help-guide { display: flex; flex-direction: column; gap: 14px; }
@@ -808,25 +772,19 @@ input[type=checkbox].switch:focus-visible { outline: 2px solid var(--acc-hi); ou
   .ed-panel > .tl.wide { width: auto; }
   .ed-left-panel > * { order: 1; }
   .ed-right-panel > * { order: 2; }
-  .ed-left-panel > .ep-head { order: -1; padding: 12px 0 8px; }
   .ed-center { flex: 0 0 auto; height: 70vh; order: 0; }
   .ep-sel { margin-top: 14px; }
   .ep-group { margin-top: 16px; }
   .ed-panel .grow { display: none; }
-  .ep-foot { margin: 16px 14px 20px; }
   .ed-panel { grid-template-columns: 1fr; }
   .content { padding: 12px max(12px, env(safe-area-inset-left, 0px)); }
   .song-editor { padding: 0; gap: 0; }
-  .tb-group { flex: 1 1 100%; }
   .btn { padding: 9px 12px; }           /* větší cíle pro prst */
   .btn.small { padding: 7px 10px; }
   .inp, select.inp { font-size: 16px; } /* iPhone jinak při psaní zvětšuje stránku */
-  .ta-back, .ta { font-size: 15px; }
   .pane-title { flex-wrap: wrap; white-space: normal; }
-  .preview-bar select.inp { flex: 1 1 100%; }
   .bottom-actions { gap: 6px; }
-  .grid2, .grid3 { grid-template-columns: 1fr; }
-  .settings-grid { grid-template-columns: 1fr; }
+  .grid2 { grid-template-columns: 1fr; }
   .row > * { min-width: 120px; }
   .tpl-layout { gap: 12px; }
   .pl-col .head .help { display: none; }

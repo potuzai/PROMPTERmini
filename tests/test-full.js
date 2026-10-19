@@ -279,6 +279,13 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   await p.click('.set-row:has-text("Obnovit ze zálohy") button');
   await (await ch).setFiles(bpath); await sleep(800);
   assert(await p.evaluate(() => Store.songs.size) === countBefore, 'obnova ze zálohy');
+  // novější úprava v zařízení se starší zálohou nepřepíše
+  const sid = backup.songs[0].id;
+  await p.evaluate(async id => { const s = Store.songs.get(id); s.text = 'novější úprava'; await Store.put('songs', s); }, sid);
+  const ch2 = p.waitForEvent('filechooser');
+  await p.click('.set-row:has-text("Obnovit ze zálohy") button');
+  await (await ch2).setFiles(bpath); await sleep(800);
+  assert(await p.evaluate(id => Store.songs.get(id).text, sid) === 'novější úprava', 'obnova ze zálohy nepřepíše novější úpravu');
 
   /* ---------- Nastavení monitoru ---------- */
   await p.evaluate(() => { location.hash = '#/settings/screens'; }); await sleep(400);

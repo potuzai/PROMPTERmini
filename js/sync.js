@@ -1,8 +1,7 @@
 'use strict';
-/* ===== Synchronizace se soukromým GitHub repozitářem =====
-   Každá píseň/playlist/šablona = jeden JSON soubor v data/…
-   Všechny změny se odešlou jedním commitem. Konflikty: novější verze vyhrává,
-   starší se uloží jako kopie „(konflikt)“, nic se neztratí. */
+/* ===== Synchronizace s kapelou: Mega, GitHub nebo synchronizovaná složka =====
+   Každá píseň/playlist/šablona = jeden JSON soubor (data/<druh>/<id>.json).
+   Konflikty: novější verze vyhrává, starší se uloží jako kopie „(konflikt)“, nic se neztratí. */
 const GH_API = window.GH_API_OVERRIDE || 'https://api.github.com';
 
 class GhError extends Error {
@@ -110,7 +109,7 @@ const FolderProvider = {
   needsNet: false,
   async snapshot() {
     const r = await window.native.folderList(Settings.get('sharedFolder'));
-    return { remote: r.files, extras: r.extras, ctx: {} };
+    return { remote: r.files, extras: r.extras, skip: r.skip || [], keep: r.keep || [], ctx: {} };
   },
   read(path) { return window.native.folderRead(Settings.get('sharedFolder'), path); },
   async commit(uploads, deletes) {
@@ -170,7 +169,14 @@ const MegaProvider = {
   /* zapamatovat ID složky kapely – příště se najde i bez hledání podle jména */
   keepFolder(id) { const m = Settings.data.mega || {}; if (id && m.folderId !== id) Settings.set('mega', Object.assign({}, m, { folderId: id })); },
   canPush() { return !Settings.get('readOnly'); },
-  async snapshot() { const r = await this.api().snapshot(this.cfg()); this.keepFolder(r.folderId); return { remote: r.files, extras: r.extras, ctx: {} }; },
+  async snapshot() {
+    const r = await this.api().snapshot(this.cfg());
+    // jiná složka kapely než minule (původní smazaná či přejmenovaná): porovnat od nuly – nic se nesmaže, jen sloučí
+    const prev = (Settings.data.mega || {}).folderId;
+    if (prev && r.folderId && prev !== r.folderId) await Sync.resetMeta();
+    this.keepFolder(r.folderId);
+    return { remote: r.files, extras: r.extras, ctx: {} };
+  },
   read(p, v) { return this.api().read(this.cfg(), p, v); },
   commit(up, del) { return this.api().commit(this.cfg(), up, del); },
   errorText(e) { return ipcError(e); },
@@ -191,9 +197,7 @@ const Sync = {
     const m = Settings.get('syncMode');
     if (m === 'folder') return window.native && Settings.get('sharedFolder') ? 'folder' : 'off';
     if (m === 'mega') return (Settings.get('mega') || {}).email ? 'mega' : 'off';
-    // GitHub bez uloženého tokenu („nepamatovat“) zůstává připojený – jen zamčený, dokud se nezadá heslo kapely
-    const ghOk = GH.configured() || (Settings.data.rememberBand === false && !!(Settings.get('gh') || {}).repo);
-    if (m === 'github' || (m === undefined && GH.configured())) return ghOk ? 'github' : 'off';
+    if (m === 'github' || (m === undefined && GH.configured())) return GH.configured() ? 'github' : 'off';
     return 'off';
   },
   provider() { return { folder: FolderProvider, github: GitHubProvider, mega: MegaProvider }[this.mode()] || null; },
@@ -215,11 +219,14 @@ const Sync = {
     this.timer = setTimeout(() => this.run().catch(() => {}), this.mode() === 'folder' ? 2000 : 6000);
   },
 
-  /* zařízení si heslo kapely nepamatuje a v tomto otevření prohlížeče ještě nebylo zadané */
+  /* přihlášení ke Mega chybí heslo: „Zůstat přihlášen“ vypnuté a prohlížeč byl zavřený,
+     nebo ho na jiném počítači nejde rozšifrovat (přenesená složka programu) */
   locked() {
-    if (Settings.data.rememberBand !== false || window.native) return false;
-    const m = this.mode();
-    return (m === 'mega' && !(Settings.get('mega') || {}).pass) || (m === 'github' && !(Settings.get('gh') || {}).token);
+    return this.mode() === 'mega' && !(Settings.get('mega') || {}).pass;
+  },
+  /* počkat, až doběhne rozběhnutá synchronizace (před přihlášením / odhlášením) */
+  async idle() {
+    while (this.running || this.again) { try { await (this.again || this.running); } catch (e) { /* nevadí */ } }
   },
   refreshState() {
     if (this.state === 'syncing') return;
@@ -257,6 +264,8 @@ const Sync = {
       this.lastError = '';
       this.setState(Store.pendingCount() && p.canPush() ? 'pending' : 'idle');
       Settings.set('lastSyncAt', this.lastSync.toISOString());
+      if (result && result.restored) toast(`Úložiště kapely bylo prázdné – ${result.restored} položek z tohoto zařízení se do něj znovu nahrálo.`, 'warn', 9000);
+      if (result && result.busy) this.schedule();   // něco se během synchronizace změnilo – dožene se hned
       return result;
     } catch (e) {
       console.error(e);
@@ -270,6 +279,17 @@ const Sync = {
     const meta = Store.meta;
     const snap = await prov.snapshot();
     const remote = snap.remote;
+    // Úložiště je najednou prázdné, i když už synchronizované bylo (složka smazaná / nová):
+    // nic místně nemazat, naopak vše znovu nahrát
+    let restored = 0;
+    if (!Object.keys(remote).length && Object.keys(meta.remote).length) {
+      restored = Object.keys(meta.remote).length;
+      meta.remote = {}; meta.local = {}; meta.tombstones = {};
+    }
+    // soubory, které teď nejde přečíst (synchronizační aplikace je zrovna stahuje) – nechat na příště;
+    // v chybějících podsložkách nic nemazat (spíš znovu nahrát)
+    const skip = new Set(snap.skip || []), keep = snap.keep || [];
+    const skipped = p => skip.has(p), kept = p => keep.some(k => p.startsWith(k));
 
     // Lokální stav
     const local = {}; // path -> {type, obj, sha, text}
@@ -285,6 +305,7 @@ const Sync = {
 
     const allPaths = new Set([...Object.keys(remote), ...Object.keys(local), ...Object.keys(meta.tombstones)]);
     for (const p of allPaths) {
+      if (skipped(p)) continue;
       const R = remote[p], L = local[p], K = meta.remote[p], KL = meta.local[p];
       const remoteChanged = R !== K;
       const localChanged = L ? L.sha !== KL : false;
@@ -301,7 +322,7 @@ const Sync = {
         else if (remoteChanged && localChanged) conflicts.push(p);
         // jinak: obě strany beze změny od poslední synchronizace – nic
       } else if (L && !R) {
-        if (K && !localChanged) localDeletes.push(p);
+        if (K && !localChanged && !kept(p)) localDeletes.push(p);
         else if (canPush) uploads.push(p);
       } else if (!L && R) {
         downloads.push(p);
@@ -322,10 +343,20 @@ const Sync = {
     const parse = p => { try { const o = JSON.parse(fetched[p]); return o && o.id ? o : null; } catch (e) { return null; } };
 
     const typeOf = p => p.split('/')[1];
+    const idOf = p => p.split('/').pop().replace(/\.json$/, '');
+    // místní položka se od začátku synchronizace nezměnila (stahování může trvat i desítky sekund)
+    let busy = false;
+    const untouched = p => {
+      const now = Store[typeOf(p)].get(idOf(p)), L = local[p];
+      const ok = L ? !!now && gitBlobSha(Store.serialize(now)) === L.sha : !now;
+      if (!ok) busy = true;
+      return ok;
+    };
     let changedLocal = 0;
     for (const p of downloads) {
       const obj = parse(p);
       if (!obj) { console.warn('Vadný nebo nedokončený soubor', p); continue; } // zkusí se příště
+      if (!untouched(p)) continue;
       await Store.put(typeOf(p), obj, { silent: true, noStamp: true, fromSync: true });
       meta.remote[p] = remote[p];
       meta.local[p] = gitBlobSha(Store.serialize(obj));
@@ -344,13 +375,14 @@ const Sync = {
     };
     for (const p of conflicts) {
       const robj = parse(p);
-      if (!robj) continue;
+      if (!robj || !untouched(p)) continue;
       const type = typeOf(p);
       const lobj = local[p].obj;
       // Stejný obsah (např. výchozí šablony u nového člena) – žádný konflikt
       if (gitBlobSha(Store.serialize(robj)) === local[p].sha) { meta.remote[p] = remote[p]; meta.local[p] = local[p].sha; continue; }
-      // Nikdy needitovaná místní výchozí data (bez updatedAt) vždy ustoupí sdíleným
-      const localNewer = !!lobj.updatedAt && (lobj.updatedAt || '') > (robj.updatedAt || '');
+      // Sdílená verze vyhrává: místní výchozí data (bez updatedAt), nastavení kapely na zařízení, které se
+      // ke kapele teprve připojuje, a čtečka jen pro čtení (nesmí se od kapely odchýlit)
+      const localNewer = canPush && !!lobj.updatedAt && !(type === 'config' && meta.remote[p] === undefined) && (lobj.updatedAt || '') > (robj.updatedAt || '');
       const winner = localNewer ? lobj : robj;
       const loser = localNewer ? robj : lobj;
       await Store.put(type, winner, { silent: true, noStamp: true, fromSync: true });
@@ -373,6 +405,9 @@ const Sync = {
     }
     for (const p of localDeletes) {
       const L = local[p];
+      if (!untouched(p)) continue;
+      // co smaže synchronizace, jde obnovit (Nastavení › Záloha a import)
+      meta.trash = [{ type: L.type, obj: L.obj, at: new Date().toISOString() }, ...(meta.trash || [])].slice(0, 200);
       await Store.remove(L.type, L.obj.id, { silent: true, fromSync: true });
       changedLocal++;
     }
@@ -398,7 +433,7 @@ const Sync = {
     }
     await Store.saveMeta();
     if (changedLocal) Store.emit('sync', null);
-    return { downloaded: downloads.length, conflicts: conflicts.length + snap.extras.length, pushed, removed: localDeletes.length };
+    return { downloaded: downloads.length, conflicts: conflicts.length + snap.extras.length, pushed, removed: localDeletes.length, restored, busy };
   },
 };
 

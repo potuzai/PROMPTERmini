@@ -5,7 +5,6 @@
    a k němu si může nastavit vlastní věci (písmo, co vidí, zvýraznění svých řádků, soukromé poznámky). */
 
 const Screens = {
-  MAIN: 'main',
   /* Hlavní čtečka: rozměr zůstává ve sdíleném „display“ (kvůli starším verzím) */
   main() {
     const d = (typeof Store !== 'undefined' && Store.config && Store.config.get('display')) || {};
@@ -32,6 +31,8 @@ const Screens = {
   /* obrazovka tohoto zařízení: program = hlavní čtečka, web = podle okna (dokud si ji člověk nezvolí) */
   myId() { return Settings.get('screenId') || (window.native ? 'main' : 'auto'); },
   mine() { return this.get(this.myId()); },
+  /* obrazovka, kterou upravuji / ukazuji v náhledu („podle okna“ nemá pevný rozměr → hlavní čtečka) */
+  editId() { const id = this.myId(); return id === 'auto' ? 'main' : id; },
 
   async save(scr) {
     if (scr.id === 'main') {

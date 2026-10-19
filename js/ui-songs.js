@@ -31,7 +31,6 @@ const SongsView = {
         h('div', { class: 'sl-row sl-cols' }, h('span', {}, 'Interpret'), h('span', {}, 'Název'), h('span', {}, 'Tónina · tempo'), h('span', {}, 'Zpívá'), h('span', {}, 'Štítky')),
         list, count),
       prev));
-    const narrow = () => matchMedia('(max-width: 820px)').matches;
     const sm = Store.singerMap();
     const singersIn = s => {
       const codes = new Set();
@@ -67,7 +66,7 @@ const SongsView = {
       const songs = Store.sortedSongs(sortSel.value).filter(s => !q || normalizeForSearch([s.title, s.artist, (s.tags || []).join(' '), s.text].join(' ')).includes(q));
       for (const s of songs) {
         list.appendChild(h('div', { class: 'item sl-row', 'data-id': s.id, title: 'Klik = náhled, dvojklik = upravit',
-          onclick: () => narrow() ? (location.hash = '#/songs/' + s.id) : select(s.id),
+          onclick: () => isMobile() ? (location.hash = '#/songs/' + s.id) : select(s.id),
           ondblclick: () => { location.hash = '#/songs/' + s.id; } },
           h('span', { class: 'sl-artist' }, s.artist || '—'),
           h('b', { class: 'sl-title' }, s.title || '(bez názvu)'),
@@ -106,7 +105,7 @@ const SongsView = {
   async create() {
     const title = await promptDlg('Název nové písně', '', 'např. Holubí dům');
     if (title === null) return;
-    const song = await Store.put('songs', { id: uid(), title: title || 'Nová píseň', artist: '', key: '', tempo: '', tags: [], note: '', templateId: '', text: '' });
+    const song = await Store.put('songs', newSong({ title: title || 'Nová píseň' }));
     location.hash = '#/songs/' + song.id;
     setTimeout(() => { const w = $('.se-wrap'); if (w) w.focus(); toast('Vlož text písně (Ctrl+V) – automaticky se vyčistí.'); }, 100);
   },
@@ -116,12 +115,11 @@ class SongEditor {
   constructor(root, song) {
     this.root = root;
     this.id = song.id;
-    this.base = song.updatedAt;
     this.dirty = false;
     this.src = song.text || '';
     this.style = song.style || null;
     // náhled pro obrazovku: naposledy zvolená v tomto zařízení, jinak vlastní obrazovka zařízení
-    this.screenId = Screens.get(Settings.get('editScreen') || (Screens.myId() === 'auto' ? 'main' : Screens.myId())).id;
+    this.screenId = Screens.get(Settings.get('editScreen') || Screens.editId()).id;
     this.build(song);
   }
 
@@ -291,10 +289,10 @@ class SongEditor {
     let t = '';
     try { t = await navigator.clipboard.readText(); } catch (e) { /* bez přístupu ke schránce */ }
     const ta = h('textarea', { class: 'inp src-ta', style: { height: '40vh' }, placeholder: 'Sem vlož text písně (Ctrl+V)…' }, t || '');
-    const ok = await modal({ title: 'Vložit text', body: h('div', {}, h('p', { class: 'help' }, 'Text se vloží pod vybraný řádek (do prázdné písně celý). ' + (Settings.get('pasteClean') !== false ? 'Akordy, mezery a sloky se automaticky uklidí.' : '')), ta),
+    const ok = await modal({ title: 'Vložit text', body: h('div', {}, h('p', { class: 'help' }, 'Text se vloží pod vybraný řádek (do prázdné písně celý). Akordy, mezery a sloky se automaticky uklidí.'), ta),
       buttons: [{ label: 'Zrušit', value: false }, { label: 'Vložit', primary: true, value: true }] });
     if (!ok || !ta.value.trim()) return;
-    const clean = Settings.get('pasteClean') !== false ? cleanText(ta.value) : ta.value.replace(/\r\n?/g, '\n');
+    const clean = cleanText(ta.value);
     this.se.insertText(clean);
   }
 
@@ -392,7 +390,6 @@ class SongEditor {
   }
   focusMeta() { this.metaDialog(); }
   schedulePreview() { clearTimeout(this.pvT); this.pvT = setTimeout(() => { if (!this.se.editing) this.se.render(); }, 250); }
-  renderPreview() { this.se.render(); }
   changed() { this.markDirty(); }
 
   setView(on) {
@@ -436,10 +433,7 @@ class SongEditor {
     if (!Store.songs.has(this.id)) return;
     const s = this.collect();
     this.dirty = false;
-    SongsView.selfSave = true;
     await Store.put('songs', s);
-    SongsView.selfSave = false;
-    this.base = s.updatedAt;
     this.savedInd.textContent = 'Uloženo';
     this.savedInd.title = fmtDate(s.updatedAt);
     if (manual) toast('Uloženo', 'ok', 1500);
@@ -586,7 +580,7 @@ class SongEditor {
       const clean = {};
       for (const [k, v] of Object.entries(st)) if (v !== '' && v != null && !(k === 'sizePct' && +v === 100)) clean[k] = v;
       this.style = Object.keys(clean).length ? clean : null;
-      this.markDirty(); this.schedulePreview(); this.paintFontBtn();
+      this.markDirty(); this.schedulePreview();
     };
     const f = (label, el) => h('label', { class: 'f' }, h('span', {}, label), el);
     const fontSel = h('select', { class: 'inp' }, h('option', { value: '' }, `dle šablony (${base.fontFamily})`), FONTS.map(x => h('option', { value: x, selected: st.fontFamily === x }, x)));
@@ -615,7 +609,6 @@ class SongEditor {
     m.style.top = Math.max(8, Math.min(r.bottom + 4, innerHeight - m.offsetHeight - 8)) + 'px';
     setTimeout(() => document.addEventListener('mousedown', function off(e) { if (!m.contains(e.target) && e.target !== anchor) { m.remove(); document.removeEventListener('mousedown', off); } }), 0);
   }
-  paintFontBtn() {}
 
   async cleanDialog() {
     const o = { chords: 'keep', detectSections: true, trimSpaces: true, collapseBlank: true };
@@ -638,13 +631,6 @@ class SongEditor {
   }
 
   /* ----- Akce ----- */
-  async duplicate() {
-    await this.save();
-    const s = clone(this.collect());
-    s.id = uid(); s.title += ' (kopie)';
-    await Store.put('songs', s);
-    location.hash = '#/songs/' + s.id;
-  }
   exportTxt() {
     const s = this.collect();
     const head = [`# ${s.title}`, s.artist ? `# ${s.artist}` : ''].filter(Boolean).join('\n');
@@ -663,7 +649,6 @@ class SongEditor {
   async openReader() {
     this.se.finishEdit(true);
     await this.save();
-    App.readerSingle = this.id;
     location.hash = '#/reader/song:' + this.id;
   }
 }
@@ -714,9 +699,9 @@ function addToPlaylistMenu(anchor, songIds) {
     toast(`Přidáno do „${p.name}“`, 'ok');
   } }));
   items.unshift({ label: '＋ Nový playlist…', action: async () => {
-    const name = await promptDlg('Název nového playlistu', 'Koncert ' + new Date().toLocaleDateString('cs-CZ'));
+    const name = await promptDlg('Název nového playlistu', playlistNameHint());
     if (!name) return;
-    const p = await Store.put('playlists', { id: uid(), name, date: new Date().toISOString().slice(0, 10), templateId: '', note: '', items: [...songIds] });
+    const p = await Store.put('playlists', newPlaylist(name, [...songIds]));
     toast(`Vytvořen playlist „${p.name}“`, 'ok');
   } });
   popupMenu(anchor, items);
@@ -831,7 +816,7 @@ async function importTxtFiles(fileList) {
     const m = /^# (.+)\n(?:# (.+)\n)?\n/.exec(text);
     if (m) { title = m[1]; artist = m[2] || artist; text = text.slice(m[0].length); }
     if (clean) text = cleanText(text);
-    last = await Store.put('songs', { id: uid(), title, artist, key: '', tempo: '', tags: [], note: '', templateId: '', text });
+    last = await Store.put('songs', newSong({ title, artist, text }));
     n++;
   }
   if (n) toast(`Importováno ${n} písní`, 'ok');

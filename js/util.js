@@ -107,6 +107,9 @@ function textToB64(text) {
 }
 
 /* Čisté JS SHA-1 – funguje i ze souboru (file://) bez crypto.subtle */
+/* PIN pro úpravy se ukládá jen jako otisk */
+function pinHash(pin) { return sha1Bytes(utf8.enc('prompter:' + pin)); }
+
 function sha1Bytes(bytes) {
   const ml = bytes.length;
   const withPad = ((ml + 9 + 63) >> 6) << 6;

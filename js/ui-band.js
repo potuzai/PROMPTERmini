@@ -8,9 +8,11 @@ function appUrl() {
   return window.native || !/^https?:$/.test(location.protocol) ? 'https://potuzai.github.io/PROMPTERmini/' : location.origin + location.pathname.replace(/index\.html$/, '');
 }
 
-/* ukázková píseň do kapely nepatří */
-async function dropSampleSongs() {
+/* nové připojení ke kapele: porovnat s úložištěm od nuly (nic se nesmaže, jen sloučí); ukázková píseň do kapely nepatří */
+async function freshSync() {
   for (const s of [...Store.songs.values()]) if (s.sample) await Store.remove('songs', s.id, { silent: true });
+  await Sync.resetMeta();
+  Sync.lastError = ''; Sync.state = 'off';
 }
 
 /* Přihlásí k Mega, uloží přístup (trvale / jen do zavření prohlížeče) a stáhne data kapely */
@@ -21,7 +23,16 @@ async function bandLogin({ email, password, folder, remember = true, ro = false 
   const prev = clone(Settings.data.mega || {});
   const same = Sync.mode() === 'mega' && (prev.email || '').toLowerCase() === cfg.email.toLowerCase() && (prev.folder || 'PROMPTERmini') === cfg.folder;
   if ((prev.email || '').toLowerCase() === cfg.email.toLowerCase() && (prev.folder || 'PROMPTERmini') === cfg.folder && prev.folderId) cfg.folderId = prev.folderId;
-  const r = await MegaProvider.api().test(cfg).catch(e => { throw new Error(ipcError(e)); });
+  await Sync.idle();   // rozběhnutá synchronizace by jinak zapsala do nového přihlášení stav starého
+  let r;
+  try { r = await MegaProvider.api().test(Object.assign({}, cfg, { create: false })); }
+  catch (e) {
+    // složka kapely chybí: založit jen se souhlasem (překlep v názvu by jinak rozdělil kapelu do dvou složek)
+    const msg = ipcError(e);
+    if (!/zatím není složka/.test(msg)) throw new Error(msg);
+    if (!await confirmDlg(msg + ' Zakládáš kapelu? Aplikace ji vytvoří. Jinak zruš a v „Další možnosti“ oprav název složky.', 'Založit složku')) throw new Error(msg + ' Zkontroluj název složky v „Další možnosti“.');
+    r = await MegaProvider.api().test(cfg).catch(e2 => { throw new Error(ipcError(e2)); });
+  }
   Settings.set('rememberBand', remember);
   Settings.set('mega', { email: cfg.email, pass: remember ? Secret.protect(cfg.password) : '', folder: cfg.folder, folderId: r.folderId || '' });
   if (remember) sessionStorage.removeItem('prompter-secret-mega');
@@ -29,11 +40,8 @@ async function bandLogin({ email, password, folder, remember = true, ro = false 
   Settings.set('syncMode', 'mega');
   Settings.set('readOnly', !!ro);
   Settings.set('welcomed', true);
-  if (!same) {
-    await dropSampleSongs();
-    await Sync.resetMeta();
-  }
-  Sync.lastError = ''; Sync.state = 'off';
+  if (!same) await freshSync();
+  else { Sync.lastError = ''; Sync.state = 'off'; }
   // přihlášení se povedlo – případná chyba synchronizace už není chyba přihlášení
   let res = null, syncError = '';
   try { res = await Sync.run(); } catch (e) { syncError = ipcError(e); }
@@ -45,6 +53,7 @@ async function bandLogin({ email, password, folder, remember = true, ro = false 
 async function bandLogout() {
   const mega = Sync.mode() === 'mega', verb = mega ? 'Odhlásit' : 'Odpojit';
   if (!await confirmDlg(verb + ' toto zařízení od kapely? Písně v něm zůstanou, jen se přestanou synchronizovat.', verb)) return;
+  await Sync.idle();
   Settings.set('syncMode', 'none'); Settings.set('readOnly', false); Settings.set('rememberBand', true);
   sessionStorage.removeItem('prompter-secret-mega');
   // přístupové údaje se z tohoto zařízení smažou (důležité na cizím PC), e-mail zůstane předvyplněný

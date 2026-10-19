@@ -50,9 +50,9 @@ function setupWizard() {
     step: 0,
     role: Settings.get('deviceRole') || (Settings.get('startInReader') ? 'reader' : 'editor'),
     // obrazovka kapely, kterou toto zařízení bude (nebo „new“ = nová)
-    scr: Screens.myId() === 'auto' ? 'main' : Screens.myId(), scrName: '',
-    w: Screens.get(Screens.myId() === 'auto' ? 'main' : Screens.myId()).w, h: Screens.get(Screens.myId() === 'auto' ? 'main' : Screens.myId()).h,
-    diag: Screens.get(Screens.myId() === 'auto' ? 'main' : Screens.myId()).diag || 24, dist: Screens.get(Screens.myId() === 'auto' ? 'main' : Screens.myId()).dist || 2.5,
+    scr: Screens.editId(), scrName: '',
+    w: Screens.get(Screens.editId()).w, h: Screens.get(Screens.editId()).h,
+    diag: Screens.get(Screens.editId()).diag || 24, dist: Screens.get(Screens.editId()).dist || 2.5,
     rot: Settings.get('readerRotate') || 0, theme: Settings.get('theme') || 'dark', pin: '',
   };
   const steps = ['Zařízení', 'Orientace', 'Velikost', 'Hotovo'];
@@ -208,7 +208,7 @@ function setupWizard() {
       Settings.set('readerRotate', st.rot);
     }
     Settings.set('theme', st.theme); App.applyTheme();
-    if (st.pin) { Settings.set('pinHash', sha1Bytes(utf8.enc('prompter:' + st.pin))); sessionStorage.setItem('unlocked', '1'); }
+    if (st.pin) { Settings.set('pinHash', pinHash(st.pin)); sessionStorage.setItem('unlocked', '1'); }
     Settings.set('welcomed', true);
     el.remove();
     document.removeEventListener('keydown', onKey, true);
