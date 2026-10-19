@@ -275,17 +275,246 @@ async function renameSingerCode(oldC, newC) {
   return n;
 }
 
-/* ===== Nastavení ===== */
-const SettingsView = {
-  render(main, section) {
-    const c = h('div', { class: 'content set-content' });
-    const nav = h('div', { class: 'side set-nav' }, h('h2', {}, 'Nastavení'));
-    main.appendChild(h('div', { class: 'view set-view' }, nav, c));
-    const S = Settings.data;
-    const chk = (k, label, help) => h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: !!S[k], onchange: e => { Settings.set(k, e.target.checked); } }), label, help ? h('span', { class: 'help' }, ' – ' + help) : null);
+/* ===== Nastavení: vlevo kategorie, vpravo vždy jen jedna (v telefonu nejdřív seznam) ===== */
+const SET_SECTIONS = [
+  ['band', '☁ Kapela a synchronizace'],
+  ['device', '📱 Toto zařízení'],
+  ['screens', '🖥 Obrazovky kapely'],
+  ['reader', '▶ Čtečka a ovládání'],
+  ['backup', '💾 Záloha a import'],
+  ['about', 'ⓘ O aplikaci'],
+];
+const SET_ALIASES = { share: 'band', user: 'device' };
 
-    // --- Obrazovky kapely (sdílené profily): rozměr, co se ukáže, písmo
-    let edId = (section && section.startsWith('screen-') ? section.slice(7) : '') || (Screens.myId() === 'auto' ? 'main' : Screens.myId());
+/* řádek nastavení: vlevo název a vysvětlení, vpravo ovládací prvek */
+const setRow = (title, help, ctl, cls = '') => h('div', { class: 'set-row ' + cls }, h('div', {}, h('b', {}, title), help ? h('span', { class: 'help' }, help) : null), ctl);
+const setSwitch = (checked, onchange) => h('input', { type: 'checkbox', class: 'switch', checked: !!checked, onchange: e => onchange(e.target.checked) });
+const setFlag = (k, title, help) => setRow(title, help, setSwitch(Settings.data[k], v => Settings.set(k, v)));
+
+const SettingsView = {
+  onSync: null,
+
+  render(main, section) {
+    section = SET_ALIASES[section] || section || '';
+    const sub = section.startsWith('screen-') ? section.slice(7) : '';
+    if (sub) section = 'screens';
+    const known = SET_SECTIONS.some(([id]) => id === section);
+    const cur = known ? section : 'band';
+    const nav = h('div', { class: 'side set-nav' }, h('h2', {}, 'Nastavení'),
+      SET_SECTIONS.map(([id, label]) => h('button', { class: 'item set-item' + (known && id === cur ? ' active' : ''), onclick: () => { location.hash = '#/settings/' + id; } }, label)),
+      h('div', { class: 'set-ver help' }, 'PROMPTER mini ' + APP_VERSION));
+    const title = SET_SECTIONS.find(([id]) => id === cur)[1];
+    const body = this[cur](sub);
+    const c = h('div', { class: 'content set-content' },
+      h('div', { class: 'set-head' },
+        h('button', { class: 'btn nogrow set-back', onclick: () => { location.hash = '#/settings'; } }, '◀ Nastavení'),
+        h('h1', {}, title)),
+      body);
+    // v úzkém okně bez zvolené kategorie se ukáže jen seznam kategorií
+    main.appendChild(h('div', { class: 'view set-view' + (known ? ' has-sec' : '') }, nav, c));
+  },
+
+  /* ---------- Kapela a synchronizace ---------- */
+  band() {
+    const box = h('div', { class: 'set-sec' });
+    const paint = () => { box.innerHTML = ''; box.append(...this.bandBody()); };
+    paint();
+    // stav se překresluje sám (synchronizace běží na pozadí)
+    this.onSync = () => { if (box.isConnected) { const st = $('.set-status', box); if (st) st.replaceWith(this.bandStatus()); } };
+    return box;
+  },
+
+  bandStatus() {
+    const mode = Sync.mode(), st = Sync.state, mg = mode === 'mega' ? (Settings.data.mega || {}) : null;
+    const g = Settings.get('gh') || {};
+    let tone = 'ok', head, who = '', line;
+    if (mode === 'off') { tone = ''; head = 'Nepřihlášeno'; line = 'Písně a playlisty jsou zatím jen v tomto zařízení.'; }
+    else {
+      head = Sync.locked() ? 'Odhlášeno – přihlas se znovu' : mg ? 'Přihlášeno ke kapele' : 'Sdílení zapnuté';
+      who = mg ? `${mg.email} · složka v Mega „${mg.folder || 'PROMPTERmini'}“`
+        : mode === 'github' ? `GitHub · ${g.owner}/${g.repo}${g.login ? ' · ' + g.login : ''}` : `Složka · ${Settings.get('sharedFolder')}`;
+      const when = Sync.lastSync ? ' v ' + Sync.lastSync.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' }) : '';
+      line = { idle: 'Synchronizováno' + when, syncing: 'Synchronizuji…', pending: `Neodeslané změny: ${Store.pendingCount()}`, offline: 'Offline – změny se odešlou po připojení',
+        locked: 'Synchronizace čeká na přihlášení', error: Sync.lastError || 'Chyba synchronizace', off: 'Zatím nesynchronizováno' }[st] || st;
+      if (st === 'error' || Sync.locked()) tone = 'err'; else if (st === 'pending' || st === 'offline') tone = 'warn';
+    }
+    return h('div', { class: 'set-status ' + tone }, h('span', { class: 'dot' }),
+      h('div', {}, h('b', {}, head), who ? h('span', {}, who) : null, h('span', { class: 'st' }, line),
+        Settings.get('readOnly') && mode !== 'off' ? h('span', { class: 'tag' }, 'jen pro čtení – nic se neodesílá') : null));
+  },
+
+  bandBody() {
+    const mode = Sync.mode(), mega = mode === 'mega';
+    const out = [this.bandStatus()];
+    if (mode === 'off') {
+      out.push(
+        h('div', { class: 'set-actions' }, h('button', { class: 'btn primary', onclick: () => loginDialog() }, '🔑 Přihlásit ke kapele')),
+        h('p', { class: 'help' }, 'Přihlášení e-mailem a heslem kapely (společný účet Mega). Písně a playlisty se pak samy stáhnou a synchronizují mezi všemi zařízeními.'),
+        h('h3', {}, 'Zakládáš kapelu?'),
+        h('ol', { class: 'help set-steps' },
+          h('li', {}, 'Na ', h('a', { href: 'https://mega.io/register', target: '_blank' }, 'mega.io/register'), ' založ nový účet jen pro kapelu – ne svůj osobní, heslo budou znát všichni členové. Dvoufázové ověření nezapínej.'),
+          h('li', {}, 'Přihlas se jím tady. Aplikace si v Mega sama vytvoří složku a nahraje do ní písně.'),
+          h('li', {}, 'Pak tu klikni na Pozvat členy a pošli jim zprávu s adresou aplikace. Heslo jim řekni zvlášť.')),
+        this.otherStorage());
+      return out;
+    }
+    out.push(h('div', { class: 'set-actions' },
+      Sync.locked() ? h('button', { class: 'btn primary', onclick: () => loginDialog({ expired: true }) }, '🔑 Přihlásit')
+        : h('button', { class: 'btn primary', onclick: () => App.syncClick() }, '⟳ Synchronizovat teď'),
+      mega && !Settings.get('readOnly') ? h('button', { class: 'btn', onclick: () => inviteDialog() }, '👥 Pozvat členy') : null,
+      h('button', { class: 'btn danger', onclick: () => bandLogout() }, mega ? 'Odhlásit' : 'Odpojit')));
+    out.push(h('div', { class: 'set-rows' },
+      mega && !window.native ? setRow('Zůstat přihlášen', 'Vypni na cizím nebo sdíleném počítači – po zavření prohlížeče bude potřeba přihlásit se znovu.',
+        setSwitch(Settings.data.rememberBand !== false, setRememberBand)) : null,
+      setFlag('autoSync', 'Synchronizovat automaticky', 'Změny se odešlou samy a změny ostatních se stahují pravidelně.'),
+      setRow('Jen pro čtení', 'Pro čtečky: písně se jen stahují, z tohoto zařízení se nic neodešle.',
+        setSwitch(Settings.get('readOnly'), v => { Settings.set('readOnly', v); Sync.refreshState(); App.paintSync(); }))));
+    const adv = h('details', { class: 'set-adv' }, h('summary', {}, 'Pokročilé'),
+      h('div', { class: 'set-rows' },
+        mega ? setRow('Diagnostika Mega', 'Co aplikace v účtu Mega vidí. Při potížích se synchronizací pošli výpis.', h('button', { class: 'btn nogrow', onclick: () => megaDiagDialog() }, 'Zobrazit')) : null,
+        mega ? setRow('Neoficiální knihovna', 'Připojení k Mega používá neoficiální knihovnu. Kdyby ho Mega rozbila, přepni na GitHub – písně v aplikaci zůstanou.', null) : null),
+      mode === 'github' ? this.ghBlock() : mode === 'folder' ? this.folderBlock() : null);
+    out.push(adv);
+    return out;
+  },
+
+  /* jiné úložiště než Mega – jen když zatím není nic připojené */
+  otherStorage() {
+    return h('details', { class: 'set-adv' }, h('summary', {}, 'Jiné úložiště místo Mega (pokročilé)'),
+      h('h3', {}, 'GitHub'), h('p', { class: 'help' }, 'Zdarma, nejspolehlivější při souběžných úpravách. Každý člen potřebuje přístupový token.'), this.ghBlock(),
+      h('h3', {}, 'Synchronizovaná složka'),
+      window.native ? this.folderBlock() : h('p', { class: 'help' }, 'Jen v programu PROMPTER mini.exe – složka, kterou synchronizuje jiná aplikace (MEGA Desktop, OneDrive, Dropbox, síťový disk).'));
+  },
+
+  folderBlock() {
+    const inp = h('input', { class: 'inp', value: Settings.get('sharedFolder') || '', placeholder: 'např. C:\\Users\\Petr\\MEGA\\Kapela-pisne', readonly: true });
+    const choose = async dir => {
+      if (!dir) return;
+      Settings.set('sharedFolder', dir); Settings.set('syncMode', 'folder');
+      inp.value = dir;
+      await Sync.resetMeta(); Sync.lastError = '';
+      window.native.watchFolder(dir);
+      try {
+        const r = await Sync.run();
+        toast(`Složka připojena · načteno ${r.downloaded}, zapsáno ${r.pushed}${r.conflicts ? ', konflikty ' + r.conflicts : ''}`, 'ok', 5000);
+      } catch (e) { toast(e.message, 'err', 7000); }
+      App.go(true);
+    };
+    const sugg = window.native.suggestFolders();
+    return h('div', {},
+      h('div', { class: 'row' }, inp, h('button', { class: 'btn primary nogrow', onclick: async () => choose(await window.native.pickFolder()) }, '📁 Vybrat složku…')),
+      sugg.length ? h('p', { class: 'help' }, 'Nalezené cloudové složky v tomto PC: ', sugg.map(p => h('code', { style: { marginRight: '6px' } }, p))) : null,
+      h('details', {}, h('summary', {}, 'Návod – MEGA Desktop'),
+        h('ol', { class: 'help set-steps', html: `
+          <li>Nainstaluj <b>MEGA Desktop App</b> a ve složce MEGA na disku vytvoř složku např. <code>Kapela-pisne</code>.</li>
+          <li>Na mega.io ji sdílej členům (pravé tlačítko → <b>Sdílet</b>, právo <b>Číst a zapisovat</b>). Nepoužívej „Sdílet odkaz“ – ten může otevřít kdokoli.</li>
+          <li>Každý člen přijme pozvánku a v MEGA Desktop App si sdílenou složku synchronizuje do svého PC.</li>
+          <li>Tady klikni na <b>Vybrat složku…</b> a zvol ji.</li>` })),
+      h('p', { class: 'help' }, 'Data čtečky zůstávají i v její vlastní složce „data“ – když cloud vypadne, čtečka hraje dál.'));
+  },
+
+  ghBlock() {
+    const g = clone(Settings.get('gh'));
+    const repoIn = h('input', { class: 'inp', value: g.owner && g.repo ? `${g.owner}/${g.repo}` : '', placeholder: 'uživatel/kapela-pisne nebo odkaz na repozitář' });
+    const tokenIn = h('input', { class: 'inp', type: 'password', value: g.token || '', placeholder: 'github_pat_…' });
+    const status = h('div', { class: 'help', style: { marginTop: '8px' } });
+    const connect = async () => {
+      const m = /(?:github\.com[/:])?([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+?)(?:\.git)?\/?$/.exec(repoIn.value.trim());
+      if (!m || !tokenIn.value.trim()) return toast('Vyplň repozitář (uživatel/název) i token.', 'warn');
+      const prev = clone(Settings.get('gh')), prevMode = Settings.get('syncMode');
+      Settings.set('gh', Object.assign({}, prev, { owner: m[1], repo: m[2], token: tokenIn.value.trim(), branch: prev.branch || 'main' }));
+      Settings.set('syncMode', 'github');
+      status.textContent = 'Ověřuji přístup…';
+      try {
+        const r = await GH.test();
+        Settings.set('gh', Object.assign({}, Settings.get('gh'), { login: r.login, canPush: r.canPush, branch: r.defaultBranch || 'main' }));
+        Settings.set('readOnly', false);
+        if (!r.private) toast('Pozor: repozitář je VEŘEJNÝ – texty uvidí kdokoli. Přepni ho na Private (Settings → General → Danger Zone).', 'warn', 9000);
+        await dropSampleSongs(); await Sync.resetMeta(); Sync.lastError = '';
+        const res = await Sync.run();
+        toast(`GitHub připojen · staženo ${res.downloaded}, odesláno ${res.pushed}`, 'ok', 5000);
+        App.go(true);
+      } catch (e) {
+        Settings.set('gh', prev); Settings.set('syncMode', prevMode);
+        status.innerHTML = `<span style="color:var(--err)">Nepodařilo se připojit: ${esc(e.message)}</span>`;
+      }
+    };
+    const tokenUrl = 'https://github.com/settings/personal-access-tokens/new?name=PROMPTER%20mini&description=Synchronizace%20pisni&expires_in=none&contents=write';
+    return h('div', {},
+      h('ol', { class: 'help set-steps' },
+        h('li', { html: 'Přihlas se na GitHub (nebo si <a href="https://github.com/signup" target="_blank">zdarma založ účet</a>).' }),
+        h('li', { html: '<a href="https://github.com/new?name=kapela-pisne&visibility=private" target="_blank">Vytvoř soukromý repozitář</a> – musí být <b>Private</b>.' }),
+        h('li', { html: `<a href="${tokenUrl}" target="_blank">Vytvoř přístupový token</a> – <b>Only select repositories</b> → kapela-pisne, <b>Contents: Read and write</b>.` }),
+        h('li', {}, 'Vlož sem repozitář a token a klikni Připojit. Ostatní členové zadají stejný repozitář a token.')),
+      h('div', { class: 'grid2' }, h('label', { class: 'f' }, h('span', {}, 'Repozitář'), repoIn), h('label', { class: 'f' }, h('span', {}, 'Token'), tokenIn)),
+      h('div', { class: 'row', style: { marginTop: '10px' } }, h('button', { class: 'btn primary nogrow', onclick: connect }, '🔗 Připojit ke GitHubu')),
+      status);
+  },
+
+  /* ---------- Toto zařízení ---------- */
+  device() {
+    const box = h('div', { class: 'set-sec' });
+    const paint = () => {
+      const S = Settings.data;
+      box.innerHTML = '';
+      const roleSel = h('select', { class: 'inp set-sel' }, h('option', { value: '', disabled: true, selected: !S.deviceRole }, '— nevybráno —'),
+        DEVICE_ROLES.map(r => h('option', { value: r.id, selected: r.id === S.deviceRole }, r.name)));
+      roleSel.onchange = () => { applyDeviceRole(roleSel.value); toast('Uloženo: ' + roleName(roleSel.value), 'ok'); };
+      const scrSel = h('select', { class: 'inp set-sel' }, [Screens.auto(), ...Screens.list()].map(sc => h('option', { value: sc.id, selected: sc.id === Screens.myId() }, Screens.label(sc))));
+      scrSel.onchange = () => { Settings.set('screenId', scrSel.value); toast('Toto zařízení: ' + Screens.mine().name, 'ok'); paint(); };
+      const my = Settings.get('myView');
+      const view = Object.assign({ chords: false, inst: [] }, my || Screens.mine().view || {});
+      const saveView = () => Settings.set('myView', Object.assign({}, view));
+      const custom = h('div', { class: 'scr-view' },
+        h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: !!view.chords, onchange: e => { view.chords = e.target.checked; saveView(); } }), 'Akordy'),
+        ...Store.instruments().map(ins => h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: view.inst.includes(ins.code), onchange: e => {
+          view.inst = e.target.checked ? [...new Set([...view.inst, ins.code])] : view.inst.filter(c => c !== ins.code); saveView();
+        } }), h('span', { class: 'led', style: { background: ins.color } }), ins.name)));
+      const singerSel = h('select', { class: 'inp set-sel' }, h('option', { value: '' }, '— nikdo / nezvýrazňovat —'),
+        Store.singers().map(sg => h('option', { value: sg.code, selected: sg.code === S.mySinger }, sg.name)));
+      singerSel.onchange = () => { Settings.set('mySinger', singerSel.value); Settings.set('highlightMine', !!singerSel.value); };
+      const zoom = h('input', { class: 'inp set-num', type: 'number', min: 50, max: 200, step: 5, value: Math.round((S.readerZoom || 1) * 100) });
+      zoom.onchange = () => Settings.set('readerZoom', Math.max(0.5, Math.min(2, (+zoom.value || 100) / 100)));
+      const rotSel = h('select', { class: 'inp set-sel' }, [[0, 'neotáčet'], [90, 'o 90° doprava'], [270, 'o 90° doleva'], [180, 'o 180°']]
+        .map(([v, l]) => h('option', { value: v, selected: (S.readerRotate || 0) === v }, l)));
+      rotSel.onchange = () => Settings.set('readerRotate', +rotSel.value);
+      const nameIn = h('input', { class: 'inp set-sel', value: S.userName, placeholder: 'např. Petr' });
+      nameIn.onchange = () => Settings.set('userName', nameIn.value.trim());
+      const pinBtn = h('button', { class: 'btn nogrow', onclick: async () => {
+        const p = await promptDlg(S.pinHash ? 'Nový PIN (prázdné = zrušit PIN)' : 'Zvol PIN pro úpravy (čísla nebo text)');
+        if (p === null) return;
+        Settings.set('pinHash', p ? sha1Bytes(utf8.enc('prompter:' + p)) : '');
+        sessionStorage.setItem('unlocked', '1');
+        toast(p ? 'PIN nastaven. Bez něj půjde jen číst ve čtečce.' : 'PIN zrušen', 'ok');
+        paint();
+      } }, S.pinHash ? '🔒 Změnit / zrušit' : '🔓 Nastavit PIN');
+      box.append(
+        h('p', { class: 'help' }, 'Platí jen pro tento počítač, tablet či telefon – ostatním členům se nemění.'),
+        h('h3', {}, 'Použití'),
+        h('div', { class: 'set-rows' },
+          App.canInstall() ? setRow('Nainstalovat aplikaci', 'Ikona na ploše, celá obrazovka; data zůstanou v zařízení i bez internetu.', h('button', { class: 'btn primary nogrow', onclick: () => App.install() }, 'Nainstalovat')) : null,
+          setRow('K čemu zařízení slouží', 'Určuje, co se otevře po zapnutí.', roleSel),
+          setRow('Moje jméno', 'Ukazuje se u změn, které odsud uděláš.', nameIn),
+          setRow('PIN pro úpravy', S.pinHash ? 'Úpravy jsou zamčené PINem – bez něj jde jen číst ve čtečce.' : 'Nepovinné – např. na čtečce, aby nikdo omylem nic nezměnil.', pinBtn),
+          setRow('Vzhled aplikace', 'Barvy stránky ve čtečce určuje šablona písně.', segControl(THEMES, S.theme || 'dark', v => { Settings.set('theme', v); App.applyTheme(); })),
+          setRow('Průvodce nastavením', 'Znovu projít otázky z prvního spuštění.', h('button', { class: 'btn nogrow', onclick: () => setupWizard() }, 'Spustit'))),
+        h('h3', {}, 'Zobrazení ve čtečce'),
+        h('div', { class: 'set-rows' },
+          setRow('Toto zařízení je obrazovka', 'Na webu a v telefonu se stránka přizpůsobí oknu. Obrazovku kapely zvol jen pro pevně umístěný displej.', scrSel),
+          setRow('Co vidím já', my ? 'Vlastní výběr jen pro toto zařízení.' : 'Jako obrazovka „' + Screens.mine().name + '“.',
+            segControl([['profile', 'Jako obrazovka'], ['custom', 'Vlastní']], my ? 'custom' : 'profile', v => { Settings.set('myView', v === 'custom' ? Object.assign({}, view) : null); paint(); })),
+          my ? h('div', { class: 'set-row sub' }, custom) : null,
+          setRow('Zvýraznit moje řádky', 'Řádky ostatních zpěváků budou ztlumené (řádky „všichni“ zůstanou).', singerSel),
+          setRow('Velikost písma (%)', 'Osobní zvětšení k velikosti obrazovky. Ve čtečce i klávesami + / −.', zoom),
+          setRow('Otočit obraz čtečky', 'Jen když systém monitor sám neotáčí.', rotSel)));
+    };
+    paint();
+    return box;
+  },
+
+  /* ---------- Obrazovky kapely (sdílené profily: rozměr, obsah, písmo) ---------- */
+  screens(sub) {
+    let edId = sub || (Screens.myId() === 'auto' ? 'main' : Screens.myId());
     const scrTabs = h('div', { class: 'scr-tabs' });
     const scrBox = h('div', { class: 'scr-box' });
     const presets = [[1920, 1080, 'Full HD (většina 24" monitorů)'], [1920, 1200, '24" 16:10'], [1680, 1050, '22" 16:10'], [1600, 900, ''], [1366, 768, 'notebook'], [1280, 1024, 'starší 4:3/5:4'], [2560, 1440, '27" QHD'], [2048, 1536, 'iPad'], [2340, 1080, 'mobil']];
@@ -297,7 +526,7 @@ const SettingsView = {
       scrTabs.appendChild(h('button', { class: 'chip add', onclick: async () => {
         const name = await promptDlg('Název nové obrazovky', 'Tablet – kytara', 'např. Mobil – basa');
         if (!name) return;
-        const sc = await Screens.add({ name }); edId = sc.id; paintScreens(); paintDevice();
+        const sc = await Screens.add({ name }); edId = sc.id; paintScreens();
       } }, '＋ Nová obrazovka'));
       paintScreen(Screens.get(edId));
     };
@@ -348,305 +577,79 @@ const SettingsView = {
           scr.id === 'main' ? h('span', { class: 'help nogrow', style: { alignSelf: 'center' } }, 'Hlavní čtečka kapely – nejde smazat') :
             h('button', { class: 'btn danger nogrow', onclick: async () => {
               if (!await confirmDlg(`Smazat obrazovku „${scr.name}“? Její konce stránek v písních zůstanou, jen se nepoužijí.`, 'Smazat')) return;
-              await Screens.remove(scr.id); edId = 'main'; paintScreens(); paintDevice();
+              await Screens.remove(scr.id); edId = 'main'; paintScreens();
             } }, '🗑 Smazat')),
-        h('div', { class: 'row', style: { marginTop: '10px' } },
+        h('h3', {}, 'Rozměr'),
+        h('div', { class: 'row' },
           h('label', { class: 'f' }, h('span', {}, 'Šířka (px)'), wIn), h('label', { class: 'f' }, h('span', {}, 'Výška (px)'), hIn),
           h('label', { class: 'f' }, h('span', {}, 'Úhlopříčka (palce)'), diag), h('label', { class: 'f' }, h('span', {}, 'Vzdálenost čtení (m)'), dist),
           h('button', { class: 'btn nogrow', title: 'Převezme rozlišení obrazovky, na které je aplikace právě otevřená', onclick: () => applyRes(Math.round(screen.width * devicePixelRatio), Math.round(screen.height * devicePixelRatio)) }, '⌖ Z této obrazovky')),
         h('div', { class: 'row', style: { marginTop: '10px', alignItems: 'center' } }, h('span', { class: 'nogrow help' }, 'Orientace:'), orientBtns.p, orientBtns.l),
         presetBox,
+        h('p', {}, rec),
         h('h3', {}, 'Co se na této obrazovce ukáže'),
         h('div', { class: 'scr-view' }, h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: true, disabled: true }), 'Text písně'), chordChk, ...instChks),
-        h('div', { class: 'row', style: { marginTop: '10px', maxWidth: '360px' } }, h('label', { class: 'f' }, h('span', {}, 'Velikost písma oproti šabloně (%)'), fontIn)),
-        h('p', {}, rec));
+        h('div', { class: 'row', style: { marginTop: '10px', maxWidth: '360px' } }, h('label', { class: 'f' }, h('span', {}, 'Velikost písma oproti šabloně (%)'), fontIn)));
       paintRec(); paintOrient();
     };
+    paintScreens();
+    return h('div', { class: 'set-sec' },
+      h('p', { class: 'help' }, 'Každá obrazovka (hlavní prompter, tablet, mobil…) má svůj rozměr, konce stránek a obsah. Nastavení se sdílí s celou kapelou; každé zařízení si v „Toto zařízení“ vybere, kterou obrazovkou je.'),
+      scrTabs, scrBox);
+  },
 
-    // --- Toto zařízení: kterou obrazovkou je, co vidím já, moje řádky
-    const devBox = h('div', { class: 'set-rows' });
-    const paintDevice = () => {
-      devBox.innerHTML = '';
-      const scrSel = h('select', { class: 'inp set-sel' }, [Screens.auto(), ...Screens.list()].map(sc => h('option', { value: sc.id, selected: sc.id === Screens.myId() }, Screens.label(sc))));
-      scrSel.onchange = () => { Settings.set('screenId', scrSel.value); toast('Toto zařízení: ' + Screens.mine().name, 'ok'); paintScreens(); paintDevice(); };
-      const my = Settings.get('myView');
-      const view = Object.assign({ chords: false, inst: [] }, my || Screens.mine().view || {});
-      const custom = h('div', { class: 'scr-view' + (my ? '' : ' hidden') },
-        h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: !!view.chords, onchange: e => { view.chords = e.target.checked; Settings.set('myView', Object.assign({}, view)); } }), 'Akordy'),
-        ...Store.instruments().map(ins => h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: view.inst.includes(ins.code), onchange: e => {
-          view.inst = e.target.checked ? [...new Set([...view.inst, ins.code])] : view.inst.filter(c => c !== ins.code); Settings.set('myView', Object.assign({}, view));
-        } }), h('span', { class: 'led', style: { background: ins.color } }), ins.name)));
-      const singerSel = h('select', { class: 'inp set-sel' }, h('option', { value: '' }, '— nikdo / nezvýrazňovat —'),
-        Store.singers().map(sg => h('option', { value: sg.code, selected: sg.code === Settings.get('mySinger') }, sg.name)));
-      singerSel.onchange = () => { Settings.set('mySinger', singerSel.value); Settings.set('highlightMine', !!singerSel.value); };
-      const zoom = h('input', { class: 'inp set-num', type: 'number', min: 50, max: 200, step: 5, value: Math.round((Settings.get('readerZoom') || 1) * 100) });
-      zoom.onchange = () => Settings.set('readerZoom', Math.max(0.5, Math.min(2, (+zoom.value || 100) / 100)));
-      const rotSel = h('select', { class: 'inp set-sel' }, [[0, 'neotáčet (Windows už obrazovku otáčí)'], [90, 'o 90° doprava'], [270, 'o 90° doleva'], [180, 'o 180°']]
-        .map(([v, l]) => h('option', { value: v, selected: (Settings.get('readerRotate') || 0) === v }, l)));
-      rotSel.onchange = () => Settings.set('readerRotate', +rotSel.value);
-      const row = (t, help, ctl) => h('div', { class: 'set-row' }, h('div', {}, h('b', {}, t), help ? h('span', { class: 'help' }, help) : null), ctl);
-      devBox.append(
-        App.canInstall() ? row('Nainstalovat aplikaci', 'Ikona na ploše, celá obrazovka a data zůstanou v zařízení i bez internetu.', h('button', { class: 'btn primary nogrow', onclick: () => App.install() }, '📲 Nainstalovat')) : null,
-        row('K čemu zařízení slouží', 'Určuje, co se otevře po zapnutí.', roleSel),
-        row('Toto zařízení je obrazovka', 'Na webu a v telefonu se stránka přizpůsobí oknu. Obrazovku kapely zvol jen pro pevně umístěný displej (čtečka, tablet na stojanu).', scrSel),
-        row('Co vidím já', my ? 'Vlastní výběr jen pro toto zařízení.' : 'Jako obrazovka „' + Screens.mine().name + '“.',
-          segControl([['profile', 'Jako obrazovka'], ['custom', 'Vlastní']], my ? 'custom' : 'profile', v => { Settings.set('myView', v === 'custom' ? Object.assign({}, view) : null); paintDevice(); })),
-        h('div', { class: 'set-row sub' + (my ? '' : ' hidden') }, custom),
-        row('Zvýraznit moje řádky', 'Řádky ostatních zpěváků budou ztlumené (řádky „všichni“ zůstanou).', singerSel),
-        row('Velikost písma (%)', 'Osobní zvětšení k velikosti obrazovky. Ve čtečce i klávesami + / −.', zoom),
-        row('Otočit obraz čtečky', 'Když systém monitor neotáčí.', rotSel),
-        row('Vzhled aplikace', 'Barvy stránky na čtečce určuje šablona písně.', segControl(THEMES, Settings.get('theme') || 'dark', v => { Settings.set('theme', v); App.applyTheme(); })));
-      custom.classList.remove('hidden');
-    };
-
-    // --- PIN
-    const pinBtn = h('button', { class: 'btn', onclick: async () => {
-      const p = await promptDlg(S.pinHash ? 'Nový PIN (prázdné = zrušit PIN)' : 'Zvol PIN pro úpravy (čísla nebo text)');
-      if (p === null) return;
-      Settings.set('pinHash', p ? sha1Bytes(utf8.enc('prompter:' + p)) : '');
-      sessionStorage.setItem('unlocked', '1');
-      toast(p ? 'PIN nastaven. Bez něj půjde jen číst ve čtečce.' : 'PIN zrušen', 'ok');
-      App.go();
-    } }, S.pinHash ? '🔒 Změnit / zrušit PIN' : '🔓 Nastavit PIN');
-    const nameIn = h('input', { class: 'inp', value: S.userName, placeholder: S.gh.login || 'např. Petr' });
-    nameIn.onchange = () => Settings.set('userName', nameIn.value.trim());
-
-    const roleSel = h('select', { class: 'inp set-sel' }, h('option', { value: '', disabled: true, selected: !S.deviceRole }, '— nevybráno —'),
-      DEVICE_ROLES.map(r => h('option', { value: r.id, selected: r.id === S.deviceRole }, r.name)));
-    roleSel.onchange = () => { applyDeviceRole(roleSel.value); toast('Uloženo: ' + roleName(roleSel.value), 'ok'); App.go(true); };
-
-    const tplSel = h('select', { class: 'inp' }, [...Store.templates.values()].map(t => h('option', { value: t.id, selected: t.id === S.defaultTemplate }, t.name)));
+  /* ---------- Čtečka a ovládání ---------- */
+  reader() {
+    const S = Settings.data;
+    const tplSel = h('select', { class: 'inp set-sel' }, [...Store.templates.values()].map(t => h('option', { value: t.id, selected: t.id === S.defaultTemplate }, t.name)));
     tplSel.onchange = () => Settings.set('defaultTemplate', tplSel.value);
-
-    c.append(
-      h('div', { class: 'settings-grid' },
-      h('fieldset', { id: 'set-device', class: 'span2' }, h('legend', {}, '🖥 Toto zařízení', h('span', { class: 'grow' }), h('button', { class: 'btn small', onclick: () => setupWizard() }, 'Spustit průvodce znovu')),
-        h('p', { class: 'help' }, 'Platí jen pro tento počítač, tablet či telefon.'),
-        devBox),
-      h('fieldset', { id: 'set-screens', class: 'span2' }, h('legend', {}, '🖥 Obrazovky kapely'),
-        h('p', { class: 'help' }, 'Každá obrazovka (hlavní prompter, tablet, mobil…) má svůj rozměr, konce stránek a obsah. Nastavení se sdílí s celou kapelou; každé zařízení si pak vybere, kterou obrazovkou je. Píseň se píše jen jednou.'),
-        scrTabs, scrBox),
-      h('fieldset', { id: 'set-reader' }, h('legend', {}, '▶ Čtečka a ovládání'),
-        chk('readerFullscreen', 'Čtečka přes celou obrazovku'),
-        chk('startInReader', 'Po spuštění aplikace rovnou otevřít čtečku s posledním playlistem', 'pro PC čtečky'),
-        chk('hideCursor', 'Skrývat kurzor myši'),
-        chk('swapMouse', 'Prohodit tlačítka myši', 'normálně: pravé = další, levé = zpět'),
-        chk('wheelNav', 'Listovat i kolečkem myši'),
-        chk('readerSyncOnStart', 'Při otevření čtečky stáhnout změny (když je internet)'),
-        window.native ? h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: window.native.getAutoStart(), onchange: e => window.native.setAutoStart(e.target.checked) }), 'Spustit program automaticky po zapnutí počítače') : null,
-        h('div', { class: 'row', style: { marginTop: '8px', maxWidth: '520px' } }, h('label', { class: 'f' }, h('span', {}, 'Výchozí šablona'), tplSel)),
-        h('p', { class: 'help' }, 'Ovládání: pravé tlačítko / → / PgDn = další stránka · levé / ← / PgUp = zpět · prostřední / L = seznam písní · Shift+→/← = další/předchozí píseň · B = zatemnit · M = zrcadlit · +/− = písmo · F = celá obrazovka · H = nápověda · Esc = zpět.')),
-      h('fieldset', { id: 'set-user' }, h('legend', {}, '👤 Uživatel a PIN'),
-        h('div', { class: 'row', style: { maxWidth: '640px' } }, h('label', { class: 'f' }, h('span', {}, 'Moje jméno (u změn)'), nameIn), h('div', { class: 'nogrow' }, pinBtn)),
-        h('p', { class: 'help' }, 'PIN chrání úpravy na tomto počítači (např. na čtečce, aby nikdo omylem nic nezměnil). Čtečka funguje i bez PINu. Kdo smí vidět a upravovat sdílené písně, určuješ přes GitHub níže.')),
-      this.shareBlock('span2'),
-      h('fieldset', { id: 'set-backup' }, h('legend', {}, '💾 Záloha a import'),
-        h('div', { class: 'row' },
-          h('button', { class: 'btn nogrow', onclick: () => exportBackup() }, '⇩ Stáhnout zálohu (vše)'),
-          h('button', { class: 'btn nogrow', onclick: () => pickFile('.json').then(f => f && importBackup(f)) }, '⇪ Obnovit ze zálohy'),
-          h('button', { class: 'btn nogrow', onclick: () => importTxtFiles() }, '⇪ Import písní z .txt')),
-        h('p', { class: 'help' }, 'Záloha je jeden soubor .json se všemi písněmi, playlisty, šablonami a zpěváky. Obnova je slučovací – nic nesmaže, jen doplní/přepíše stejné položky.'),
-        window.native ? h('p', { class: 'help' }, 'Data čtečky jsou uložena jako soubory ve složce: ', h('code', {}, window.native.dataDir), ' ', h('button', { class: 'btn small', onclick: () => window.native.openDataDir() }, 'Otevřít složku')) : null),),
-      h('p', { class: 'help' }, 'Verze ' + APP_VERSION + (window.native ? ' · program pro Windows' : ' · webová verze')));
-    // navigace vlevo: skok na sekci (šipky + OK fungují přes Tab)
-    const secs = $$('fieldset[id]', c);
-    const items = secs.map(f => h('button', { class: 'item set-item', onclick: () => { f.scrollIntoView({ behavior: 'smooth', block: 'start' }); mark(f.id); } },
-      $('legend', f).firstChild.cloneNode(true), ' ', $('legend', f).childNodes[1] ? $('legend', f).childNodes[1].cloneNode(true) : ''));
-    const mark = id => items.forEach((b, i) => b.classList.toggle('active', secs[i].id === id));
-    nav.append(...items);
-    c.addEventListener('scroll', () => {
-      const top = c.getBoundingClientRect().top + 40;
-      let cur = secs[0];
-      for (const f of secs) if (f.getBoundingClientRect().top <= top) cur = f;
-      if (cur) mark(cur.id);
-    });
-    paintScreens(); paintDevice();
-    mark('set-device');
-    if (section) setTimeout(() => { const f = $('#set-' + section, c); if (f) { f.scrollIntoView({ block: 'start' }); mark(f.id); } }, 0);
+    const keys = [['→ · PgDn · pravé tlačítko', 'další stránka'], ['← · PgUp · levé tlačítko', 'předchozí stránka'], ['Shift + → / ←', 'další / předchozí píseň'],
+      ['L · Tab · prostřední tlačítko', 'seznam písní'], ['Q · klávesa menu', 'rychlá nabídka'], ['B', 'zatemnit'], ['M', 'zrcadlit (sklo prompteru)'],
+      ['+ / −', 'větší / menší písmo'], ['F', 'celá obrazovka'], ['H', 'nápověda'], ['Esc', 'zpět']];
+    return h('div', { class: 'set-sec' },
+      h('div', { class: 'set-rows' },
+        setFlag('readerFullscreen', 'Přes celou obrazovku', 'Čtečka se otevře bez lišt prohlížeče či okna.'),
+        setFlag('startInReader', 'Po spuštění rovnou čtečka', 'Otevře se poslední playlist – pro PC u monitoru.'),
+        window.native ? setRow('Spustit po zapnutí počítače', 'Program se spustí sám s Windows.', setSwitch(window.native.getAutoStart(), v => window.native.setAutoStart(v))) : null,
+        setFlag('readerSyncOnStart', 'Při otevření čtečky stáhnout změny', 'Když je internet.'),
+        setFlag('hideCursor', 'Skrývat kurzor myši', ''),
+        setFlag('swapMouse', 'Prohodit tlačítka myši', 'Normálně: pravé = další, levé = zpět.'),
+        setFlag('wheelNav', 'Listovat kolečkem myši', ''),
+        setRow('Výchozí šablona', 'Vzhled písní, které nemají vlastní šablonu.', tplSel)),
+      h('h3', {}, 'Ovládání'),
+      h('div', { class: 'set-rows set-keys' }, keys.map(([k, v]) => h('div', { class: 'set-row' }, h('div', {}, h('b', {}, v)), h('kbd', {}, k)))));
   },
 
-  shareBlock(cls) {
-    const mode = Sync.mode();
-    const names = { github: 'GitHub', mega: 'Mega', folder: 'sdílenou složku' };
-    const top = h('div', { style: { marginBottom: '12px' } });
-    if (mode !== 'off') {
-      const mg = mode === 'mega' ? MegaProvider.cfg() : null;
-      top.append(
-        h('p', {}, mg ? ['✅ Přihlášeno ke kapele jako ', h('b', {}, mg.email), mg.folder !== 'PROMPTERmini' ? ` (složka ${mg.folder})` : ''] : ['✅ Sdílení přes ', h('b', {}, names[mode])],
-          Settings.get('readOnly') ? h('span', { class: 'tag', style: { marginLeft: '6px' } }, 'jen pro čtení') : null,
-          Sync.lastError ? h('span', { style: { color: 'var(--err)', marginLeft: '8px' } }, Sync.lastError) : null),
-        h('div', { class: 'row' },
-          mg && !Settings.get('readOnly') ? h('button', { class: 'btn primary nogrow', onclick: () => inviteDialog() }, '👥 Pozvat členy') : null,
-          Sync.locked() ? h('button', { class: 'btn primary nogrow', onclick: () => loginDialog({ expired: true }) }, '🔑 Přihlásit') : h('button', { class: 'btn nogrow', onclick: () => App.syncClick() }, '⟳ Synchronizovat teď'),
-          h('button', { class: 'btn danger nogrow', onclick: async () => {
-            if (!await confirmDlg('Odhlásit toto zařízení od kapely? Písně v něm zůstanou, jen se přestanou synchronizovat.', mg ? 'Odhlásit' : 'Odpojit')) return;
-            Settings.set('syncMode', 'none'); Settings.set('readOnly', false); Settings.set('rememberBand', true);
-            sessionStorage.removeItem('prompter-secret-mega'); sessionStorage.removeItem('prompter-secret-gh');
-            // přístupové údaje se z tohoto zařízení smažou (důležité na cizím PC), e-mail zůstane předvyplněný
-            Settings.set('mega', Object.assign({}, Settings.data.mega, { pass: '' }));
-            Settings.set('gh', Object.assign({}, Settings.get('gh'), { token: '', login: '', canPush: null }));
-            MegaProvider.api().logout();
-            if (window.native) window.native.watchFolder('');
-            await Sync.resetMeta(); Sync.lastError = ''; Sync.state = 'off'; Sync.refreshState(); App.go(true);
-          } }, mg ? 'Odhlásit' : 'Odpojit'),
-          mg ? h('button', { class: 'btn nogrow', title: 'Co aplikace v účtu Mega vidí – pošli to při potížích se synchronizací', onclick: async () => {
-            toast('Načítám obsah Mega…', 'info', 2000);
-            let text;
-            try { text = `PROMPTER mini ${APP_VERSION}\nsložka: ${mg.folder}\nchyba: ${Sync.lastError || '–'}\n` + await MegaProvider.api().diag(mg); }
-            catch (e) { text = 'Diagnostika selhala: ' + ipcError(e); }
-            await modal({ title: '🩺 Diagnostika Mega', wide: true, body: h('textarea', { class: 'inp', rows: 12, readonly: true, style: { fontFamily: 'Consolas, monospace', fontSize: '12px' } }, text) });
-          } }, '🩺 Diagnostika') : null),
-        mg && !window.native ? h('label', { class: 'chk', style: { marginTop: '10px' } },
-          h('input', { type: 'checkbox', checked: Settings.data.rememberBand !== false, onchange: e => setRememberBand(e.target.checked) }),
-          'Zůstat přihlášen na tomto zařízení',
-          h('span', { class: 'help' }, ' – vypni na cizím počítači: po zavření prohlížeče bude potřeba přihlásit se znovu')) : null);
-    } else {
-      top.append(
-        h('p', {}, 'Písně jsou zatím jen v tomto zařízení.'),
-        h('div', { class: 'row' },
-          h('button', { class: 'btn primary nogrow', onclick: () => loginDialog() }, '🔑 Přihlásit ke kapele'),
-          h('span', { class: 'help', style: { alignSelf: 'center' } }, '← e-mail a heslo kapely (společný účet Mega)')));
-    }
-
-    const body = h('div');
-    const cur = Settings.get('syncMode') || (mode === 'github' ? 'github' : 'none');
-    const setMode = async m => {
-      if (m === Settings.get('syncMode')) return paint(m);
-      if (m === 'none' && Sync.mode() !== 'off') {
-        if (!await confirmDlg('Vypnout sdílení na tomto počítači?', 'Vypnout')) { App.go(true); return; }
-      }
-      Settings.set('syncMode', m);
-      await Sync.resetMeta();
-      Sync.lastError = ''; Sync.state = 'off';
-      if (window.native) window.native.watchFolder(m === 'folder' ? Settings.get('sharedFolder') : '');
-      Sync.refreshState();
-      paint(m);
-    };
-    const opt = (m, label, sub, disabled) => h('label', { class: 'chk', style: { alignItems: 'flex-start', opacity: disabled ? 0.5 : 1 } },
-      h('input', { type: 'radio', name: 'syncmode', checked: cur === m, disabled, onchange: () => setMode(m) }),
-      h('span', {}, h('b', {}, label), h('br'), h('span', { class: 'help' }, sub)));
-    const detail = h('div', { style: { marginTop: '12px', paddingTop: '12px', borderTop: '1px solid var(--line)' } });
-    const paint = m => {
-      detail.innerHTML = '';
-      if (m === 'mega') detail.appendChild(this.megaBlock());
-      else if (m === 'folder') detail.appendChild(this.folderBlock());
-      else if (m === 'github') detail.appendChild(this.ghBlock());
-      else detail.appendChild(h('p', { class: 'help' }, 'Bez sdílení. Přenést písně jde i ručně: Záloha → Stáhnout zálohu → na druhém PC Obnovit ze zálohy.'));
-    };
-    body.append(
-      h('div', { class: 'help', style: { marginBottom: '6px' } }, 'Kde jsou písně kapely uložené (běžně Mega – stačí se přihlásit výše):'),
-      opt('none', 'Nesdílet', 'vše jen v tomto počítači'),
-      opt('mega', 'Mega (doporučeno)', 'zdarma 20 GB · jeden společný účet pro kapelu · členové se přihlásí jeho e-mailem a heslem'),
-      opt('github', 'GitHub – program se připojí sám', 'zdarma · nejspolehlivější při souběžných úpravách · správce potřebuje účet na GitHubu'),
-      opt('folder', 'Synchronizovaná složka (pokročilé)', window.native
-        ? 'složka, kterou synchronizuje jiná aplikace (MEGA Desktop, OneDrive, Dropbox, síťový disk…)'
-        : 'jen v programu PROMPTER mini.exe', !window.native),
-      detail);
-    paint(cur);
-    return h('fieldset', { class: cls, id: 'set-share' }, h('legend', {}, '☁ Sdílení s kapelou'), top, body,
-      h('label', { class: 'chk', style: { marginTop: '10px' } }, h('input', { type: 'checkbox', checked: Settings.get('autoSync'), onchange: e => Settings.set('autoSync', e.target.checked) }), 'Synchronizovat automaticky'));
+  /* ---------- Záloha a import ---------- */
+  backup() {
+    return h('div', { class: 'set-sec' },
+      h('div', { class: 'set-rows' },
+        setRow('Stáhnout zálohu', 'Jeden soubor .json se všemi písněmi, playlisty, šablonami a zpěváky.', h('button', { class: 'btn nogrow', onclick: () => exportBackup() }, '⇩ Stáhnout')),
+        setRow('Obnovit ze zálohy', 'Slučovací – nic nesmaže, jen doplní a přepíše stejné položky. Při přihlášení ke kapele se pak odešlou do kapely.', h('button', { class: 'btn nogrow', onclick: () => pickFile('.json').then(f => f && importBackup(f)) }, '⇪ Vybrat soubor')),
+        setRow('Import písní z textu', 'Soubory .txt – každý soubor jedna píseň. Jde i přetáhnout soubory do okna.', h('button', { class: 'btn nogrow', onclick: () => importTxtFiles() }, '⇪ Vybrat soubory')),
+        window.native ? setRow('Složka s daty', window.native.dataDir, h('button', { class: 'btn nogrow', onclick: () => window.native.openDataDir() }, 'Otevřít')) : null));
   },
 
-  megaBlock() {
-    return h('div', {},
-      h('ol', { class: 'help', style: { lineHeight: 1.7, marginTop: 0 } },
-        h('li', {}, 'Na ', h('a', { href: 'https://mega.io/register', target: '_blank' }, 'mega.io/register'), ' založ ', h('b', {}, 'nový společný účet pro kapelu'), ' (ne svůj osobní – heslo budou znát všichni členové). Dvoufázové ověření u něj nezapínej.'),
-        h('li', {}, 'Přihlas se jím tady v aplikaci. Aplikace si v Mega sama vytvoří složku a nahraje do ní písně.'),
-        h('li', {}, 'Klikni na ', h('b', {}, 'Pozvat členy'), ' a pošli jim zprávu s adresou aplikace. Heslo jim řekni zvlášť.')),
-      h('div', { class: 'row', style: { marginTop: '10px' } }, h('button', { class: 'btn primary nogrow', onclick: () => loginDialog() }, '🔑 Přihlásit ke kapele')),
-      h('p', { class: 'help' }, window.native
-        ? 'Heslo je v tomto počítači uložené šifrovaně (chrání ho Windows). '
-        : 'S volbou „Zůstat přihlášen“ si heslo pamatuje jen tento prohlížeč – na cizím počítači ji vypni nebo se po práci odhlas. ',
-        'Připojení k Mega používá neoficiální knihovnu – kdyby Mega něco změnila a přestalo to fungovat, přepni na GitHub; písně v aplikaci zůstanou.'));
-  },
-
-  folderBlock() {
-    const status = h('div', { class: 'help', style: { marginTop: '8px' } });
-    const paintStatus = () => {
-      const d = Settings.get('sharedFolder');
-      status.innerHTML = d
-        ? `Sdílená složka: <b>${esc(d)}</b>` + (Sync.lastSync ? ` · poslední synchronizace ${Sync.lastSync.toLocaleTimeString('cs-CZ')}` : '') + (Sync.lastError ? ` · <span style="color:var(--err)">${esc(Sync.lastError)}</span>` : '')
-        : 'Složka zatím není vybraná.';
-    };
-    paintStatus();
-    const inp = h('input', { class: 'inp', value: Settings.get('sharedFolder') || '', placeholder: 'např. C:\\Users\\Petr\\MEGA\\Kapela-pisne', readonly: true });
-    const choose = async dir => {
-      if (!dir) return;
-      Settings.set('sharedFolder', dir);
-      inp.value = dir;
-      await Sync.resetMeta();
-      window.native.watchFolder(dir);
-      try {
-        const r = await Sync.run();
-        toast(`Složka připojena · načteno ${r.downloaded}, zapsáno ${r.pushed}${r.conflicts ? ', konflikty ' + r.conflicts : ''}`, 'ok', 5000);
-      } catch (e) { toast(e.message, 'err', 7000); }
-      paintStatus();
-    };
-    const sugg = window.native.suggestFolders();
-    return h('div', {},
-      h('div', { class: 'row' }, inp,
-        h('button', { class: 'btn primary nogrow', onclick: async () => choose(await window.native.pickFolder()) }, '📁 Vybrat složku…'),
-        h('button', { class: 'btn nogrow', onclick: () => Sync.run().then(r => toast(`Načteno ${r.downloaded || 0}, zapsáno ${r.pushed || 0}`, 'ok')).catch(e => toast(e.message, 'err')).finally(paintStatus) }, '⟳ Synchronizovat teď')),
-      sugg.length ? h('p', { class: 'help' }, 'Nalezené cloudové složky v tomto PC: ', sugg.map(p => h('code', { style: { marginRight: '6px' } }, p))) : null,
-      status,
-      h('details', { style: { marginTop: '10px' } }, h('summary', { style: { cursor: 'pointer' } }, h('b', {}, 'Návod – Mega (zdarma)')),
-        h('ol', { class: 'help', style: { lineHeight: 1.7 }, html: `
-          <li><b>Ty (jednou):</b> nainstaluj <b>MEGA Desktop App</b> (mega.io/desktop) a přihlas se. Ve složce MEGA na disku vytvoř složku např. <code>Kapela-pisne</code>.</li>
-          <li>Na webu mega.io klikni na tu složku pravým tlačítkem → <b>Sdílet</b> → zadej e-maily členů a dej jim právo <b>Číst a zapisovat</b> (Read and write).
-            <i>Pozor: nepoužívej „Sdílet odkaz“ – ten je jen pro čtení a může ho otevřít kdokoli.</i></li>
-          <li><b>Každý člen:</b> založí si účet Mega (zdarma), přijme pozvánku a v MEGA Desktop App si nastaví <b>synchronizaci</b> sdílené složky (Incoming shares) do svého PC.</li>
-          <li>V PROMPTER mini: <b>Vybrat složku…</b> → zvol tu synchronizovanou složku. Hotovo.</li>
-          <li><b>Čtečka:</b> stejně tak – MEGA Desktop App + synchronizace složky. Když není internet, čtečka jede z vlastních dat a změny dožene, až se připojí.</li>` })),
-      h('details', { style: { marginTop: '6px' } }, h('summary', { style: { cursor: 'pointer' } }, h('b', {}, 'Návod – Proton Drive')),
-        h('ol', { class: 'help', style: { lineHeight: 1.7 }, html: `
-          <li>Nainstaluj <b>Proton Drive pro Windows</b>, ve složce Proton Drive vytvoř složku <code>Kapela-pisne</code> a vyber ji tady v PROMPTER mini.</li>
-          <li>Na webu drive.proton.me složku sdílej členům (pozvánka e-mailem, oprávnění <b>Editor</b>). Členové potřebují účet Proton (stačí zdarma).</li>
-          <li>Každý člen musí mít sdílenou složku <b>synchronizovanou na disk</b> v aplikaci Proton Drive. Ověř si, že to jeho verze aplikace umí – pokud sdílené složky v jeho Windows aplikaci nevidí, použijte Mega nebo GitHub.</li>` })),
-      h('p', { class: 'help' }, 'Bezpečnost: písně uvidí jen ti, se kterými složku nasdílíš. Data ve čtečce zůstávají i v její vlastní složce „data“ – když cloud vypadne, čtečka hraje dál.'));
-  },
-
-  ghBlock() {
-    const g = clone(Settings.get('gh'));
-    const repoIn = h('input', { class: 'inp', value: g.owner && g.repo ? `${g.owner}/${g.repo}` : '', placeholder: 'uživatel/kapela-pisne nebo odkaz na repozitář' });
-    const tokenIn = h('input', { class: 'inp', type: 'password', value: g.token || '', placeholder: 'github_pat_…' });
-    const status = h('div', { class: 'help', style: { marginTop: '8px' } });
-    const c0 = Settings.get('gh');
-    if (GH.configured() && Sync.mode() === 'github') status.innerHTML = `Připojeno jako <b>${esc(c0.login || '?')}</b> k <b>${esc(c0.owner)}/${esc(c0.repo)}</b> · ${c0.canPush && !Settings.get('readOnly') ? 'čtení i zápis' : '<b>jen čtení</b>'}`;
-    const connect = async () => {
-      const m = /(?:github\.com[/:])?([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+?)(?:\.git)?\/?$/.exec(repoIn.value.trim());
-      if (!m || !tokenIn.value.trim()) return toast('Vyplň repozitář (uživatel/název) i token.', 'warn');
-      const prev = clone(Settings.get('gh')), prevMode = Settings.get('syncMode');
-      Settings.set('gh', Object.assign({}, prev, { owner: m[1], repo: m[2], token: tokenIn.value.trim(), branch: prev.branch || 'main' }));
-      Settings.set('syncMode', 'github');
-      status.textContent = 'Ověřuji přístup…';
-      try {
-        const r = await GH.test();
-        Settings.set('gh', Object.assign({}, Settings.get('gh'), { login: r.login, canPush: r.canPush, branch: r.defaultBranch || 'main' }));
-        Settings.set('readOnly', false);
-        if (!r.private) toast('Pozor: repozitář je VEŘEJNÝ – texty uvidí kdokoli. Přepni ho na Private (Settings → General → Danger Zone).', 'warn', 9000);
-        await dropSampleSongs(); await Sync.resetMeta(); Sync.lastError = '';
-        const res = await Sync.run();
-        toast(`GitHub připojen · staženo ${res.downloaded}, odesláno ${res.pushed}`, 'ok', 5000);
-        App.go(true);
-      } catch (e) {
-        Settings.set('gh', prev); Settings.set('syncMode', prevMode);
-        status.innerHTML = `<span style="color:var(--err)">Nepodařilo se připojit: ${esc(e.message)}</span>`;
-      }
-    };
-    const tokenUrl = 'https://github.com/settings/personal-access-tokens/new?name=PROMPTER%20mini&description=Synchronizace%20pisni&expires_in=none&contents=write';
-    return h('div', {},
-      h('ol', { class: 'help', style: { lineHeight: 1.75, marginTop: 0 } },
-        h('li', { html: 'Přihlas se na GitHub (nebo si <a href="https://github.com/signup" target="_blank">zdarma založ účet</a>).' }),
-        h('li', { html: '<a href="https://github.com/new?name=kapela-pisne&visibility=private" target="_blank">Vytvoř soukromý repozitář</a> – název nech „kapela-pisne“, musí být <b>Private</b>, klikni <b>Create repository</b>.' }),
-        h('li', { html: `<a href="${tokenUrl}" target="_blank">Vytvoř přístupový token</a> – u <b>Repository access</b> zvol <b>Only select repositories</b> → kapela-pisne. U <b>Permissions → Contents</b> musí být <b>Read and write</b>. Dole klikni <b>Generate token</b> a token zkopíruj.` }),
-        h('li', {}, 'Vlož sem repozitář a token a klikni Připojit. Ostatní členové zadají stejný repozitář a vlastní token (nebo tvůj).')),
-      h('div', { class: 'grid2' },
-        h('label', { class: 'f' }, h('span', {}, 'Repozitář'), repoIn),
-        h('label', { class: 'f' }, h('span', {}, 'Token'), tokenIn)),
-      h('div', { class: 'row', style: { marginTop: '10px' } }, h('button', { class: 'btn primary nogrow', onclick: connect }, '🔗 Připojit ke GitHubu')),
-      status);
+  /* ---------- O aplikaci ---------- */
+  about() {
+    return h('div', { class: 'set-sec' },
+      h('div', { class: 'set-rows' },
+        setRow('Verze', null, h('b', {}, APP_VERSION)),
+        setRow('Druh', null, h('span', {}, window.native ? 'program pro Windows' : (matchMedia('(display-mode: standalone)').matches || navigator.standalone ? 'nainstalovaná aplikace' : 'webová verze'))),
+        setRow('Adresa aplikace', 'Stejná aplikace pro telefon, tablet i počítač.', h('a', { href: appUrl(), target: '_blank' }, appUrl().replace(/^https:\/\//, ''))),
+        App.canInstall() ? setRow('Nainstalovat', 'Ikona na ploše a celá obrazovka.', h('button', { class: 'btn nogrow', onclick: () => App.install() }, 'Nainstalovat')) : null));
   },
 };
+
+/* Co aplikace v účtu Mega vidí (bez hesla a textů písní) */
+async function megaDiagDialog() {
+  toast('Načítám obsah Mega…', 'info', 2000);
+  const m = MegaProvider.cfg();
+  let text;
+  try { text = `PROMPTER mini ${APP_VERSION}\nsložka: ${m.folder}\nchyba: ${Sync.lastError || '–'}\n` + await MegaProvider.api().diag(m); }
+  catch (e) { text = 'Diagnostika selhala: ' + ipcError(e); }
+  await modal({ title: 'Diagnostika Mega', wide: true, body: h('textarea', { class: 'inp', rows: 12, readonly: true, style: { fontFamily: 'Consolas, monospace', fontSize: '12px' } }, text) });
+}
 
 function pickFile(accept) {
   return new Promise(res => { const i = h('input', { type: 'file', accept }); i.onchange = () => res(i.files[0]); i.click(); });

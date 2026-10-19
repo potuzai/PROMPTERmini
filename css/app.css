@@ -106,9 +106,6 @@ label.chk { display: flex; gap: 9px; align-items: center; cursor: pointer; paddi
 .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 14px; }
 /* moduly nastavení */
 /* nastavení: moduly vedle sebe přes celou šířku */
-.settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(520px, 1fr)); grid-auto-flow: row dense; gap: 16px; align-items: start; }
-.settings-grid > fieldset { margin: 0; }
-.settings-grid > .span2 { grid-column: 1 / -1; }
 .field-help { display: block; white-space: normal !important; text-transform: none; letter-spacing: 0; font-family: var(--font); font-size: 12px; margin-top: 2px; }
 fieldset { min-width: 0; border: 1px solid var(--line); border-radius: var(--rc); padding: 18px 20px 20px; margin: 0 0 16px; background: var(--panel); }
 fieldset > :not(legend) { clear: both; }
@@ -464,21 +461,50 @@ details summary { color: var(--text); }
 .edit-stage .is-cur { outline-color: var(--acc) !important; }
 
 /* ===== Nastavení: vlevo sekce, vpravo obsah ===== */
-.set-view > .set-nav { width: 220px; flex: 0 0 220px; padding: 18px 8px; gap: 2px; }
+.set-view > .set-nav { width: 250px; flex: 0 0 250px; padding: 18px 8px; gap: 2px; }
 .set-nav h2 { margin: 0 12px 12px; }
 .set-item { width: 100%; border: 0; background: none; color: var(--dim); font: inherit; text-align: left; min-height: 38px; border-radius: var(--r) !important; border-bottom: 0 !important; }
 .set-item.active { color: var(--text); font-weight: 600; }
 .set-item .ic { color: var(--dim); }
-.set-content { scroll-padding-top: 12px; }
-.set-content .settings-grid { grid-template-columns: repeat(auto-fit, minmax(460px, 1fr)); }
+.set-ver { margin: auto 12px 0; padding-top: 16px; }
+.set-content { max-width: 980px; }
+.set-head { display: flex; align-items: center; gap: 12px; margin: 4px 0 14px; }
+.set-head h1 { margin: 0; font-size: 22px; display: flex; align-items: center; gap: 10px; }
+.set-head h1 .ic { width: 20px; height: 20px; color: var(--acc-hi); }
+.set-back { display: none; }
+.set-sec h3 { margin: 22px 0 8px; font-size: 13px; font-weight: 600; color: var(--dim); }
+.set-sec > .help:first-child { margin-top: 0; }
+.set-steps { line-height: 1.7; margin: 4px 0 8px; padding-left: 20px; }
+/* karta stavu přihlášení a synchronizace */
+.set-status { display: flex; gap: 14px; align-items: flex-start; padding: 16px 18px; border: 1px solid var(--line); border-radius: var(--rc); background: var(--panel2); margin-bottom: 12px; }
+.set-status .dot { width: 12px; height: 12px; border-radius: 50%; margin-top: 6px; flex: 0 0 auto; background: var(--faint); }
+.set-status.ok .dot { background: var(--ok); }
+.set-status.warn .dot { background: var(--warn); }
+.set-status.err .dot { background: var(--err); }
+.set-status > div { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.set-status b { font-size: 17px; font-weight: 600; }
+.set-status span { color: var(--dim); overflow-wrap: anywhere; }
+.set-status.err .st { color: var(--err); }
+.set-status .tag { align-self: flex-start; margin-top: 4px; }
+.set-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; }
+.set-adv { margin-top: 18px; }
+.set-adv > summary { cursor: pointer; color: var(--dim); font-weight: 600; padding: 6px 0; }
+.set-adv[open] > summary { margin-bottom: 8px; }
+.set-adv details > summary { cursor: pointer; color: var(--dim); margin-top: 8px; }
+.set-keys kbd { font: 12.5px var(--mono); color: var(--dim); text-align: right; }
+.set-keys .set-row { min-height: 40px; }
+/* přepínač zapnuto / vypnuto */
+input[type=checkbox].switch { appearance: none; -webkit-appearance: none; position: relative; width: 42px; height: 24px; flex: 0 0 auto; margin: 0; border-radius: 12px; background: var(--line2); cursor: pointer; transition: background .15s; }
+input[type=checkbox].switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--text); transition: transform .15s; }
+input[type=checkbox].switch:checked { background: var(--acc); }
+input[type=checkbox].switch:checked::after { transform: translateX(18px); background: #fff; }
+input[type=checkbox].switch:focus-visible { outline: 2px solid var(--acc-hi); outline-offset: 2px; }
 .set-rows { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--rc); overflow: hidden; margin-bottom: 8px; }
 .set-row { display: flex; align-items: center; gap: 16px; min-height: 60px; padding: 8px 16px; background: var(--panel2); }
 .set-row + .set-row { border-top: 1px solid var(--line); }
 .set-row > div:first-child { flex: 1; display: flex; flex-direction: column; }
 .set-row b { font-weight: 400; }
 .set-row .set-sel { width: 260px; flex: 0 0 auto; }
-legend .grow { flex: 1; }
-legend .btn { font-weight: 400; }
 /* přepínač (segmentový ovladač) */
 .segc { display: inline-flex; padding: 2px; border-radius: 6px; background: var(--well); border: 1px solid var(--line2); flex: 0 0 auto; }
 .segc button { min-height: 30px; padding: 0 14px; border: 0; border-radius: var(--r); background: none; color: var(--dim); font: inherit; cursor: pointer; }
@@ -554,9 +580,14 @@ legend .btn { font-weight: 400; }
   .wz-cards.two .wz-opt { min-height: 200px; }
   .wz-steps .wz-line { width: 14px; }
   .wz-hint { display: none; }
-  .set-view > .set-nav { display: none; }
-  .set-view > .content { display: block !important; }
-  .set-content .settings-grid { grid-template-columns: minmax(0, 1fr); }
+  /* telefon: bez zvolené kategorie jen seznam kategorií, s kategorií jen její obsah */
+  .set-view:not(.has-sec) > .content { display: none !important; }
+  .set-view:not(.has-sec) > .set-nav { display: flex !important; width: 100%; flex: 1 1 auto; border-right: 0; }
+  .set-view.has-sec > .set-nav { display: none !important; }
+  .set-view.has-sec > .content { display: block !important; }
+  .set-back { display: inline-flex; }
+  .set-head { flex-wrap: wrap; }
+  .set-item { min-height: 48px; font-size: 16px; }
   .set-row .set-sel { width: 100%; }
   .set-row { flex-wrap: wrap; }
   .wz-sum span { width: 110px; }

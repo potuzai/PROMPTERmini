@@ -20,7 +20,7 @@ async function bandLogin({ email, password, folder, remember = true, ro = false 
   if (window.native) remember = true; // program heslo šifruje přes Windows
   const prev = clone(Settings.data.mega || {});
   const same = Sync.mode() === 'mega' && (prev.email || '').toLowerCase() === cfg.email.toLowerCase() && (prev.folder || 'PROMPTERmini') === cfg.folder;
-  if (same && prev.folderId) cfg.folderId = prev.folderId;
+  if ((prev.email || '').toLowerCase() === cfg.email.toLowerCase() && (prev.folder || 'PROMPTERmini') === cfg.folder && prev.folderId) cfg.folderId = prev.folderId;
   const r = await MegaProvider.api().test(cfg).catch(e => { throw new Error(ipcError(e)); });
   Settings.set('rememberBand', remember);
   Settings.set('mega', { email: cfg.email, pass: remember ? Secret.protect(cfg.password) : '', folder: cfg.folder, folderId: r.folderId || '' });
@@ -39,6 +39,20 @@ async function bandLogin({ email, password, folder, remember = true, ro = false 
   try { res = await Sync.run(); } catch (e) { syncError = ipcError(e); }
   Store.emit('sync', null);
   return { email: r.email || cfg.email, res, syncError };
+}
+
+/* Odhlásit / odpojit toto zařízení od kapely – písně v něm zůstanou */
+async function bandLogout() {
+  const mega = Sync.mode() === 'mega', verb = mega ? 'Odhlásit' : 'Odpojit';
+  if (!await confirmDlg(verb + ' toto zařízení od kapely? Písně v něm zůstanou, jen se přestanou synchronizovat.', verb)) return;
+  Settings.set('syncMode', 'none'); Settings.set('readOnly', false); Settings.set('rememberBand', true);
+  sessionStorage.removeItem('prompter-secret-mega');
+  // přístupové údaje se z tohoto zařízení smažou (důležité na cizím PC), e-mail zůstane předvyplněný
+  Settings.set('mega', Object.assign({}, Settings.data.mega, { pass: '' }));
+  Settings.set('gh', Object.assign({}, Settings.data.gh, { token: '', login: '', canPush: null }));
+  MegaProvider.api().logout();
+  if (window.native) window.native.watchFolder('');
+  await Sync.resetMeta(); Sync.lastError = ''; Sync.state = 'off'; Sync.refreshState(); App.go(true);
 }
 
 /* Přihlašovací okno: e-mail + heslo kapely + „Zůstat přihlášen“
@@ -111,7 +125,7 @@ async function welcomeDialog() {
         h('li', {}, h('b', {}, 'Jsi v kapele?'), ' Klikni na „Přihlásit ke kapele“.'),
         h('li', {}, h('b', {}, 'Zakládáš kapelu?'), ' Založ na mega.io nový účet pro kapelu a přihlas se jím.'),
         h('li', {}, 'Nebo si aplikaci nejdřív jen vyzkoušej – přihlásit se jde kdykoli později.')),
-      App.canInstall() ? h('p', { class: 'help' }, '📲 Tip: aplikaci si můžeš nainstalovat na plochu – Nastavení → Toto zařízení → Nainstalovat.') : null),
+      App.canInstall() ? h('p', { class: 'help' }, 'Tip: aplikaci si můžeš nainstalovat na plochu – Nastavení → Toto zařízení → Nainstalovat aplikaci.') : null),
     buttons: [{ label: 'Jen vyzkoušet', value: 'try' }, { label: '🔑 Přihlásit ke kapele', value: 'login', primary: true }],
   });
   if (v === 'login') loginDialog();

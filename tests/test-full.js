@@ -266,9 +266,9 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   assert(await p.evaluate(() => location.hash.startsWith('#/songs/') && !Reader.isOpen()), 'E otevře píseň v editoru');
 
   /* ---------- Záloha a obnova ---------- */
-  await p.evaluate(() => { location.hash = '#/settings'; }); await sleep(400);
+  await p.evaluate(() => { location.hash = '#/settings/backup'; }); await sleep(400);
   const dl2 = p.waitForEvent('download');
-  await p.click('button:has-text("Stáhnout zálohu (vše)")');
+  await p.click('.set-row:has-text("Stáhnout zálohu") button');
   const bpath = path.join(tmp, 'zaloha.json'); await (await dl2).saveAs(bpath);
   const backup = JSON.parse(fs.readFileSync(bpath, 'utf8'));
   assert(backup.songs.length >= 4 && backup.playlists.length === 1 && backup.templates.length >= 4, 'záloha obsahuje vše');
@@ -276,11 +276,12 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   await p.evaluate(async () => { for (const id of [...Store.songs.keys()]) await Store.remove('songs', id); });
   assert(await p.evaluate(() => Store.songs.size) === 0, '(smazáno vše)');
   const ch = p.waitForEvent('filechooser');
-  await p.click('button:has-text("Obnovit ze zálohy")');
+  await p.click('.set-row:has-text("Obnovit ze zálohy") button');
   await (await ch).setFiles(bpath); await sleep(800);
   assert(await p.evaluate(() => Store.songs.size) === countBefore, 'obnova ze zálohy');
 
   /* ---------- Nastavení monitoru ---------- */
+  await p.evaluate(() => { location.hash = '#/settings/screens'; }); await sleep(400);
   assert(await p.evaluate(() => Settings.get('screenW') < Settings.get('screenH')), 'výchozí monitor na výšku');
   await p.click('button:has-text("1200×1920")'); await sleep(200);
   assert(await p.evaluate(() => Settings.get('screenW') === 1200 && Settings.get('screenH') === 1920), 'předvolba rozlišení na výšku');
@@ -288,9 +289,10 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   assert(await p.evaluate(() => Settings.get('screenW') === 1920 && Settings.get('screenH') === 1200), 'přepnutí na šířku');
   await p.click('button:has-text("1920×1200")'); await sleep(200);
   assert(await p.isVisible('text=doporučuji písmo alespoň'), 'doporučená velikost písma');
-  assert(await p.isVisible('text=GitHub – program se připojí sám') && await p.isVisible('#set-share button:has-text("Přihlásit ke kapele")'), 'volby sdílení a přihlášení ke kapele v nastavení');
-  assert(!(await p.isDisabled('label.chk:has-text("Mega (doporučeno)") input')), 'Mega jde zvolit i v prohlížeči');
-  assert(await p.isDisabled('label.chk:has-text("Synchronizovaná složka") input'), 'synchronizovaná složka jen v programu');
+  await p.evaluate(() => { location.hash = '#/settings/band'; }); await sleep(400);
+  assert(await p.isVisible('.set-status:has-text("Nepřihlášeno")') && await p.isVisible('.set-actions button:has-text("Přihlásit ke kapele")'), 'nastavení: stav kapely a přihlášení na prvním místě');
+  await p.click('summary:has-text("Jiné úložiště")');
+  assert(await p.isVisible('button:has-text("Připojit ke GitHubu")') && await p.isVisible('text=Jen v programu PROMPTER mini.exe'), 'jiné úložiště: GitHub, synchronizovaná složka jen v programu');
 
   /* ---------- Data přežijí obnovení stránky ---------- */
   await p.reload(); await p.waitForFunction(() => typeof Store !== 'undefined' && Store.ready);

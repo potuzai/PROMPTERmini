@@ -80,8 +80,8 @@ const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode
   await C.waitForSelector('.modal-title:has-text("Vítej")');
   assert(!(await C.isVisible('.wizard')) && await C.isVisible('.modal button:has-text("Přihlásit ke kapele")'), 'web: při prvním otevření jen uvítání s přihlášením, ne průvodce čtečkou');
   await C.click('.modal button:has-text("Jen vyzkoušet")');
-  await C.evaluate(() => { location.hash = '#/settings/share'; }); await sleep(400);
-  await C.click('label.chk:has-text("GitHub") input'); await sleep(200);
+  await C.evaluate(() => { location.hash = '#/settings/band'; }); await sleep(400);
+  await C.click('summary:has-text("Jiné úložiště")'); await sleep(200);
   await C.fill('input[placeholder^="uživatel/kapela-pisne"]', 'o/r');
   await C.fill('input[placeholder="github_pat_…"]', 'TESTTOKEN');
   await C.click('button:has-text("Připojit ke GitHubu")');

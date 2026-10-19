@@ -89,11 +89,11 @@ async function launch(name) {
   assert(await A.w.evaluate(() => Reader.isOpen() && !!document.querySelector('#reader .stage')), 'čtečka funguje i bez sdílené složky');
 
   // Nastavení – obrazovka sdílení
-  await B.w.evaluate(() => { location.hash = '#/settings'; });
+  await B.w.evaluate(() => { location.hash = '#/settings/band'; });
   await sleep(500);
-  assert(await B.w.isVisible('text=Synchronizovaná složka (pokročilé)'), 'volba synchronizované složky v nastavení');
+  assert(await B.w.isVisible('.set-status:has-text("Složka")') && await B.w.isVisible('.set-actions button:has-text("Odpojit")'), 'nastavení: stav sdílené složky a Odpojit');
+  await B.w.click('summary:has-text("Pokročilé")');
   assert(await B.w.isVisible('button:has-text("Vybrat složku")'), 'tlačítko pro výběr složky');
-  await B.w.locator('fieldset:has-text("Sdílení s kapelou")').screenshot({ path: path.join(os.tmpdir(), 'share-settings.png') });
 
   await A.app.close(); await B.app.close();
   fs.rmSync(tmp, { recursive: true, force: true });

@@ -18,7 +18,7 @@ const App = {
     if (!window.native && navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
     this.buildTopbar();
     Reader.init();
-    Sync.on(() => this.paintSync());
+    Sync.on(() => { this.paintSync(); if (SettingsView.onSync) SettingsView.onSync(); });
     Store.on((type, id) => this.onStore(type, id));
     window.addEventListener('hashchange', () => this.go());
     document.addEventListener('keydown', e => {
@@ -169,7 +169,7 @@ const App = {
     for (const [k, el] of Object.entries(this.tabEls)) el.classList.toggle('active', k === view);
     const main = $('#main');
     main.innerHTML = '';
-    SongsView.paintList = null; PlaylistsView.paintSide = null; TemplatesView.paintSide = null;
+    SongsView.paintList = null; PlaylistsView.paintSide = null; TemplatesView.paintSide = null; SettingsView.onSync = null;
     if (SongsView.editor && SongsView.editor.ro) SongsView.editor.ro.disconnect();
     SongsView.editor = null;
     const views = { songs: SongsView, playlists: PlaylistsView, templates: TemplatesView, singers: SingersView, settings: SettingsView };

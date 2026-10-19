@@ -73,9 +73,9 @@ async function browserMember(browser) {
   assert(!files0.some(f => f.text.includes('"sample": true')), 'ukázková píseň se do kapely nenahrála');
   const savedPass = JSON.parse(fs.readFileSync(path.join(A.dir, 'settings.json'), 'utf8')).mega.pass;
   assert(savedPass && !savedPass.includes('heslo123'), 'heslo není v nastavení čitelně');
-  await A.w.evaluate(() => { location.hash = '#/settings/share'; }); await sleep(400);
-  assert(await A.w.isVisible('fieldset#set-share :text("kapela@test.cz")'), 'nastavení ukazuje, kdo je přihlášený');
-  await A.w.click('fieldset#set-share button:has-text("Pozvat členy")');
+  await A.w.evaluate(() => { location.hash = '#/settings/band'; }); await sleep(400);
+  assert(await A.w.isVisible('.set-status:has-text("Přihlášeno ke kapele"):has-text("kapela@test.cz")'), 'nastavení ukazuje, kdo je přihlášený');
+  await A.w.click('.set-actions button:has-text("Pozvat členy")');
   const invite = await A.w.inputValue('.modal textarea');
   assert(invite.includes('kapela@test.cz') && invite.includes('https://') && !invite.includes('heslo123'), 'pozvánka: adresa aplikace a e-mail kapely, bez hesla');
   await A.w.click('.modal button:has-text("Zavřít")');
@@ -170,13 +170,14 @@ async function browserMember(browser) {
   assert(await D.p.evaluate(() => !!document.querySelector('#reader .stage') && document.querySelector('#reader').textContent.includes('Žlutý pes')), 'prohlížeč: čtečka zobrazí playlist');
   // odhlášení na cizím počítači smaže heslo z prohlížeče
   await D.p.evaluate(() => { location.hash = '#/settings'; }); await sleep(400);
-  await D.p.click('fieldset:has-text("Sdílení s kapelou") button:has-text("Odhlásit")');
+  assert(await D.p.isVisible('.set-status:has-text("Přihlášeno ke kapele")') && await D.p.isVisible('.set-actions button:has-text("Odhlásit")'), 'nastavení otevře kategorii Kapela: stav přihlášení a Odhlásit');
+  await D.p.click('.set-actions button:has-text("Odhlásit")');
   await D.p.click('.modal button:has-text("Odhlásit")'); await sleep(400);
   assert(await D.p.evaluate(() => Sync.mode()) === 'off', 'prohlížeč: odhlášení od kapely');
   assert(await D.p.evaluate(() => !Settings.get('mega').pass && !localStorage.getItem('prompter-settings').includes('b64:')), 'odhlášení smaže uložené heslo z prohlížeče');
   assert(await D.p.evaluate(() => Store.songs.has('zluty')), 'písně po odhlášení zůstanou');
   // přihlášení bez „Zůstat přihlášen“: heslo jen do zavření prohlížeče
-  await D.p.click('fieldset#set-share button:has-text("Přihlásit ke kapele")');
+  await D.p.click('.set-actions button:has-text("Přihlásit ke kapele")');
   await D.p.waitForSelector('.modal form.login');
   assert(await D.p.inputValue('.modal input[type=email]') === 'kapela@test.cz', 'e-mail kapely zůstal předvyplněný');
   await D.p.fill('.modal input[type=password]', 'heslo123');

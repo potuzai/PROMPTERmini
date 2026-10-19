@@ -1,6 +1,8 @@
 'use strict';
 /* ===== Čárové ikony (24×24, tah 1,6) – nahrazují emoji v celém rozhraní ===== */
 const ICONS = {
+  info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.5h.01"/>',
+  phone: '<rect x="6.5" y="2.5" width="11" height="19" rx="2"/><path d="M11 18.5h2"/>',
   song: '<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',
   list: '<path d="M8 6h13M8 12h13M8 18h13"/><path d="M3.5 6h.01M3.5 12h.01M3.5 18h.01" stroke-width="2.6" stroke-linecap="round"/>',
   layout: '<rect x="3" y="3" width="18" height="18" rx="1.5"/><path d="M3 9h18M9 9v12"/>',
@@ -67,7 +69,7 @@ const GLYPH_ICONS = {
   '⇩': 'download', '⧉': 'copy', '🗑': 'trash', '🔑': 'key', '⚠': 'warn', '🔍': 'search', '✎': 'edit', '👥': 'users',
   '★': 'star', '◀': 'left', '🔒': 'lock', '🔓': 'unlock', '💾': 'save', '⟳': 'sync', '🔗': 'link', '🧹': 'clean',
   '🖨': 'print', '⏻': 'power', '↩': 'back', '🖥': 'monitor', '⌖': 'target', '👤': 'user', '✅': 'check', '☁': 'cloud',
-  '📁': 'folder', '📅': 'cal', '⤓': 'pagebreak', '✕': 'x', '✓': 'check', '🎸': 'guitar',
+  '📁': 'folder', 'ⓘ': 'info', '📱': 'phone', '📅': 'cal', '⤓': 'pagebreak', '✕': 'x', '✓': 'check', '🎸': 'guitar',
 };
 const GLYPH_RE = new RegExp('^(' + Object.keys(GLYPH_ICONS).map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')\\uFE0F?\\s*');
 function glyphToIcon(text) {
