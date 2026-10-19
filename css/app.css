@@ -805,3 +805,5 @@ input[type=checkbox].switch:focus-visible { outline: 2px solid var(--acc-hi); ou
 .login-more summary { cursor: pointer; color: var(--dim); }
 .login-more[open] { display: flex; flex-direction: column; gap: 10px; }
 .login-err { color: var(--err); min-height: 1.4em; }
+.login-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+.modal-buttons:empty { display: none; }

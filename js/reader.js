@@ -303,7 +303,7 @@ const Reader = {
   },
 
   exit() {
-    if (App.canEdit()) { this.close(); location.hash = App.lastEditHash || '#/playlists'; }
+    if (App.canEdit()) { this.close(); if (App.lastEditHash) location.hash = App.lastEditHash; else App.home(); }
     else this.showStartMenu();
   },
 

@@ -172,6 +172,8 @@ function modal({ title, body, buttons = [{ label: 'OK', value: true, primary: tr
         h('button', { class: 'btn' + (b.primary ? ' primary' : '') + (b.danger ? ' danger' : ''), onclick: () => close(typeof b.value === 'function' ? b.value(box) : b.value) }, b.label)))
     );
     const onKey = e => {
+      const top = [...document.querySelectorAll('.modal-back')].pop();
+      if (top && top !== back) return;   // klávesy patří jen hornímu oknu
       if (e.key === 'Escape') { e.stopPropagation(); close(null); }
       if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
         const p = buttons.find(b => b.primary);
@@ -184,7 +186,7 @@ function modal({ title, body, buttons = [{ label: 'OK', value: true, primary: tr
     document.body.appendChild(back);
     const first = box.querySelector('input,select,textarea');
     if (first) setTimeout(() => first.focus(), 30);
-    if (onOpen) onOpen(box);
+    if (onOpen) onOpen(box, close);
   });
 }
 

@@ -68,20 +68,40 @@ async function bandLogout() {
    (expired = přihlášení vypršelo po zavření prohlížeče, error = Mega odmítla uložené přihlášení) */
 async function loginDialog(opts = {}) {
   const m = Settings.data.mega || {};
-  const email = h('input', { class: 'inp', type: 'email', name: 'email', autocomplete: 'username', value: m.email || '', placeholder: 'e-mail kapely' });
-  const pass = h('input', { class: 'inp', type: 'password', name: 'password', autocomplete: 'current-password', placeholder: 'heslo kapely' });
-  const remember = h('input', { type: 'checkbox', checked: Settings.data.rememberBand !== false });
-  const folder = h('input', { class: 'inp', value: m.folder || 'PROMPTERmini' });
-  const ro = h('input', { type: 'checkbox', checked: !!Settings.get('readOnly') });
-  const err = h('div', { class: 'login-err' }, opts.error || '');
-  const body = h('form', { class: 'login', onsubmit: e => e.preventDefault() },
+  // skutečný přihlašovací formulář (e-mail, heslo, odeslání tlačítkem ve formuláři) – správci hesel
+  // (Proton Pass, Bitwarden, prohlížeč…) ho poznají, vyplní a po přihlášení nabídnou uložení
+  const email = h('input', { class: 'inp', type: 'email', id: 'login-email', name: 'username', autocomplete: 'username', autocapitalize: 'off', spellcheck: 'false', required: true, value: m.email || '', placeholder: 'e-mail kapely' });
+  const pass = h('input', { class: 'inp', type: 'password', id: 'login-password', name: 'password', autocomplete: 'current-password', required: true, placeholder: 'heslo kapely' });
+  const remember = h('input', { type: 'checkbox', name: 'remember', checked: Settings.data.rememberBand !== false });
+  // pole, které správci hesel nemají brát jako přihlašovací
+  const noFill = { autocomplete: 'off', 'data-protonpass-ignore': 'true', 'data-1p-ignore': 'true', 'data-lpignore': 'true', 'data-bwignore': 'true', 'data-form-type': 'other' };
+  const folder = h('input', Object.assign({ class: 'inp', name: 'mega-folder', value: m.folder || 'PROMPTERmini' }, noFill));
+  const ro = h('input', { type: 'checkbox', name: 'readonly', checked: !!Settings.get('readOnly') });
+  const err = h('div', { class: 'login-err', role: 'alert' }, opts.error || '');
+  const submit = h('button', { type: 'submit', class: 'btn primary' }, 'Přihlásit');
+  const cancel = h('button', { type: 'button', class: 'btn' }, opts.expired || opts.error ? 'Teď ne' : 'Zrušit');
+  let close = () => {}, busy = false;
+  const onSubmit = async e => {
+    e.preventDefault();
+    if (busy) return;
+    busy = true; submit.disabled = true; submit.textContent = 'Přihlašuji…'; err.textContent = '';
+    try {
+      const r = await bandLogin({ email: email.value, password: pass.value, folder: folder.value, remember: remember.checked, ro: ro.checked });
+      close(true);
+      if (r.syncError) toast(`Přihlášeno jako ${r.email}, ale synchronizace se nepovedla: ${r.syncError}`, 'warn', 15000);
+      else toast(`Přihlášeno jako ${r.email} · staženo ${r.res.downloaded || 0}, odesláno ${r.res.pushed || 0}${ro.checked ? ' (jen pro čtení)' : ''}`, 'ok', 5000);
+      App.go(true);
+    } catch (ex) { err.textContent = ex.message; pass.select(); }
+    finally { busy = false; submit.disabled = false; submit.textContent = 'Přihlásit'; }
+  };
+  const form = h('form', { class: 'login', id: 'prompter-login', name: 'login', method: 'post', autocomplete: 'on', onsubmit: onSubmit },
     h('p', {}, opts.error
       ? 'Synchronizace s Mega se nepovedla. Zkontroluj e-mail, heslo a složku kapely (Další možnosti) a přihlas se znovu – písně v zařízení zůstaly.'
       : opts.expired
       ? 'Toto zařízení si přihlášení nepamatuje. Přihlas se znovu – písně v něm zůstaly, jen se teď nesynchronizují.'
       : 'Přihlas se e-mailem a heslem kapely (společný účet Mega). Písně a playlisty se pak samy stáhnou a synchronizují.'),
-    h('label', { class: 'f' }, h('span', {}, 'E-mail'), email),
-    h('label', { class: 'f' }, h('span', {}, 'Heslo'), pass),
+    h('label', { class: 'f', for: 'login-email' }, h('span', {}, 'E-mail'), email),
+    h('label', { class: 'f', for: 'login-password' }, h('span', {}, 'Heslo'), pass),
     window.native ? null : h('label', { class: 'chk' }, remember, 'Zůstat přihlášen',
       h('span', { class: 'help' }, ' – na cizím nebo sdíleném počítači vypni')),
     h('details', { class: 'login-more' }, h('summary', {}, 'Další možnosti'),
@@ -89,21 +109,10 @@ async function loginDialog(opts = {}) {
       h('label', { class: 'chk' }, ro, 'Jen pro čtení', h('span', { class: 'help' }, ' – čtečka nic neodešle')),
       h('p', { class: 'help' }, 'Zakládáš kapelu? Na ', h('a', { href: 'https://mega.io/register', target: '_blank' }, 'mega.io/register'),
         ' založ nový účet jen pro kapelu (ne svůj osobní, bez dvoufázového ověření) a přihlas se jím. Aplikace si v něm vše připraví sama.')),
-    err);
-  while (true) {
-    const v = await modal({ title: '🔑 Přihlásit ke kapele', body, buttons: [{ label: opts.expired || opts.error ? 'Teď ne' : 'Zrušit', value: null }, { label: 'Přihlásit', primary: true, value: true }],
-      onOpen: () => { if (email.value) setTimeout(() => pass.focus(), 40); } });
-    if (!v) return false;
-    err.textContent = '';
-    try {
-      toast('Přihlašuji…', 'info', 2000);
-      const r = await bandLogin({ email: email.value, password: pass.value, folder: folder.value, remember: remember.checked, ro: ro.checked });
-      if (r.syncError) toast(`Přihlášeno jako ${r.email}, ale synchronizace se nepovedla: ${r.syncError}`, 'warn', 15000);
-      else toast(`Přihlášeno jako ${r.email} · staženo ${r.res.downloaded || 0}, odesláno ${r.res.pushed || 0}${ro.checked ? ' (jen pro čtení)' : ''}`, 'ok', 5000);
-      App.go(true);
-      return true;
-    } catch (e) { err.textContent = e.message; pass.select(); }
-  }
+    err,
+    h('div', { class: 'login-actions' }, cancel, submit));
+  return !!(await modal({ title: '🔑 Přihlásit ke kapele', body: form, buttons: [],
+    onOpen: (box, c) => { close = c; cancel.onclick = () => c(null); if (email.value) setTimeout(() => pass.focus(), 40); } }));
 }
 
 /* Pozvánka pro členy: adresa aplikace + e-mail kapely (heslo se říká zvlášť) */

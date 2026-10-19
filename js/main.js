@@ -1,7 +1,7 @@
 'use strict';
 /* ===== Aplikace: směrování, horní lišta ===== */
 const App = {
-  lastEditHash: '#/songs',
+  lastEditHash: '',
   current: '',
 
   async init() {
@@ -21,7 +21,7 @@ const App = {
     Reader.init();
     Sync.on(() => { this.paintSync(); if (SettingsView.onSync) SettingsView.onSync(); });
     Store.on((type, id) => this.onStore(type, id));
-    window.addEventListener('hashchange', () => this.go());
+    window.addEventListener('hashchange', () => this.go());   // i zpět na úvodní stránku bez #
     document.addEventListener('keydown', e => {
       if (Reader.isOpen()) return;
       if (e.ctrlKey && (e.key === 's' || e.key === 'S')) { e.preventDefault(); if (SongsView.editor) SongsView.editor.save(true); }
@@ -36,10 +36,10 @@ const App = {
       importTxtFiles([...e.dataTransfer.files]);
     });
 
+    // úvodní stránka = playlisty s čistou adresou (bez #); čtečka u PC rovnou čtečka
     if (!location.hash || location.hash === '#' || location.hash === '#/') {
-      if (Settings.get('startInReader') || (window.native && window.native.readerMode)) {
-        history.replaceState(null, '', '#/reader/' + (Settings.get('lastPlaylist') || ''));
-      } else history.replaceState(null, '', '#/songs');
+      if (Settings.get('startInReader') || (window.native && window.native.readerMode)) history.replaceState(null, '', '#/reader/' + (Settings.get('lastPlaylist') || ''));
+      else if (location.hash) history.replaceState(null, '', this.homeUrl());
     }
     // „Zůstat přihlášen“ vypnuté a prohlížeč byl zavřený → přihlásit znovu
     if (Sync.locked()) setTimeout(() => loginDialog({ expired: true }), 50);
@@ -96,11 +96,19 @@ const App = {
     return false;
   },
 
+  /* Úvodní stránka (playlisty) – adresa bez # */
+  homeUrl() { return location.pathname + location.search; },
+  home() {
+    if (location.hash) history.pushState(null, '', this.homeUrl());
+    this.go();
+  },
+  nav(view) { if (view === 'playlists') this.home(); else location.hash = '#/' + view; },
+
   /* Boční lišta vlevo (návrh 20): sekce aplikace, čtečka, nastavení, stav synchronizace */
   buildTopbar() {
-    const tabs = [['songs', '🎵 Písně'], ['playlists', '📋 Playlisty'], ['templates', '🎨 Šablony'], ['singers', '🎤 Obsazení']];
+    const tabs = [['playlists', '📋 Playlisty'], ['songs', '🎵 Písně'], ['templates', '🎨 Šablony'], ['singers', '🎤 Obsazení']];
     this.tabEls = {};
-    const tab = (k, l) => (this.tabEls[k] = h('button', { class: 'tab', title: l.replace(/^\S+ /, ''), onclick: () => { location.hash = '#/' + k; } }, l));
+    const tab = (k, l) => (this.tabEls[k] = h('button', { class: 'tab', title: l.replace(/^\S+ /, ''), onclick: () => this.nav(k) }, l));
     const bar = h('nav', { id: 'topbar' },
       h('div', { class: 'logo', title: 'PROMPTER mini ' + APP_VERSION }, 'PROMPTER mini', h('span', {}, APP_VERSION)),
       h('div', { class: 'tabs' }, tabs.map(([k, l]) => tab(k, l))),
@@ -150,7 +158,7 @@ const App = {
 
   parseHash() {
     const parts = location.hash.replace(/^#\/?/, '').split('/');
-    return [parts[0] || 'songs', parts[1] ? decodeURIComponent(parts[1]) : '', parts[2]];
+    return [parts[0] || 'playlists', parts[1] ? decodeURIComponent(parts[1]) : '', parts[2]];
   },
 
   async go(force) {
@@ -161,7 +169,14 @@ const App = {
       return;
     }
     if (Reader.isOpen()) Reader.close();
-    if (!this.canEdit() && !(await this.unlock())) { location.hash = '#/reader/' + (Settings.get('lastPlaylist') || ''); return; }
+    // „#/playlists“ je úvodní stránka – adresa bez #
+    if (location.hash === '#/playlists') history.replaceState(null, '', this.homeUrl());
+    if (!this.canEdit()) {
+      if (this.unlocking) return;   // okno s PINem už je otevřené
+      this.unlocking = true;
+      const ok = await this.unlock().finally(() => { this.unlocking = false; });
+      if (!ok) { location.hash = '#/reader/' + (Settings.get('lastPlaylist') || ''); return; }
+    }
     if (SongsView.editor && SongsView.editor.dirty) await SongsView.editor.save();
     const key = location.hash;
     if (!force && key === this.current && $('#main').childElementCount) return;
@@ -174,7 +189,7 @@ const App = {
     if (SongsView.editor && SongsView.editor.ro) SongsView.editor.ro.disconnect();
     SongsView.editor = null;
     const views = { songs: SongsView, playlists: PlaylistsView, templates: TemplatesView, singers: SingersView, settings: SettingsView };
-    (views[view] || SongsView).render(main, param);
+    (views[view] || PlaylistsView).render(main, param);
     // první spuštění: program (čtečka) → průvodce zařízením; web → jen uvítání a připojení ke kapele
     if (!Settings.get('welcomed')) setTimeout(() => {
       if (Settings.get('welcomed') || $('.modal') || $('.wizard')) return; // jen jednou

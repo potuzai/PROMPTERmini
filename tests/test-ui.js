@@ -7,6 +7,23 @@ const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode
   await ctx.addInitScript(() => { if (!localStorage.getItem('prompter-settings')) localStorage.setItem('prompter-settings', JSON.stringify({ welcomed: true })); });
   const p = await ctx.newPage();
   p.on('pageerror', e => console.log('PAGEERR', e.message));
+  // úvodní stránka: playlisty, adresa bez #
+  await p.goto('http://localhost:8123/');
+  await p.waitForFunction(() => typeof Store !== 'undefined' && Store.ready); await p.waitForTimeout(300);
+  assert(!(new URL(p.url())).hash && await p.isVisible('#topbar .tab.active:has-text("Playlisty")') && (await p.textContent('#topbar .tabs .tab')).includes('Playlisty'), 'úvodní stránka: playlisty jako první, čistá adresa');
+  await p.click('#topbar .tab:has-text("Písně")'); await p.waitForTimeout(200);
+  await p.click('#topbar .tab:has-text("Playlisty")'); await p.waitForTimeout(200);
+  assert(!(new URL(p.url())).hash, 'návrat na playlisty: adresa zase bez #');
+  await p.goBack(); await p.waitForTimeout(300);
+  assert((new URL(p.url())).hash === '#/songs' && await p.isVisible('#topbar .tab.active:has-text("Písně")'), 'tlačítko Zpět funguje');
+  // přihlašovací formulář pro správce hesel (Proton Pass, Bitwarden, prohlížeč)
+  await p.evaluate(() => { loginDialog(); }); await p.waitForSelector('.modal form.login');
+  const lf = await p.evaluate(() => { const f = document.querySelector('.modal form.login'); return {
+    user: !!f.querySelector('input[type=email][autocomplete=username][name=username]'), pw: !!f.querySelector('input[type=password][autocomplete=current-password]'),
+    submit: !!f.querySelector('button[type=submit]'), folderIgnored: f.querySelector('input[name=mega-folder]').getAttribute('data-protonpass-ignore') === 'true' }; });
+  assert(lf.user && lf.pw && lf.submit && lf.folderIgnored, 'přihlášení je skutečný formulář: e-mail, heslo, odeslání; složku správce hesel nevyplňuje');
+  await p.keyboard.press('Escape'); await p.waitForTimeout(200);
+  assert(!(await p.isVisible('.modal')), 'přihlášení jde zavřít Esc');
   await p.goto('http://localhost:8123/index.html#/songs');
   await p.waitForFunction(() => typeof Store !== 'undefined' && Store.ready);
   // nová píseň

@@ -87,7 +87,7 @@ const PlaylistsView = {
     this.paintSide();
 
     if (!pl) return;
-    content.appendChild(h('button', { class: 'btn pl-back', onclick: () => { location.hash = '#/playlists'; } }, '◀ Playlisty'));
+    content.appendChild(h('button', { class: 'btn pl-back', onclick: () => App.home() }, '◀ Playlisty'));
     this.editor(content, pl);
   },
 
@@ -197,7 +197,7 @@ const PlaylistsView = {
   async del(pl) {
     if (!await confirmDlg(`Smazat playlist „${pl.name}“? Písně zůstanou v knihovně.`, 'Smazat', true)) return;
     await Store.remove('playlists', pl.id);
-    location.hash = '#/playlists';
+    App.home();
   },
   async print(pl) {
     const o = Object.assign({ what: 'both', bigList: false, color: true, pageBreak: true, size: 'm', cols: 1, notes: true, sections: true }, Settings.get('printOpts') || {});
