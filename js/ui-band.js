@@ -5,7 +5,7 @@
 
 /* adresa aplikace pro pozvánku (z programu vede na webovou verzi) */
 function appUrl() {
-  return window.native || !/^https?:$/.test(location.protocol) ? 'https://potuzai.github.io/RUSTEDprompter/' : location.origin + location.pathname.replace(/index\.html$/, '');
+  return window.native || !/^https?:$/.test(location.protocol) ? 'https://potuzai.github.io/PROMPTER-mini/' : location.origin + location.pathname.replace(/index\.html$/, '');
 }
 
 /* ukázková píseň do kapely nepatří */
@@ -15,11 +15,11 @@ async function dropSampleSongs() {
 
 /* Přihlásí k Mega, uloží přístup (trvale / jen do zavření prohlížeče) a stáhne data kapely */
 async function bandLogin({ email, password, folder, remember = true, ro = false }) {
-  const cfg = { email: String(email || '').trim(), password: password || '', folder: String(folder || '').trim() || 'Prompter kapela' };
+  const cfg = { email: String(email || '').trim(), password: password || '', folder: String(folder || '').trim() || 'PROMPTER mini' };
   if (!cfg.email || !cfg.password) throw new Error('Vyplň e-mail a heslo kapely.');
   if (window.native) remember = true; // program heslo šifruje přes Windows
   const prev = clone(Settings.data.mega || {});
-  const same = Sync.mode() === 'mega' && (prev.email || '').toLowerCase() === cfg.email.toLowerCase() && (prev.folder || 'Prompter kapela') === cfg.folder;
+  const same = Sync.mode() === 'mega' && (prev.email || '').toLowerCase() === cfg.email.toLowerCase() && (prev.folder || 'PROMPTER mini') === cfg.folder;
   const r = await MegaProvider.api().test(cfg).catch(e => { throw new Error(ipcError(e)); });
   Settings.set('rememberBand', remember);
   Settings.set('mega', { email: cfg.email, pass: remember ? Secret.protect(cfg.password) : '', folder: cfg.folder });
@@ -44,7 +44,7 @@ async function loginDialog(opts = {}) {
   const email = h('input', { class: 'inp', type: 'email', name: 'email', autocomplete: 'username', value: m.email || '', placeholder: 'e-mail kapely' });
   const pass = h('input', { class: 'inp', type: 'password', name: 'password', autocomplete: 'current-password', placeholder: 'heslo kapely' });
   const remember = h('input', { type: 'checkbox', checked: Settings.data.rememberBand !== false });
-  const folder = h('input', { class: 'inp', value: m.folder || 'Prompter kapela' });
+  const folder = h('input', { class: 'inp', value: m.folder || 'PROMPTER mini' });
   const ro = h('input', { type: 'checkbox', checked: !!Settings.get('readOnly') });
   const err = h('div', { class: 'login-err' });
   const body = h('form', { class: 'login', onsubmit: e => e.preventDefault() },
@@ -79,14 +79,14 @@ async function loginDialog(opts = {}) {
 /* Pozvánka pro členy: adresa aplikace + e-mail kapely (heslo se říká zvlášť) */
 async function inviteDialog() {
   const m = MegaProvider.cfg();
-  const folder = m.folder !== 'Prompter kapela' ? `\nV „Další možnosti“ nastav složku: ${m.folder}` : '';
-  const text = `Texty a playlisty kapely jsou v aplikaci Prompter:\n${appUrl()}\n\nPřihlas se e-mailem ${m.email} a heslem kapely (řeknu ti ho zvlášť).${folder}\n` +
+  const folder = m.folder !== 'PROMPTER mini' ? `\nV „Další možnosti“ nastav složku: ${m.folder}` : '';
+  const text = `Texty a playlisty kapely jsou v aplikaci PROMPTER mini:\n${appUrl()}\n\nPřihlas se e-mailem ${m.email} a heslem kapely (řeknu ti ho zvlášť).${folder}\n` +
     `V telefonu si aplikaci přidej na plochu (Sdílet → Přidat na plochu / Nainstalovat aplikaci).`;
   const ta = h('textarea', { class: 'inp', rows: 7, readonly: true }, text);
   const body = h('div', {},
     h('p', {}, 'Pošli členům tuto zprávu (WhatsApp, e-mail…). ', h('b', {}, 'Heslo kapely jim řekni zvlášť'), ' – ústně nebo SMS, ne ve stejné zprávě.'),
     ta,
-    h('p', { class: 'help' }, 'Na Windows může člen místo webu použít program Prompter.exe – přihlásí se stejně.'),
+    h('p', { class: 'help' }, 'Na Windows může člen místo webu použít program PROMPTER mini.exe – přihlásí se stejně.'),
     h('p', { class: 'help', style: { color: 'var(--warn)' } }, '⚠ Když někdo z kapely odejde nebo heslo unikne, změň heslo účtu Mega a řekni nové ostatním.'));
   const v = await modal({ title: '👥 Pozvat členy kapely', body, wide: true, buttons: [{ label: 'Zavřít', value: null }, { label: '📋 Kopírovat zprávu', primary: true, value: true }] });
   if (!v) return;
@@ -97,7 +97,7 @@ async function inviteDialog() {
 async function welcomeDialog() {
   Settings.set('welcomed', true);
   const v = await modal({
-    title: '🎤 Vítej v Prompteru',
+    title: '🎤 Vítej v PROMPTER mini',
     body: h('div', {},
       h('p', {}, 'Písně a playlisty kapely se sdílí přes společný účet Mega – stačí se přihlásit e-mailem a heslem kapely.'),
       h('ul', { class: 'help', style: { lineHeight: 1.8 } },

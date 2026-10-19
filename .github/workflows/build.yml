@@ -24,15 +24,15 @@ jobs:
       - run: npm run build:win32
       - shell: bash
         run: |
-          cp README.md dist/Prompter-win32-x64/NAVOD.md
-          cp README.md dist/Prompter-win32-ia32/NAVOD.md
+          cp README.md "dist/PROMPTER mini-win32-x64/NAVOD.md"
+          cp README.md "dist/PROMPTER mini-win32-ia32/NAVOD.md"
       - run: |
-          Compress-Archive -Path dist/Prompter-win32-x64 -DestinationPath Prompter-Windows-64bit.zip
-          Compress-Archive -Path dist/Prompter-win32-ia32 -DestinationPath Prompter-Windows-32bit.zip
+          Compress-Archive -Path 'dist/PROMPTER mini-win32-x64' -DestinationPath PROMPTER-mini-Windows-64bit.zip
+          Compress-Archive -Path 'dist/PROMPTER mini-win32-ia32' -DestinationPath PROMPTER-mini-Windows-32bit.zip
       - uses: actions/upload-artifact@v4
         with:
-          name: Prompter-Windows
-          path: Prompter-Windows-*.zip
+          name: PROMPTER-mini-Windows
+          path: PROMPTER-mini-Windows-*.zip
       - name: Verze z package.json
         id: ver
         shell: bash
@@ -41,13 +41,13 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.ver.outputs.v }}
-          name: Prompter ${{ steps.ver.outputs.v }}
+          name: PROMPTER mini ${{ steps.ver.outputs.v }}
           target_commitish: ${{ github.sha }}
           make_latest: true
           body: |
-            **Prompter-Windows-64bit.zip**: běžná Windows 10/11 (64bit). **Prompter-Windows-32bit.zip**: starší 32bitová Windows.
-            Rozbal a spusť `Prompter.exe`. Návod je v souboru NAVOD.md uvnitř složky.
-          files: Prompter-Windows-*.zip
+            **PROMPTER-mini-Windows-64bit.zip**: běžná Windows 10/11 (64bit). **PROMPTER-mini-Windows-32bit.zip**: starší 32bitová Windows.
+            Rozbal a spusť `PROMPTER mini.exe`. Návod je v souboru NAVOD.md uvnitř složky.
+          files: PROMPTER-mini-Windows-*.zip
 
   pages:
     name: Webový editor (GitHub Pages)

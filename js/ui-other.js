@@ -472,7 +472,7 @@ const SettingsView = {
     if (mode !== 'off') {
       const mg = mode === 'mega' ? MegaProvider.cfg() : null;
       top.append(
-        h('p', {}, mg ? ['✅ Přihlášeno ke kapele jako ', h('b', {}, mg.email), mg.folder !== 'Prompter kapela' ? ` (složka ${mg.folder})` : ''] : ['✅ Sdílení přes ', h('b', {}, names[mode])],
+        h('p', {}, mg ? ['✅ Přihlášeno ke kapele jako ', h('b', {}, mg.email), mg.folder !== 'PROMPTER mini' ? ` (složka ${mg.folder})` : ''] : ['✅ Sdílení přes ', h('b', {}, names[mode])],
           Settings.get('readOnly') ? h('span', { class: 'tag', style: { marginLeft: '6px' } }, 'jen pro čtení') : null,
           Sync.lastError ? h('span', { style: { color: 'var(--err)', marginLeft: '8px' } }, Sync.lastError) : null),
         h('div', { class: 'row' },
@@ -533,7 +533,7 @@ const SettingsView = {
       opt('github', 'GitHub – program se připojí sám', 'zdarma · nejspolehlivější při souběžných úpravách · správce potřebuje účet na GitHubu'),
       opt('folder', 'Synchronizovaná složka (pokročilé)', window.native
         ? 'složka, kterou synchronizuje jiná aplikace (MEGA Desktop, OneDrive, Dropbox, síťový disk…)'
-        : 'jen v programu Prompter.exe', !window.native),
+        : 'jen v programu PROMPTER mini.exe', !window.native),
       detail);
     paint(cur);
     return h('fieldset', { class: cls, id: 'set-share' }, h('legend', {}, '☁ Sdílení s kapelou'), top, body,
@@ -588,11 +588,11 @@ const SettingsView = {
           <li>Na webu mega.io klikni na tu složku pravým tlačítkem → <b>Sdílet</b> → zadej e-maily členů a dej jim právo <b>Číst a zapisovat</b> (Read and write).
             <i>Pozor: nepoužívej „Sdílet odkaz“ – ten je jen pro čtení a může ho otevřít kdokoli.</i></li>
           <li><b>Každý člen:</b> založí si účet Mega (zdarma), přijme pozvánku a v MEGA Desktop App si nastaví <b>synchronizaci</b> sdílené složky (Incoming shares) do svého PC.</li>
-          <li>V Prompteru: <b>Vybrat složku…</b> → zvol tu synchronizovanou složku. Hotovo.</li>
+          <li>V PROMPTER mini: <b>Vybrat složku…</b> → zvol tu synchronizovanou složku. Hotovo.</li>
           <li><b>Čtečka:</b> stejně tak – MEGA Desktop App + synchronizace složky. Když není internet, čtečka jede z vlastních dat a změny dožene, až se připojí.</li>` })),
       h('details', { style: { marginTop: '6px' } }, h('summary', { style: { cursor: 'pointer' } }, h('b', {}, 'Návod – Proton Drive')),
         h('ol', { class: 'help', style: { lineHeight: 1.7 }, html: `
-          <li>Nainstaluj <b>Proton Drive pro Windows</b>, ve složce Proton Drive vytvoř složku <code>Kapela-pisne</code> a vyber ji tady v Prompteru.</li>
+          <li>Nainstaluj <b>Proton Drive pro Windows</b>, ve složce Proton Drive vytvoř složku <code>Kapela-pisne</code> a vyber ji tady v PROMPTER mini.</li>
           <li>Na webu drive.proton.me složku sdílej členům (pozvánka e-mailem, oprávnění <b>Editor</b>). Členové potřebují účet Proton (stačí zdarma).</li>
           <li>Každý člen musí mít sdílenou složku <b>synchronizovanou na disk</b> v aplikaci Proton Drive. Ověř si, že to jeho verze aplikace umí – pokud sdílené složky v jeho Windows aplikaci nevidí, použijte Mega nebo GitHub.</li>` })),
       h('p', { class: 'help' }, 'Bezpečnost: písně uvidí jen ti, se kterými složku nasdílíš. Data ve čtečce zůstávají i v její vlastní složce „data“ – když cloud vypadne, čtečka hraje dál.'));
@@ -626,7 +626,7 @@ const SettingsView = {
         status.innerHTML = `<span style="color:var(--err)">Nepodařilo se připojit: ${esc(e.message)}</span>`;
       }
     };
-    const tokenUrl = 'https://github.com/settings/personal-access-tokens/new?name=Prompter%20kapela&description=Synchronizace%20pisni&expires_in=none&contents=write';
+    const tokenUrl = 'https://github.com/settings/personal-access-tokens/new?name=PROMPTER%20mini&description=Synchronizace%20pisni&expires_in=none&contents=write';
     return h('div', {},
       h('ol', { class: 'help', style: { lineHeight: 1.75, marginTop: 0 } },
         h('li', { html: 'Přihlas se na GitHub (nebo si <a href="https://github.com/signup" target="_blank">zdarma založ účet</a>).' }),

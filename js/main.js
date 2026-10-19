@@ -81,7 +81,7 @@ const App = {
       ? ['Otevři tuto stránku v Safari.', 'Klepni na Sdílet (čtvereček se šipkou nahoru).', 'Zvol „Přidat na plochu“ a potvrď.']
       : /Android/.test(navigator.userAgent)
         ? ['Otevři tuto stránku v Chrome.', 'Klepni na ⋮ vpravo nahoře.', 'Zvol „Nainstalovat aplikaci“ (nebo „Přidat na plochu“).']
-        : ['V Chrome nebo Edge klikni na ikonu instalace vpravo v adresním řádku,', 'nebo menu ⋮ → „Nainstalovat Prompter“ (Edge: Aplikace → Nainstalovat tento web jako aplikaci).', 'Pro čtečku na Windows je lepší program Prompter.exe.'];
+        : ['V Chrome nebo Edge klikni na ikonu instalace vpravo v adresním řádku,', 'nebo menu ⋮ → „Nainstalovat PROMPTER mini“ (Edge: Aplikace → Nainstalovat tento web jako aplikaci).', 'Pro čtečku na Windows je lepší program PROMPTER mini.exe.'];
     await modal({ title: '📲 Nainstalovat aplikaci', body: h('ol', { style: { lineHeight: 1.8 } }, steps.map(t => h('li', {}, t))) });
   },
 
@@ -101,7 +101,7 @@ const App = {
     this.tabEls = {};
     const tab = (k, l) => (this.tabEls[k] = h('button', { class: 'tab', title: l.replace(/^\S+ /, ''), onclick: () => { location.hash = '#/' + k; } }, l));
     const bar = h('nav', { id: 'topbar' },
-      h('div', { class: 'logo', title: 'Prompter písní ' + APP_VERSION }, 'Prompter', h('span', {}, APP_VERSION)),
+      h('div', { class: 'logo', title: 'PROMPTER mini ' + APP_VERSION }, 'PROMPTER mini', h('span', {}, APP_VERSION)),
       h('div', { class: 'tabs' }, tabs.map(([k, l]) => tab(k, l))),
       h('button', { class: 'rail-btn play', title: 'Otevřít čtečku (výběr playlistu)', onclick: () => { location.hash = '#/reader/' + (Settings.get('lastPlaylist') || ''); } }, '▶', h('span', {}, 'Čtečka')),
       tab('settings', '⚙ Nastavení'),

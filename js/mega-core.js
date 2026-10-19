@@ -31,7 +31,7 @@
         if (s.root) return s;
       } catch (e) { /* relace vypršela – přihlásit znovu */ }
     }
-    const s = new Storage(Object.assign({ email: cfg.email.trim(), password: cfg.password, keepalive: false, autologin: true, autoload: true }, typeof window === 'undefined' ? { userAgent: 'PrompterPisni/1.0' } : {}));
+    const s = new Storage(Object.assign({ email: cfg.email.trim(), password: cfg.password, keepalive: false, autologin: true, autoload: true }, typeof window === 'undefined' ? { userAgent: 'PrompterMini/1.0' } : {}));
     await s.ready;
     session = { email: cfg.email.toLowerCase(), json: s.toJSON() };
     return s;
@@ -67,7 +67,7 @@
   function open(cfg, fresh) { return serial(() => openNow(cfg, fresh)); }
   async function openNow(cfg, fresh) {
     const storage = await login(cfg, fresh);
-    const folderName = (cfg.folder || 'Prompter kapela').trim();
+    const folderName = (cfg.folder || 'PROMPTER mini').trim();
     const st = {};
     let base = await ensureDir(storage.root, folderName, st);
     if (st.merged) { await storage.reload(true); base = await ensureDir(storage.root, folderName); }

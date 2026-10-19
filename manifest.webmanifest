@@ -1,7 +1,7 @@
 {
   "id": "./",
-  "name": "Prompter písní",
-  "short_name": "Prompter",
+  "name": "PROMPTER mini",
+  "short_name": "PROMPTER mini",
   "description": "Texty a playlisty kapely – čtečka, editor a synchronizace přes Mega",
   "lang": "cs",
   "start_url": "./index.html",

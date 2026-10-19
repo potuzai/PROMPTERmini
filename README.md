@@ -1,17 +1,17 @@
-# Prompter písní
+# PROMPTER mini
 
 Aplikace pro psaní, úpravy a zobrazování textů písní na čtečce (prompteru) kapely.
 
-- **Čtečka**: samostatný program pro Windows (`Prompter.exe`). Funguje **úplně bez internetu**, startuje rovnou přes celou obrazovku a data má jako soubory ve složce `data` vedle programu.
-- **Prohlížečová verze**: stejná aplikace na adrese https://potuzai.github.io/RUSTEDprompter/. Je to plnohodnotný editor i čtečka, který se synchronizuje s kapelou stejně jako program. Hodí se pro členy, kteří nechtějí nic instalovat, nebo když upravuješ z cizího počítače.
+- **Čtečka**: samostatný program pro Windows (`PROMPTER mini.exe`). Funguje **úplně bez internetu**, startuje rovnou přes celou obrazovku a data má jako soubory ve složce `data` vedle programu.
+- **Prohlížečová verze**: stejná aplikace na adrese https://potuzai.github.io/PROMPTER-mini/. Je to plnohodnotný editor i čtečka, který se synchronizuje s kapelou stejně jako program. Hodí se pro členy, kteří nechtějí nic instalovat, nebo když upravuješ z cizího počítače.
 - **Sdílení s kapelou**: písně se synchronizují samy přes internet (Mega nebo GitHub, obojí zdarma). Kapela má jeden společný účet Mega a členové se přihlásí jeho **e-mailem a heslem**. Data zůstávají v každém zařízení a s Mega se jen synchronizují.
 
 ---
 
 ## 1. Čtečka (PC u monitoru)
 
-1. Rozbal `Prompter-Windows-64bit.zip` třeba do `C:\Prompter` (pro starší 32bitová Windows použij `-32bit`).
-2. Spusť `Prompter.exe`. Při prvním spuštění Windows může ukázat „Systém Windows ochránil váš počítač“. Klikni na **Další informace → Přesto spustit**.
+1. Rozbal `PROMPTER-mini-Windows-64bit.zip` třeba do `C:\PROMPTER mini` (pro starší 32bitová Windows použij `-32bit`).
+2. Spusť `PROMPTER mini.exe`. Při prvním spuštění Windows může ukázat „Systém Windows ochránil váš počítač“. Klikni na **Další informace → Přesto spustit**.
 3. Při prvním spuštění programu se objeví **průvodce nastavením zařízení** (ovládá se i jen šipkami a OK):
    - **K čemu zařízení slouží**: čtečka na pódiu, počítač pro úpravy, obojí na jednom, nebo muzikant (mobil, tablet). Čtečka pak po zapnutí rovnou otevře poslední playlist.
    - **Orientace monitoru** (na výšku / na šířku) a otočení obrazu, když ho Windows neotáčí.
@@ -47,11 +47,11 @@ Monitor čtečky během běhu programu neusne. Program se po případném pádu 
 
 ## 2. Prohlížečová verze a aplikace v telefonu (PWA)
 
-- Otevři **https://potuzai.github.io/RUSTEDprompter/** v Edge nebo Chrome. Napoprvé se objeví uvítání: zvol **🔑 Přihlásit ke kapele** a zadej e-mail a heslo kapely. Web se na monitor neptá: stránka čtečky se přizpůsobí oknu prohlížeče nebo telefonu (i po otočení). Pevnou obrazovku kapely zvolíš v Nastavení › Toto zařízení jen pro displej, který slouží jako čtečka.
+- Otevři **https://potuzai.github.io/PROMPTER-mini/** v Edge nebo Chrome. Napoprvé se objeví uvítání: zvol **🔑 Přihlásit ke kapele** a zadej e-mail a heslo kapely. Web se na monitor neptá: stránka čtečky se přizpůsobí oknu prohlížeče nebo telefonu (i po otočení). Pevnou obrazovku kapely zvolíš v Nastavení › Toto zařízení jen pro displej, který slouží jako čtečka.
 - Písně se uloží v tom prohlížeči a synchronizují se s kapelou, stejně jako v programu.
 - **Instalace jako aplikace** (ikona na ploše, celá obrazovka, funguje i bez internetu): **Nastavení → Toto zařízení → 📲 Nainstalovat**. V Chrome, Edge a na Androidu se rovnou nabídne instalace. Na iPhonu a iPadu: Safari → **Sdílet → Přidat na plochu**.
 - Na **cizím počítači** při přihlášení vypni **Zůstat přihlášen**, nebo se po práci odhlas: **Nastavení → Sdílení s kapelou → Odhlásit**. Heslo se tím z prohlížeče smaže.
-- Pro PC čtečky doporučuji program `Prompter.exe`: data má v souborech, startuje sám a nezávisí na aktualizacích prohlížeče.
+- Pro PC čtečky doporučuji program `PROMPTER mini.exe`: data má v souborech, startuje sám a nezávisí na aktualizacích prohlížeče.
 
 ### Psaní textu
 
@@ -128,17 +128,17 @@ V editoru pod stránkou přepínáš **Náhled pro: …** a vidíš píseň pře
 ## 3. Sdílení s kapelou
 
 ### Člen kapely (1 minuta)
-1. Otevře adresu aplikace ze zprávy od správce (nebo program `Prompter.exe`) a klikne na **🔑 Přihlásit ke kapele**.
+1. Otevře adresu aplikace ze zprávy od správce (nebo program `PROMPTER mini.exe`) a klikne na **🔑 Přihlásit ke kapele**.
 2. Zadá **e-mail a heslo kapely** (heslo mu správce řekne zvlášť). Písně a playlisty se stáhnou samy.
 3. **Zůstat přihlášen**: zapnuté = příště se na nic neptá. Vypnuté (cizí / sdílený počítač) = po zavření prohlížeče je potřeba přihlásit se znovu; písně v zařízení zůstanou.
 
-Prohlížeč, který po zavření maže data webů, zapomene i přihlášení. Pomůže aplikaci nainstalovat (viz výše) nebo přidat `potuzai.github.io` do výjimek. Program `Prompter.exe` si přihlášení pamatuje vždy (heslo šifrované přes Windows) a data drží v souborech.
+Prohlížeč, který po zavření maže data webů, zapomene i přihlášení. Pomůže aplikaci nainstalovat (viz výše) nebo přidat `potuzai.github.io` do výjimek. Program `PROMPTER mini.exe` si přihlášení pamatuje vždy (heslo šifrované přes Windows) a data drží v souborech.
 
 Volba **Další možnosti** v přihlašovacím okně: jiná složka v Mega a **jen pro čtení** (pro čtečky: písně jen stahuje a nic neodešle).
 
 ### Správce kapely (jednou, asi 5 minut)
 1. Na mega.io založ **nový společný účet pro kapelu**, ne svůj osobní, protože heslo budou znát všichni členové. Dvoufázové ověření nezapínej.
-2. V aplikaci klikni na **🔑 Přihlásit ke kapele** a zadej e-mail a heslo tohoto účtu. Aplikace si v Mega sama vytvoří složku „Prompter kapela“ a nahraje do ní písně.
+2. V aplikaci klikni na **🔑 Přihlásit ke kapele** a zadej e-mail a heslo tohoto účtu. Aplikace si v Mega sama vytvoří složku „PROMPTER mini“ a nahraje do ní písně.
 3. **Nastavení → Sdílení s kapelou → 👥 Pozvat členy** připraví zprávu s adresou aplikace a e-mailem kapely. Heslo pošli zvlášť (ústně, SMS).
 
 Když dva lidé upraví stejnou píseň najednou, nic se neztratí: druhá verze se uloží jako kopie „(konflikt)“. Bez internetu vše funguje dál a změny se odešlou při dalším připojení. Když někdo z kapely odejde nebo heslo unikne, změň heslo účtu Mega a řekni nové ostatním; každý se pak jednou přihlásí znovu.
@@ -152,9 +152,9 @@ Když dva lidé upraví stejnou píseň najednou, nic se neztratí: druhá verze
 ```
 npm install
 npm start            # spustí program lokálně
-npm run build:win    # sestaví dist/Prompter-win32-x64
+npm run build:win    # sestaví "dist/PROMPTER mini-win32-x64"
 ```
 
-Po nahrání tohoto kódu na GitHub se program pro Windows sestaví automaticky (Actions → artefakt **Prompter-Windows**). Webový editor se zveřejní na GitHub Pages: v repozitáři zapni **Settings → Pages → Source: GitHub Actions**.
+Po nahrání tohoto kódu na GitHub se program pro Windows sestaví automaticky (Actions → artefakt **PROMPTER-mini-Windows**). Webový editor se zveřejní na GitHub Pages: v repozitáři zapni **Settings → Pages → Source: GitHub Actions**.
 
 Testy (`tests/`, Playwright): `npm test` spustí testy rozhraní, sdílené složky, GitHubu (proti napodobenině `tests/mock-github.js`) i programu.

@@ -64,7 +64,7 @@ function setupWizard() {
   const hint = h('span', { class: 'wz-hint' });
   const nextBtn = h('button', { class: 'btn primary', onclick: () => next() }, 'Pokračovat');
   const el = h('div', { class: 'wizard', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Nastavení zařízení' },
-    h('div', { class: 'wz-brand' }, h('span', { class: 'wz-logo' }), 'Prompter · nastavení zařízení'),
+    h('div', { class: 'wz-brand' }, h('span', { class: 'wz-logo' }), 'PROMPTER mini · nastavení zařízení'),
     stepsEl,
     h('div', { class: 'wz-card' }, title, sub, body, h('div', { class: 'wz-foot' }, backBtn, hint, nextBtn)));
   document.body.appendChild(el);

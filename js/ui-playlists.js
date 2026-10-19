@@ -324,6 +324,6 @@ function buildPrintPlaylist(pl, o) {
     const head = h('header', { class: 'pr-texts-head' + (o.what === 'both' ? ' pb-before' : '') }, h('h1', {}, (pl.name || 'Playlist') + ' – texty'), h('div', { class: 'pr-meta' }, dateTxt), used.size ? legend : null);
     doc.append(head, ...songEls);
   }
-  doc.appendChild(h('footer', { class: 'pr-foot' }, `Prompter · ${pl.name || ''} · vytištěno ${new Date().toLocaleDateString('cs-CZ')}`));
+  doc.appendChild(h('footer', { class: 'pr-foot' }, `PROMPTER mini · ${pl.name || ''} · vytištěno ${new Date().toLocaleDateString('cs-CZ')}`));
   return doc;
 }

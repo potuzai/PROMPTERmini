@@ -63,7 +63,7 @@ const GitHubProvider = {
         // Prázdný repozitář – založíme první soubor
         await GH.req('PUT', GH.repoPath('/contents/data/README.md'), {
           message: 'Založení úložiště písní', branch,
-          content: textToB64('# Data aplikace Prompter\n\nTuto složku spravuje aplikace. Soubory needituj ručně, pokud nemusíš.\n'),
+          content: textToB64('# Data aplikace PROMPTER mini\n\nTuto složku spravuje aplikace. Soubory needituj ručně, pokud nemusíš.\n'),
         });
         const err = new Error('init'); err.retry = true; throw err;
       }
@@ -84,7 +84,7 @@ const GitHubProvider = {
     for (const p of deletes) entries.push({ path: p, mode: '100644', type: 'blob', sha: null });
     const newTree = await GH.req('POST', GH.repoPath('/git/trees'), { base_tree: ctx.treeSha, tree: entries });
     const newCommit = await GH.req('POST', GH.repoPath('/git/commits'), {
-      message: `Změny z aplikace Prompter (${currentUserName()}): ${uploads.length} upraveno, ${deletes.length} smazáno`,
+      message: `Změny z aplikace PROMPTER mini (${currentUserName()}): ${uploads.length} upraveno, ${deletes.length} smazáno`,
       tree: newTree.sha, parents: [ctx.headSha],
     });
     try {
@@ -164,7 +164,7 @@ const MegaProvider = {
   },
   cfg() {
     const m = Settings.get('mega') || {};
-    return { email: m.email || '', password: Secret.unprotect(m.pass || ''), folder: m.folder || 'Prompter kapela' };
+    return { email: m.email || '', password: Secret.unprotect(m.pass || ''), folder: m.folder || 'PROMPTER mini' };
   },
   canPush() { return !Settings.get('readOnly'); },
   async snapshot() { const r = await this.api().snapshot(this.cfg()); return { remote: r.files, extras: r.extras, ctx: {} }; },

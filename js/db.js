@@ -1,6 +1,6 @@
 'use strict';
 /* ===== Lokální úložiště (IndexedDB) + výchozí data ===== */
-const APP_VERSION = '1.21.0';
+const APP_VERSION = '1.21.1';
 const DB_NAME = 'prompter-pisne';
 const DB_VER = 2;
 const STORES = ['songs', 'playlists', 'templates', 'config', 'meta'];
@@ -71,7 +71,7 @@ const DEFAULT_SETTINGS = {
   editorFontSize: 16,
   autoSync: true,
   sharedFolder: '',              // sdílená složka (Mega, Proton Drive…)
-  mega: { email: '', pass: '', folder: 'Prompter kapela' },
+  mega: { email: '', pass: '', folder: 'PROMPTER mini' },
   readOnly: false,               // jen stahovat (např. čtečka)
   bandName: '',
   welcomed: false,

@@ -14,7 +14,7 @@ const STORES = ['songs', 'playlists', 'templates', 'config'];
 const ID_RE = /^[A-Za-z0-9_-]{1,80}$/;
 
 function pickDataDir() {
-  // Přenosný režim: složka „data“ vedle Prompter.exe (lze zkopírovat na flashku)
+  // Přenosný režim: složka „data“ vedle PROMPTER mini.exe (lze zkopírovat na flashku)
   const candidates = [];
   if (process.env.PROMPTER_DATA_DIR) candidates.push(process.env.PROMPTER_DATA_DIR);
   if (app.isPackaged) candidates.push(path.join(path.dirname(process.execPath), 'data'));
@@ -147,7 +147,7 @@ ipcMain.handle('folderWrite', (e, dir, rel, text) => {
   try { fs.writeSync(fd, text, null, 'utf8'); fs.fsyncSync(fd); } finally { fs.closeSync(fd); }
   fs.renameSync(tmp, file);
   const readme = path.join(dir, 'CTI-ME.txt');
-  if (!fs.existsSync(readme)) fs.writeFileSync(readme, 'Tuto složku spravuje aplikace Prompter písní.\r\nSoubory needituj ručně. Složku sdílej jen s členy kapely.\r\n');
+  if (!fs.existsSync(readme)) fs.writeFileSync(readme, 'Tuto složku spravuje aplikace PROMPTER mini.\r\nSoubory needituj ručně. Složku sdílej jen s členy kapely.\r\n');
 });
 ipcMain.handle('folderDelete', (e, dir, rel) => {
   checkDir(dir);
@@ -224,7 +224,7 @@ function createWindow() {
   win = new BrowserWindow({
     x: disp.bounds.x, y: disp.bounds.y, width: Math.min(1400, disp.workArea.width), height: Math.min(900, disp.workArea.height),
     fullscreen, backgroundColor: '#000000', autoHideMenuBar: true, show: false,
-    title: 'Prompter písní',
+    title: 'PROMPTER mini',
     icon: path.join(__dirname, '..', 'img', 'icon.png'),
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, spellcheck: false, backgroundThrottling: false },
   });

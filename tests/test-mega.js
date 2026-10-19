@@ -68,7 +68,7 @@ async function browserMember(browser) {
   await A.w.click('.modal button:has-text("Přihlásit")');
   await A.w.waitForFunction(() => !document.querySelector('.modal') && Sync.mode() === 'mega' && Sync.state === 'idle', null, { timeout: 15000 });
   const files0 = cloudFiles();
-  assert(files0.some(f => f.path === 'Prompter kapela/config/singers.json'), 'zpěváci nahráni do Mega do složky kapely');
+  assert(files0.some(f => f.path === 'PROMPTER mini/config/singers.json'), 'zpěváci nahráni do Mega do složky kapely');
   assert(!files0.some(f => f.text.includes('"sample": true')), 'ukázková píseň se do kapely nenahrála');
   const savedPass = JSON.parse(fs.readFileSync(path.join(A.dir, 'settings.json'), 'utf8')).mega.pass;
   assert(savedPass && !savedPass.includes('heslo123'), 'heslo není v nastavení čitelně');
@@ -144,14 +144,14 @@ async function browserMember(browser) {
   // už existující duplicitní složka kapely (vznikla dřív, např. z jiného okna) se sloučí do jedné
   {
     const st = cloud();
-    st.nodes.dupbase = { name: 'Prompter kapela', parent: 'root', dir: true, ts: 1 };
+    st.nodes.dupbase = { name: 'PROMPTER mini', parent: 'root', dir: true, ts: 1 };
     st.nodes.dupsongs = { name: 'songs', parent: 'dupbase', dir: true, ts: 1 };
     st.nodes.dupfile = { name: 'zdvojena.json', parent: 'dupsongs', dir: false, ts: 2, data: Buffer.from(JSON.stringify({ id: 'zdvojena', title: 'Ze zdvojené složky', text: '@J ahoj' })).toString('base64') };
-    st.nodes.dupempty = { name: 'Prompter kapela', parent: 'root', dir: true, ts: 1 };
+    st.nodes.dupempty = { name: 'PROMPTER mini', parent: 'root', dir: true, ts: 1 };
     fs.writeFileSync(STATE, JSON.stringify(st));
   }
   await D.p.evaluate(() => Sync.run());
-  assert(dirsNamed('Prompter kapela') === 1, 'duplicitní složky kapely se sloučí do jedné');
+  assert(dirsNamed('PROMPTER mini') === 1, 'duplicitní složky kapely se sloučí do jedné');
   assert(await D.p.evaluate(() => Store.songs.has('zdvojena')), 'písně z duplicitní složky se nepřišly nazmar');
   // čtečka v prohlížeči z playlistu
   await D.p.evaluate(() => { location.hash = '#/reader/plweb'; }); await sleep(500);
