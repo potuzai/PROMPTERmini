@@ -114,7 +114,7 @@ const App = {
     const st = Sync.state;
     const labels = { locked: 'odhlášeno – přihlas se ke kapele', off: 'přihlásit ke kapele', idle: 'synchronizováno', pending: 'neodeslané změny', syncing: 'synchronizuji…', error: 'chyba synchronizace', offline: 'offline' };
     const short = { locked: 'Přihlásit', off: 'Přihlásit', idle: 'Sdíleno', pending: 'Odeslat', syncing: 'Sdílím…', error: 'Chyba', offline: 'Offline' };
-    const ro = Settings.get('readOnly') && st !== 'off' ? ' · jen čtení' : '';
+    const ro = (Settings.get('readOnly') && st !== 'off' ? ' · jen čtení' : '') + (Sync.mode() === 'mega' ? ' · ' + (Settings.data.mega || {}).email : '');
     this.syncPill.className = 'sync-pill ' + st;
     $('.lbl', this.syncPill).textContent = short[st] || st;
     const full = (labels[st] || st) + ro;

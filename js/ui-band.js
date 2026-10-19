@@ -20,9 +20,10 @@ async function bandLogin({ email, password, folder, remember = true, ro = false 
   if (window.native) remember = true; // program heslo šifruje přes Windows
   const prev = clone(Settings.data.mega || {});
   const same = Sync.mode() === 'mega' && (prev.email || '').toLowerCase() === cfg.email.toLowerCase() && (prev.folder || 'PROMPTERmini') === cfg.folder;
+  if (same && prev.folderId) cfg.folderId = prev.folderId;
   const r = await MegaProvider.api().test(cfg).catch(e => { throw new Error(ipcError(e)); });
   Settings.set('rememberBand', remember);
-  Settings.set('mega', { email: cfg.email, pass: remember ? Secret.protect(cfg.password) : '', folder: cfg.folder });
+  Settings.set('mega', { email: cfg.email, pass: remember ? Secret.protect(cfg.password) : '', folder: cfg.folder, folderId: r.folderId || '' });
   if (remember) sessionStorage.removeItem('prompter-secret-mega');
   else sessionStorage.setItem('prompter-secret-mega', JSON.stringify({ pass: Secret.protect(cfg.password) }));
   Settings.set('syncMode', 'mega');
@@ -33,9 +34,11 @@ async function bandLogin({ email, password, folder, remember = true, ro = false 
     await Sync.resetMeta();
   }
   Sync.lastError = ''; Sync.state = 'off';
-  const res = await Sync.run();
+  // přihlášení se povedlo – případná chyba synchronizace už není chyba přihlášení
+  let res = null, syncError = '';
+  try { res = await Sync.run(); } catch (e) { syncError = ipcError(e); }
   Store.emit('sync', null);
-  return { email: r.email || cfg.email, res };
+  return { email: r.email || cfg.email, res, syncError };
 }
 
 /* Přihlašovací okno: e-mail + heslo kapely + „Zůstat přihlášen“
@@ -72,7 +75,8 @@ async function loginDialog(opts = {}) {
     try {
       toast('Přihlašuji…', 'info', 2000);
       const r = await bandLogin({ email: email.value, password: pass.value, folder: folder.value, remember: remember.checked, ro: ro.checked });
-      toast(`Přihlášeno · staženo ${r.res.downloaded || 0}, odesláno ${r.res.pushed || 0}${ro.checked ? ' (jen pro čtení)' : ''}`, 'ok', 5000);
+      if (r.syncError) toast(`Přihlášeno jako ${r.email}, ale synchronizace se nepovedla: ${r.syncError}`, 'warn', 15000);
+      else toast(`Přihlášeno jako ${r.email} · staženo ${r.res.downloaded || 0}, odesláno ${r.res.pushed || 0}${ro.checked ? ' (jen pro čtení)' : ''}`, 'ok', 5000);
       App.go(true);
       return true;
     } catch (e) { err.textContent = e.message; pass.select(); }

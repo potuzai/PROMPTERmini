@@ -29,6 +29,14 @@ class Storage { // napodobuje chování megajs: _importFile zařadí uzel jen po
   const core = createMegaCore(Storage);
   const r = await core.snapshot({ email: 'a@b.cz', password: 'x', folder: 'PROMPTERmini' });
   assert(r && mkdirs === 3, 'složka kapely poslaná před kořenem se najde – nová se nezaloží (založeny jen chybějící podsložky: ' + mkdirs + ')');
+  // složka, kterou Mega vrací bez rodiče i bez jména: podle zapamatovaného ID se najde a nová se nezaloží
+  NODES.length = 0;
+  NODES.push({ h: 'root', t: 2, name: 'Cloud Drive' }, { h: 'skryta', p: 'jinde', t: 1, name: null });
+  core.logout(); mkdirs = 0;
+  const r2 = await core.snapshot({ email: 'a@b.cz', password: 'x', folder: 'PROMPTERmini', folderId: 'skryta' });
+  assert(r2.folderId === 'skryta' && mkdirs === 4, 'zapamatovaná složka kapely se najde podle ID, i když ji Mega neukáže podle jména (' + mkdirs + ')');
+  NODES.length = 0;
+  NODES.push({ h: 'kapela', p: 'root', t: 1, name: 'PROMPTERmini' }, { h: 'songs', p: 'kapela', t: 1, name: 'songs' }, { h: 'root', t: 2, name: 'Cloud Drive' });
   const d = await core.diag({ email: 'a@b.cz', password: 'x', folder: 'PROMPTERmini' });
   assert(/složek „PROMPTERmini“ kdekoli: 1/.test(d) && /bez rodiče: 0/.test(d), 'diagnostika ukáže, co aplikace vidí');
 })().catch(e => { console.log('FAIL: výjimka', e); process.exit(1); });

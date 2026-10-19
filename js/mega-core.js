@@ -31,6 +31,7 @@
     const orig = s._importFile;
     s._importFile = function (f) { if (f && f.h) parents[f.h] = f.p; return orig.call(this, f); };
     try { await s.reload(true); } finally { s._importFile = orig; }
+    s._parents = parents;
     for (const [h, p] of Object.entries(parents)) {
       const f = s.files[h], par = p && s.files[p];
       if (f && par && !f.parent && par.children && f !== par) { f.parent = par; par.children.push(f); }
@@ -67,11 +68,27 @@
   /* Složka podle jména. Když jich je víc stejného jména (vznikly souběžným připojením z více oken
      nebo zařízení), použije se ta s nejvíc daty, obsah ostatních se do ní přesune a prázdné
      kopie jdou do koše Mega. Duplicitní soubory pak vyřeší synchronizace (nejnovější platí). */
-  async function ensureDir(parent, name, st) {
+  /* Složka podle ID (zapamatovaná z dřívějška), pokud v účtu je a neleží v koši */
+  function known(storage, id) {
+    const f = id && storage.files && storage.files[id];
+    if (!f || !f.directory) return null;
+    for (let p = f; p; p = p.parent) if (p === storage.trash) return null;
+    return f;
+  }
+  function stats(storage, name) {
+    const all = Object.values(storage.files || {});
+    return `uzlů ${all.length}, složek v kořeni ${dirs(storage.root || {}).length}, „${name}“ kdekoli ${all.filter(f => f.directory && f.name === name).length}, ` +
+      `bez rodiče ${all.filter(f => !f.parent && f.type < 2).length}, bez jména ${all.filter(f => f.name == null && f.type < 2).length}`;
+  }
+
+  async function ensureDir(parent, name, st, preferId) {
     const found = dirs(parent).filter(c => c.name === name).sort((a, b) => fileCount(b) - fileCount(a));
     const key = parent.nodeId + '/' + name;
     if (!found.length) {
-      // Mega vrací čerstvě založenou složku až po chvíli – tuhle jsme už založili, nezakládat znovu
+      // tuhle složku už známe (z dřívějška nebo jsme ji právě založili) – nezakládat znovu, i když ji Mega v seznamu neukázala
+      // (jen když jméno sedí nebo ho nejde přečíst – jiná složka se zapamatovaným ID se nepoužije)
+      const k = [known(parent.storage || {}, preferId), known(parent.storage || {}, made[key])].find(f => f && (f.name === name || f.name == null));
+      if (k) return k;
       if (made[key]) { const e = new Error('Mega ještě neukazuje novou složku kapely, zkusím to za chvíli.'); e.stale = true; throw e; }
       const d = await parent.mkdir(name);
       made[key] = d.nodeId;
@@ -99,14 +116,15 @@
     for (let i = 0; ; i++) {
       try {
         const st = {};
-        let base = await ensureDir(storage.root, folderName, st);
-        if (st.merged) { await loadTree(storage); base = await ensureDir(storage.root, folderName); }
+        let base = await ensureDir(storage.root, folderName, st, cfg.folderId);
+        if (st.merged) { await loadTree(storage); base = await ensureDir(storage.root, folderName, null, cfg.folderId); }
         const folders = {};
         for (const s of STORES) folders[s] = await ensureDir(base, s);
         current = { storage, base, folders, cfgKey };
         return current;
       } catch (e) {
-        if (!e.stale || i >= 4) throw e;
+        if (e.stale && i >= 4) throw new Error(`V účtu Mega nevidím složku „${folderName}“ (${stats(storage, folderName)}). Pošli prosím tuto zprávu.`);
+        if (!e.stale) throw e;
         await wait(1500 * (i + 1));
         await loadTree(storage);
       }
@@ -138,7 +156,7 @@
         } else if (/\.json$/i.test(name)) for (const f of list) extras.push(`data/${s}/${name}#${f.nodeId}`);
       }
     }
-    return { files, extras };
+    return { files, extras, folderId: c.base.nodeId };
   }
 
   function splitPath(p) {
@@ -185,7 +203,7 @@
       const c = await open(cfg, true);
       let space = null;
       try { const a = await c.storage.getAccountInfo(); space = { used: a.spaceUsed, total: a.spaceTotal }; } catch (e) { /* nevadí */ }
-      return { email: c.storage.email || cfg.email, name: c.storage.name || '', folder: c.base.name, space };
+      return { email: c.storage.email || cfg.email, name: c.storage.name || '', folder: c.base.name, folderId: c.base.nodeId, space };
     } catch (e) { throw new Error(friendly(e)); }
   }
 
@@ -201,7 +219,9 @@
       return [
         `uzlů celkem: ${all.length}`,
         `bez rodiče: ${all.filter(f => !f.parent && f !== s.root && f.type < 2).length}`,
+        `bez jména: ${all.filter(f => f.name == null && f.type < 2).length}`,
         `složek „${name}“ kdekoli: ${all.filter(f => f.directory && f.name === name).length}`,
+        `zapamatovaná složka: ${cfg.folderId ? (known(s, cfg.folderId) ? 'nalezena' : 'NENALEZENA') : '–'}`,
         'v kořeni:', ...dirs(s.root).map(f => '  ' + line(f)),
       ].join('\n');
     } catch (e) { throw new Error(friendly(e)); }

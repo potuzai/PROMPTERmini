@@ -165,10 +165,12 @@ const MegaProvider = {
   },
   cfg() {
     const m = Settings.get('mega') || {};
-    return { email: m.email || '', password: Secret.unprotect(m.pass || ''), folder: m.folder || 'PROMPTERmini' };
+    return { email: m.email || '', password: Secret.unprotect(m.pass || ''), folder: m.folder || 'PROMPTERmini', folderId: m.folderId || '' };
   },
+  /* zapamatovat ID složky kapely – příště se najde i bez hledání podle jména */
+  keepFolder(id) { const m = Settings.data.mega || {}; if (id && m.folderId !== id) Settings.set('mega', Object.assign({}, m, { folderId: id })); },
   canPush() { return !Settings.get('readOnly'); },
-  async snapshot() { const r = await this.api().snapshot(this.cfg()); return { remote: r.files, extras: r.extras, ctx: {} }; },
+  async snapshot() { const r = await this.api().snapshot(this.cfg()); this.keepFolder(r.folderId); return { remote: r.files, extras: r.extras, ctx: {} }; },
   read(p, v) { return this.api().read(this.cfg(), p, v); },
   commit(up, del) { return this.api().commit(this.cfg(), up, del); },
   errorText(e) { return ipcError(e); },
