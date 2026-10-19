@@ -1,6 +1,6 @@
 'use strict';
 /* ===== Lokální úložiště (IndexedDB) + výchozí data ===== */
-const APP_VERSION = '1.21.6';
+const APP_VERSION = '1.21.7';
 const DB_NAME = 'prompter-pisne';
 const DB_VER = 2;
 const STORES = ['songs', 'playlists', 'templates', 'config', 'meta'];

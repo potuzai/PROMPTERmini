@@ -37,6 +37,19 @@ class Storage { // napodobuje chování megajs: _importFile zařadí uzel jen po
   assert(r2.folderId === 'skryta' && mkdirs === 4, 'zapamatovaná složka kapely se najde podle ID, i když ji Mega neukáže podle jména (' + mkdirs + ')');
   NODES.length = 0;
   NODES.push({ h: 'kapela', p: 'root', t: 1, name: 'PROMPTERmini' }, { h: 'songs', p: 'kapela', t: 1, name: 'songs' }, { h: 'root', t: 2, name: 'Cloud Drive' });
+  // Mega bez „r: 1“ vrátí jen nejvyšší úroveň (kořen, koš…) – aplikace musí žádat o celý strom
+  class ApiStorage extends Storage {
+    constructor() { super(); const self = this; this.api = { request(json, cb) { self.lastReq = json; setTimeout(() => cb(null, { f: NODES.filter(n => json.r || !n.p), ok: [] })); } }; }
+    reload() { return new Promise((res, rej) => this.api.request({ a: 'f', c: 1 }, (err, r) => { if (err) return rej(err); this.files = {}; for (const f of r.f) this._importFile(f); res([]); })); }
+    static fromJSON() { return new ApiStorage(); }
+  }
+  NODES.length = 0;
+  NODES.push({ h: 'root', t: 2, name: 'Cloud Drive' }, { h: 'kapela', p: 'root', t: 1, name: 'PROMPTERmini' }, { h: 'songs', p: 'kapela', t: 1, name: 'songs' });
+  const core2 = createMegaCore(ApiStorage); mkdirs = 0;
+  const r3 = await core2.snapshot({ email: 'a@b.cz', password: 'x', folder: 'PROMPTERmini' });
+  assert(r3.folderId === 'kapela' && mkdirs === 3, 'strom se načítá celý (r: 1) – existující složka kapely se najde (' + mkdirs + ')');
+  NODES.length = 0;
+  NODES.push({ h: 'kapela', p: 'root', t: 1, name: 'PROMPTERmini' }, { h: 'songs', p: 'kapela', t: 1, name: 'songs' }, { h: 'root', t: 2, name: 'Cloud Drive' });
   const d = await core.diag({ email: 'a@b.cz', password: 'x', folder: 'PROMPTERmini' });
   assert(/složek „PROMPTERmini“ kdekoli: 1/.test(d) && /bez rodiče: 0/.test(d), 'diagnostika ukáže, co aplikace vidí');
 })().catch(e => { console.log('FAIL: výjimka', e); process.exit(1); });

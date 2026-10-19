@@ -30,7 +30,11 @@
     const parents = {};
     const orig = s._importFile;
     s._importFile = function (f) { if (f && f.h) parents[f.h] = f.p; return orig.call(this, f); };
-    try { await s.reload(true); } finally { s._importFile = orig; }
+    // Knihovna žádá o strom bez „r: 1“ (rekurzivně) – Mega pak vrátí jen kořen, koš a doručené
+    // a složka kapely v seznamu chybí (proto vznikaly stále nové). Doplníme ho.
+    const api = s.api, req = api && api.request;
+    if (req) api.request = function (json, ...rest) { if (json && json.a === 'f' && !json.r) json = Object.assign({}, json, { r: 1 }); return req.call(this, json, ...rest); };
+    try { await s.reload(true); } finally { s._importFile = orig; if (req) api.request = req; }
     s._parents = parents;
     for (const [h, p] of Object.entries(parents)) {
       const f = s.files[h], par = p && s.files[p];
