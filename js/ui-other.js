@@ -340,6 +340,7 @@ const SettingsView = {
     }
     return h('div', { class: 'set-status ' + tone }, h('span', { class: 'dot' }),
       h('div', {}, h('b', {}, head), who ? h('span', {}, who) : null, h('span', { class: 'st' }, line),
+        mg && st === 'error' ? h('button', { class: 'btn small', style: { alignSelf: 'flex-start', marginTop: '6px' }, onclick: () => megaDiagDialog() }, 'Diagnostika Mega') : null,
         Settings.get('readOnly') && mode !== 'off' ? h('span', { class: 'tag' }, 'jen pro čtení – nic se neodesílá') : null));
   },
 

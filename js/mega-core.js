@@ -268,7 +268,14 @@
     if (!s.api || typeof s.api.request !== 'function') return [];
     const raw = q => new Promise((res, rej) => s.api.request(Object.assign({}, q), (err, r) => err ? rej(err) : res(r)));
     const out = ['přímé dotazy (počet uzlů podle typu: 0 soubor, 1 složka, 2 kořen, 3 doručené, 4 koš):'];
-    for (const [label, q] of [['f c', { a: 'f', c: 1 }], ['f c r', { a: 'f', c: 1, r: 1 }], ['f c r ca', { a: 'f', c: 1, r: 1, ca: 1 }]]) {
+    try {
+      const u = await timeout(raw({ a: 'uq', strg: 1 }), 30000);
+      out.push(`  zabrané místo v účtu: ${u && u.cstrg != null ? u.cstrg + ' B' : JSON.stringify(u).slice(0, 80)}` + (u && u.cstrgn ? `; podle kořenů: ${Object.values(u.cstrgn).map(x => Array.isArray(x) ? x.join('/') : x).join(' | ')}` : ''));
+    } catch (e) { out.push(`  uq: chyba ${code(e)}`); }
+    const rootH = s.root && s.root.nodeId;
+    const probes = [['f c', { a: 'f', c: 1 }], ['f c r', { a: 'f', c: 1, r: 1 }], ['f c r ca', { a: 'f', c: 1, r: 1, ca: 1 }], ['f r', { a: 'f', r: 1 }], ['f c r v2', { a: 'f', c: 1, r: 1, v: 2 }]];
+    if (rootH) probes.push(['f r n=kořen', { a: 'f', r: 1, n: rootH }], ['f c r n=kořen', { a: 'f', c: 1, r: 1, n: rootH }]);
+    for (const [label, q] of probes) {
       try {
         const r = await timeout(raw(q), 60000);
         if (!r || typeof r !== 'object') { out.push(`  ${label}: ${JSON.stringify(r)}`); continue; }
@@ -277,7 +284,8 @@
         const rootH = (f.find(n => n.t === 2) || {}).h;
         out.push(`  ${label}: klíče ${Object.keys(r).join(',')}; uzlů ${f.length} (${Object.entries(types).map(([t, n]) => t + ':' + n).join(' ')}); v kořeni ${f.filter(n => rootH && n.p === rootH).length}` +
           `; s klíčem uživatele ${f.filter(n => typeof n.k === 'string' && s.user && n.k.split('/').some(p => p.split(':')[0] === s.user)).length}` +
-          Object.keys(r).filter(k => k !== 'f' && Array.isArray(r[k])).map(k => `; ${k}=${r[k].length}`).join(''));
+          Object.keys(r).filter(k => k !== 'f' && Array.isArray(r[k])).map(k => `; ${k}=${r[k].length}`).join('') +
+          (typeof r.w === 'string' ? '; w=přesměrování' : '') + (r.sn ? '; sn ano' : ''));
       } catch (e) { out.push(`  ${label}: chyba ${code(e)}`); }
     }
     return out;
