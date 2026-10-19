@@ -32,20 +32,89 @@
   const timeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('Mega neodpovídá (vypršel čas) – zkusím to znovu.')), ms))]);
 
   /* Načte celý strom souborů účtu.
-     - Knihovna žádá o seznam bez „r: 1“ (rekurzivně) a Mega pak vrátí jen kořen, koš a doručené –
-       složka kapely v seznamu chyběla a aplikace ji zakládala stále znovu. Doplníme ho.
+     - Mega posílá v seznamu („f“) i starší uložený snímek účtu (pole sn = stav, ke kterému platí);
+       změny od té doby (nově založené či smazané složky a soubory) je potřeba dotáhnout zvlášť
+       přes „sc“. Knihovna to dělá jen s trvalým spojením (keepalive), které aplikace nepoužívá –
+       bez dotažení aplikace neviděla své složky a zakládala stále nové. Dotáhneme je tady.
+     - Žádáme o seznam rekurzivně („r: 1“).
      - Knihovna zařadí uzel pod rodiče jen tehdy, když rodiče už zná; osiřelé uzly zařadíme dodatečně. */
   async function loadTree(s) {
     const parents = {};
     const api = s.api, req = api && api.request, imp = s._importFile;
-    if (req) api.request = function (json, ...rest) { if (json && json.a === 'f' && !json.r) json = Object.assign({}, json, { r: 1 }); return req.call(this, json, ...rest); };
+    let sn = null;
+    if (req) api.request = function (json, cb, ...rest) {
+      if (!json || json.a !== 'f') return req.call(this, json, cb, ...rest);
+      if (!json.r) json = Object.assign({}, json, { r: 1 });
+      return req.call(this, json, (err, resp) => { if (!err && resp && resp.sn) sn = resp.sn; if (cb) cb(err, resp); }, ...rest);
+    };
     if (imp) s._importFile = function (f) { if (f && f.h) parents[f.h] = f.p; return imp.call(this, f); };
-    try { await timeout(s.reload(true), 90000); }
-    finally { if (req) api.request = req; if (imp) s._importFile = imp; }
+    try {
+      await timeout(s.reload(true), 90000);
+      if (sn && api && typeof api.fetch === 'function') s.caughtUp = await timeout(catchUp(s, sn), 90000);
+    } finally { if (req) api.request = req; if (imp) s._importFile = imp; }
     for (const [h, p] of Object.entries(parents)) {
       const f = s.files[h], par = p && s.files[p];
       if (f && par && !f.parent && par.children && f !== par) { f.parent = par; par.children.push(f); }
     }
+  }
+
+  /* Dotáhne změny od stavu sn (akce „t“ = nové / přesunuté uzly, „d“ = smazané, „u“ = přejmenované).
+     Vrací počet použitých změn. Když Mega odpoví „w“ (čekej na další změny), je seznam aktuální. */
+  async function catchUp(s, sn) {
+    const api = s.api;
+    let applied = 0;
+    for (let round = 0; round < 100; round++) {
+      const url = `${api.gateway}sc?${new URLSearchParams({ sn, ssl: 1, sid: api.sid || s.sid })}`;
+      let resp;
+      for (let tries = 0; ; tries++) {
+        const r = await api.fetch(url, { method: 'POST' });
+        resp = r.ok ? await r.json() : (r.statusText === 'Server Too Busy' ? -3 : null);
+        if (resp !== -3 || tries >= 4) break;
+        await new Promise(res => setTimeout(res, 1000 * (tries + 1)));
+      }
+      if (resp == null || typeof resp === 'number') throw new Error(`Mega: nepodařilo se dotáhnout změny seznamu (${resp}).`);
+      if (Array.isArray(resp.a)) applied += applyActions(s, resp.a);
+      if (resp.w || !resp.sn || resp.sn === sn) return applied;
+      sn = resp.sn;
+    }
+    return applied;
+  }
+
+  function dropNode(s, f) {
+    for (const c of [...(f.children || [])]) dropNode(s, c);
+    if (f.parent && f.parent.children) f.parent.children = f.parent.children.filter(x => x !== f);
+    delete s.files[f.nodeId];
+  }
+  function applyActions(s, list) {
+    let n = 0;
+    for (const o of list) {
+      if (!o || typeof o !== 'object') continue;
+      if (o.a === 't' && o.t && Array.isArray(o.t.f)) {
+        for (const f of o.t.f) {
+          const old = s.files[f.h];
+          if (old) {   // přesun
+            const par = s.files[f.p];
+            if (par && old.parent !== par) {
+              if (old.parent && old.parent.children) old.parent.children = old.parent.children.filter(x => x !== old);
+              old.parent = par; par.children.push(old);
+            }
+          } else {
+            const file = s._importFile(f);
+            if (file && !file.parent && f.p && s.files[f.p] && s.files[f.p].children) { file.parent = s.files[f.p]; s.files[f.p].children.push(file); }
+          }
+          n++;
+        }
+      } else if (o.a === 'd' && o.n) {
+        const f = s.files[o.n];
+        if (f) { dropNode(s, f); n++; }
+      } else if (o.a === 'u' && o.n && s.files[o.n]) {
+        const f = s.files[o.n];
+        if (o.ts) f.timestamp = o.ts;
+        if (o.at && typeof f.decryptAttributes === 'function') { try { f.decryptAttributes(o.at); } catch (e) { /* jméno zůstane */ } }
+        n++;
+      }
+    }
+    return n;
   }
 
   async function login(cfg, fresh) {
@@ -299,7 +368,7 @@
       const name = folderOf(cfg);
       const line = f => `${f.name}  (souborů ${fileCount(f)}, ${f.timestamp ? new Date(f.timestamp * 1000).toLocaleString('cs-CZ') : '?'})`;
       return [
-        `uzlů celkem: ${all.length}`,
+        `uzlů celkem: ${all.length}` + (s.caughtUp != null ? ` (z toho dotaženo změn: ${s.caughtUp})` : ''),
         `bez rodiče: ${all.filter(f => !f.parent && f !== s.root && f.type < 2).length}`,
         `bez jména: ${all.filter(f => f.name == null && f.type < 2).length}`,
         `složek „${name}“ kdekoli: ${all.filter(f => f.directory && f.name === name).length}`,
@@ -310,5 +379,5 @@
     } catch (e) { throw new Error(friendly(e)); }
   }
 
-  return { test, snapshot, read, commit, logout, diag };
+  return { test, snapshot, read, commit, logout, diag, _test: { loadTree } };
 });
