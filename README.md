@@ -3,7 +3,7 @@
 Aplikace pro psaní, úpravy a zobrazování textů písní na čtečce (prompteru) kapely.
 
 - **Čtečka**: samostatný program pro Windows (`PROMPTER mini.exe`). Funguje **úplně bez internetu**, startuje rovnou přes celou obrazovku a data má jako soubory ve složce `data` vedle programu.
-- **Prohlížečová verze**: stejná aplikace na adrese https://potuzai.github.io/PROMPTER-mini/. Je to plnohodnotný editor i čtečka, který se synchronizuje s kapelou stejně jako program. Hodí se pro členy, kteří nechtějí nic instalovat, nebo když upravuješ z cizího počítače.
+- **Prohlížečová verze**: stejná aplikace na adrese https://potuzai.github.io/PROMPTERmini/. Je to plnohodnotný editor i čtečka, který se synchronizuje s kapelou stejně jako program. Hodí se pro členy, kteří nechtějí nic instalovat, nebo když upravuješ z cizího počítače.
 - **Sdílení s kapelou**: písně se synchronizují samy přes internet (Mega nebo GitHub, obojí zdarma). Kapela má jeden společný účet Mega a členové se přihlásí jeho **e-mailem a heslem**. Data zůstávají v každém zařízení a s Mega se jen synchronizují.
 
 ---
@@ -47,7 +47,7 @@ Monitor čtečky během běhu programu neusne. Program se po případném pádu 
 
 ## 2. Prohlížečová verze a aplikace v telefonu (PWA)
 
-- Otevři **https://potuzai.github.io/PROMPTER-mini/** v Edge nebo Chrome. Napoprvé se objeví uvítání: zvol **🔑 Přihlásit ke kapele** a zadej e-mail a heslo kapely. Web se na monitor neptá: stránka čtečky se přizpůsobí oknu prohlížeče nebo telefonu (i po otočení). Pevnou obrazovku kapely zvolíš v Nastavení › Toto zařízení jen pro displej, který slouží jako čtečka.
+- Otevři **https://potuzai.github.io/PROMPTERmini/** v Edge nebo Chrome. Napoprvé se objeví uvítání: zvol **🔑 Přihlásit ke kapele** a zadej e-mail a heslo kapely. Web se na monitor neptá: stránka čtečky se přizpůsobí oknu prohlížeče nebo telefonu (i po otočení). Pevnou obrazovku kapely zvolíš v Nastavení › Toto zařízení jen pro displej, který slouží jako čtečka.
 - Písně se uloží v tom prohlížeči a synchronizují se s kapelou, stejně jako v programu.
 - **Instalace jako aplikace** (ikona na ploše, celá obrazovka, funguje i bez internetu): **Nastavení → Toto zařízení → 📲 Nainstalovat**. V Chrome, Edge a na Androidu se rovnou nabídne instalace. Na iPhonu a iPadu: Safari → **Sdílet → Přidat na plochu**.
 - Na **cizím počítači** při přihlášení vypni **Zůstat přihlášen**, nebo se po práci odhlas: **Nastavení → Sdílení s kapelou → Odhlásit**. Heslo se tím z prohlížeče smaže.

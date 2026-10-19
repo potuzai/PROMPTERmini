@@ -5,7 +5,7 @@
 const isBrowser = typeof window !== 'undefined' && typeof require === 'undefined';
 const fs = isBrowser ? null : require('fs');
 const STATE = isBrowser ? null : process.env.MEGA_MOCK_STATE;
-const ENV = isBrowser ? (window.MEGA_MOCK_ENV || {}) : process.env;
+const env = () => isBrowser ? (window.MEGA_MOCK_ENV || {}) : process.env;
 const fresh = () => ({ account: { email: 'kapela@test.cz', password: 'heslo123' }, nodes: { root: { name: 'Cloud Drive', parent: null, dir: true, ts: 0 } }, calls: { login: 0, reload: 0 } });
 const xhr = (method, body) => { const x = new XMLHttpRequest(); x.open(method, window.MEGA_MOCK_URL, false); x.send(body); return x.responseText; };
 const load = () => {
@@ -23,13 +23,13 @@ class MutableFile {
     await delay();
     const name = typeof opt === 'string' ? opt : opt.name;
     const st = load(); const id = 'd' + rnd();
-    st.nodes[id] = { name, parent: this.nodeId, dir: true, ts: Math.floor(Date.now() / 1000) }; save(st);
+    st.nodes[id] = { name, parent: this.nodeId, dir: true, ts: Math.floor(Date.now() / 1000), cr: Date.now() }; save(st);
     const f = new MutableFile(this.storage, id, st.nodes[id]); f.parent = this; this.children.push(f); this.storage.files[id] = f; return f;
   }
   upload(opt, buf) {
     const complete = (async () => {
       await delay();
-      if (ENV.MEGA_MOCK_FAIL_UPLOAD) throw new Error('EAGAIN (-3): A temporary congestion or server malfunction prevented your request from being processed');
+      if (env().MEGA_MOCK_FAIL_UPLOAD) throw new Error('EAGAIN (-3): A temporary congestion or server malfunction prevented your request from being processed');
       const st = load(); const id = 'f' + rnd();
       st.nodes[id] = { name: opt.name, parent: this.nodeId, dir: false, ts: Math.floor(Date.now() / 1000), data: toB64(buf) }; save(st);
       const f = new MutableFile(this.storage, id, st.nodes[id]); f.parent = this; this.children.push(f); this.storage.files[id] = f; return f;
@@ -71,8 +71,11 @@ class Storage {
   }
   _build(st) {
     this.files = {};
-    for (const [id, n] of Object.entries(st.nodes)) this.files[id] = new MutableFile(this, id, n);
-    for (const [id, n] of Object.entries(st.nodes)) if (n.parent && this.files[n.parent]) { this.files[id].parent = this.files[n.parent]; this.files[n.parent].children.push(this.files[id]); }
+    // jako skutečná Mega: čerstvě založené složky se v seznamu chvíli neobjevují
+    const stale = +(env().MEGA_MOCK_STALE_MS || 0);
+    const nodes = Object.entries(st.nodes).filter(([, n]) => !(stale && n.cr && Date.now() - n.cr < stale));
+    for (const [id, n] of nodes) this.files[id] = new MutableFile(this, id, n);
+    for (const [id, n] of nodes) if (n.parent && this.files[n.parent]) { this.files[id].parent = this.files[n.parent]; this.files[n.parent].children.push(this.files[id]); }
     this.root = this.files.root;
   }
   toJSON() { return { key: 'k', sid: this.sid, name: this.name, user: 'u', options: Object.assign({}, this.options, { password: undefined }), email: this.email }; }
@@ -81,7 +84,7 @@ class Storage {
     s.options = json.options; s.sid = json.sid; s.email = json.email; s.name = json.name; s.files = {};
     return s;
   }
-  async reload() { await delay(); const st = load(); st.calls.reload++; save(st); if (ENV.MEGA_MOCK_EXPIRED) throw new Error('ESID (-15): Invalid or expired user session'); this._build(st); return []; }
+  async reload() { await delay(); const st = load(); st.calls.reload++; save(st); if (env().MEGA_MOCK_EXPIRED) throw new Error('ESID (-15): Invalid or expired user session'); this._build(st); return []; }
   async getAccountInfo() { return { spaceUsed: 1e6, spaceTotal: 20e9 }; }
 }
 if (isBrowser) window.mega = { Storage }; else module.exports = { Storage };

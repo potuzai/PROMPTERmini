@@ -5,7 +5,7 @@
 
 /* adresa aplikace pro pozvánku (z programu vede na webovou verzi) */
 function appUrl() {
-  return window.native || !/^https?:$/.test(location.protocol) ? 'https://potuzai.github.io/PROMPTER-mini/' : location.origin + location.pathname.replace(/index\.html$/, '');
+  return window.native || !/^https?:$/.test(location.protocol) ? 'https://potuzai.github.io/PROMPTERmini/' : location.origin + location.pathname.replace(/index\.html$/, '');
 }
 
 /* ukázková píseň do kapely nepatří */

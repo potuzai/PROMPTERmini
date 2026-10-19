@@ -66,7 +66,7 @@ async function browserMember(browser) {
   assert(true, 'špatné heslo → srozumitelná chyba, okno zůstane otevřené');
   await A.w.fill('.modal input[type=password]', 'heslo123');
   await A.w.click('.modal button:has-text("Přihlásit")');
-  await A.w.waitForFunction(() => !document.querySelector('.modal') && Sync.mode() === 'mega' && Sync.state === 'idle', null, { timeout: 15000 });
+  await A.w.waitForFunction(() => !document.querySelector('.modal') && Sync.mode() === 'mega' && Sync.state === 'idle', null, { timeout: 15000 }).catch(async e => { console.log('DBG', await A.w.evaluate(() => JSON.stringify({ modal: !!document.querySelector('.modal'), err: (document.querySelector('.login-err') || {}).textContent, mode: Sync.mode(), st: Sync.state, le: Sync.lastError }))); throw e; });
   const files0 = cloudFiles();
   assert(files0.some(f => f.path === 'PROMPTER mini/config/singers.json'), 'zpěváci nahráni do Mega do složky kapely');
   assert(!files0.some(f => f.text.includes('"sample": true')), 'ukázková píseň se do kapely nenahrála');
@@ -141,6 +141,17 @@ async function browserMember(browser) {
   await D.p.evaluate(async () => { const api = MegaProvider.api(); const c = Object.assign({}, MegaProvider.cfg(), { folder: 'Soubezna' }); await Promise.all([api.test(c), api.snapshot(c), api.test(c), api.snapshot(c)]); });
   const dirsNamed = n => Object.values(cloud().nodes).filter(x => x.dir && x.name === n).length;
   assert(dirsNamed('Soubezna') === 1, 'souběžné připojení k Mega vytvoří jen jednu složku kapely');
+  // Mega ukazuje novou složku až po chvíli: další připojení ji nesmí založit znovu
+  const staleRes = await D.p.evaluate(async () => {
+    window.MEGA_MOCK_ENV = { MEGA_MOCK_STALE_MS: '6000' };
+    const api = MegaProvider.api(); const c = Object.assign({}, MegaProvider.cfg(), { folder: 'Pomala' });
+    await api.test(c);
+    await new Promise(r => setTimeout(r, 3200));
+    const r = await api.snapshot(c).then(() => 'ok', e => e.message);
+    window.MEGA_MOCK_ENV = {};
+    return r;
+  });
+  assert(dirsNamed('Pomala') === 1 && staleRes === 'ok', 'opožděný seznam složek v Mega nezaloží druhou složku kapely (' + staleRes + ')');
   // už existující duplicitní složka kapely (vznikla dřív, např. z jiného okna) se sloučí do jedné
   {
     const st = cloud();

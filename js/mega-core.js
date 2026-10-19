@@ -52,7 +52,14 @@
      kopie jdou do koše Mega. Duplicitní soubory pak vyřeší synchronizace (nejnovější platí). */
   async function ensureDir(parent, name, st) {
     const found = dirs(parent).filter(c => c.name === name).sort((a, b) => fileCount(b) - fileCount(a));
-    if (!found.length) return parent.mkdir(name);
+    const key = parent.nodeId + '/' + name;
+    if (!found.length) {
+      // Mega vrací čerstvě založenou složku až po chvíli – tuhle jsme už založili, nezakládat znovu
+      if (made[key]) { const e = new Error('Mega ještě neukazuje novou složku kapely, zkusím to za chvíli.'); e.stale = true; throw e; }
+      const d = await parent.mkdir(name);
+      made[key] = d.nodeId;
+      return d;
+    }
     for (const dup of found.slice(1)) {
       try { if (fileCount(dup)) { await mergeInto(dup, found[0]); if (st) st.merged = true; } await dup.delete(false); if (st) st.merged = true; }
       catch (e) { /* zkusí se příště */ }
@@ -60,21 +67,33 @@
     return found[0];
   }
 
+  const made = {};   // „rodič/jméno“ → nodeId složek, které tato aplikace založila
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+
   // Připojení se nikdy nesmí překrývat – jinak by si každé založilo vlastní složku kapely
   let lock = Promise.resolve();
   const serial = fn => { const r = lock.then(fn, fn); lock = r.catch(() => {}); return r; };
 
   function open(cfg, fresh) { return serial(() => openNow(cfg, fresh)); }
   async function openNow(cfg, fresh) {
-    const storage = await login(cfg, fresh);
     const folderName = (cfg.folder || 'PROMPTER mini').trim();
-    const st = {};
-    let base = await ensureDir(storage.root, folderName, st);
-    if (st.merged) { await storage.reload(true); base = await ensureDir(storage.root, folderName); }
-    const folders = {};
-    for (const s of STORES) folders[s] = await ensureDir(base, s);
-    current = { storage, base, folders, cfgKey: cfg.email + '|' + folderName };
-    return current;
+    const cfgKey = cfg.email.toLowerCase() + '|' + folderName;
+    const storage = await login(cfg, fresh);
+    for (let i = 0; ; i++) {
+      try {
+        const st = {};
+        let base = await ensureDir(storage.root, folderName, st);
+        if (st.merged) { await storage.reload(true); base = await ensureDir(storage.root, folderName); }
+        const folders = {};
+        for (const s of STORES) folders[s] = await ensureDir(base, s);
+        current = { storage, base, folders, cfgKey };
+        return current;
+      } catch (e) {
+        if (!e.stale || i >= 4) throw e;
+        await wait(1500 * (i + 1));
+        await storage.reload(true);
+      }
+    }
   }
 
   /* Seznam souborů: { files: {cesta: verze}, extras: [cesty duplicit „cesta#nodeId“] } */
