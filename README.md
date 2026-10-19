@@ -18,10 +18,10 @@ Aplikace pro psaní, úpravy a zobrazování textů písní na čtečce (prompte
    - **Obrazovka kapely**: zda je to hlavní čtečka, jiná už nadefinovaná obrazovka, nebo nová (např. „Tablet – kytara“).
    - **Velikost displeje**: rozlišení (předvolby 21,5″–43″ nebo **Z této obrazovky**), úhlopříčka a vzdálenost zpěváka. Z nich průvodce doporučí velikost písma.
    - **Vzhled aplikace** (tmavý, světlý, podle systému), volitelně **PIN** a připojení ke kapele.
-4. Vše jde později změnit v **Nastavení › Toto zařízení** (tam je i **Spustit průvodce znovu**). V **Nastavení › Čtečka a ovládání**:
-   - Zaškrtni **Spustit program automaticky po zapnutí počítače**.
-   - Volitelně nastav **PIN**, aby na čtečce nikdo omylem nic neupravil.
-   - Volitelně připoj **GitHub** (stačí token jen pro čtení). Čtečka si pak při každém spuštění sama stáhne nové písně, pokud je internet.
+4. Vše jde později změnit v **Nastavení › Toto zařízení** (tam je i **Průvodce nastavením → Spustit**). V **Nastavení › Čtečka a ovládání**:
+   - Zapni **Spustit po zapnutí počítače**.
+   - V **Nastavení › Toto zařízení** volitelně nastav **PIN**, aby na čtečce nikdo omylem nic neupravil.
+   - V **Nastavení › Kapela a synchronizace** se přihlas ke kapele a zapni **Jen pro čtení**. Čtečka si pak při každém spuštění sama stáhne nové písně, pokud je internet.
 
 ### Ovládání čtečky
 
@@ -49,8 +49,8 @@ Monitor čtečky během běhu programu neusne. Program se po případném pádu 
 
 - Otevři **https://potuzai.github.io/PROMPTERmini/** v Edge nebo Chrome. Napoprvé se objeví uvítání: zvol **🔑 Přihlásit ke kapele** a zadej e-mail a heslo kapely. Web se na monitor neptá: stránka čtečky se přizpůsobí oknu prohlížeče nebo telefonu (i po otočení). Pevnou obrazovku kapely zvolíš v Nastavení › Toto zařízení jen pro displej, který slouží jako čtečka.
 - Písně se uloží v tom prohlížeči a synchronizují se s kapelou, stejně jako v programu.
-- **Instalace jako aplikace** (ikona na ploše, celá obrazovka, funguje i bez internetu): **Nastavení → Toto zařízení → 📲 Nainstalovat**. V Chrome, Edge a na Androidu se rovnou nabídne instalace. Na iPhonu a iPadu: Safari → **Sdílet → Přidat na plochu**.
-- Na **cizím počítači** při přihlášení vypni **Zůstat přihlášen**, nebo se po práci odhlas: **Nastavení → Sdílení s kapelou → Odhlásit**. Heslo se tím z prohlížeče smaže.
+- **Instalace jako aplikace** (ikona na ploše, celá obrazovka, funguje i bez internetu): **Nastavení → Toto zařízení → Nainstalovat aplikaci** (nebo Nastavení → O aplikaci). V Chrome, Edge a na Androidu se rovnou nabídne instalace. Na iPhonu a iPadu: Safari → **Sdílet → Přidat na plochu**.
+- Na **cizím počítači** při přihlášení vypni **Zůstat přihlášen**, nebo se po práci odhlas: **Nastavení → Kapela a synchronizace → Odhlásit**. Heslo se tím z prohlížeče smaže.
 - Pro PC čtečky doporučuji program `PROMPTER mini.exe`: data má v souborech, startuje sám a nezávisí na aktualizacích prohlížeče.
 
 ### Psaní textu
@@ -139,11 +139,11 @@ Volba **Další možnosti** v přihlašovacím okně: jiná složka v Mega a **j
 ### Správce kapely (jednou, asi 5 minut)
 1. Na mega.io založ **nový společný účet pro kapelu**, ne svůj osobní, protože heslo budou znát všichni členové. Dvoufázové ověření nezapínej.
 2. V aplikaci klikni na **🔑 Přihlásit ke kapele** a zadej e-mail a heslo tohoto účtu. Aplikace si v Mega sama vytvoří složku „PROMPTERmini“ a nahraje do ní písně.
-3. **Nastavení → Sdílení s kapelou → 👥 Pozvat členy** připraví zprávu s adresou aplikace a e-mailem kapely. Heslo pošli zvlášť (ústně, SMS).
+3. **Nastavení → Kapela a synchronizace → Pozvat členy** připraví zprávu s adresou aplikace a e-mailem kapely. Heslo pošli zvlášť (ústně, SMS).
 
 Když dva lidé upraví stejnou píseň najednou, nic se neztratí: druhá verze se uloží jako kopie „(konflikt)“. Bez internetu vše funguje dál a změny se odešlou při dalším připojení. Když někdo z kapely odejde nebo heslo unikne, změň heslo účtu Mega a řekni nové ostatním; každý se pak jednou přihlásí znovu.
 
-**Jiné úložiště:** místo Mega jde v Nastavení → Sdílení s kapelou zvolit GitHub (soukromý repozitář a token – každý člen zadá repozitář a token) nebo v programu synchronizovanou složku (MEGA Desktop, OneDrive, Dropbox, síťový disk).
+**Jiné úložiště:** místo Mega jde v Nastavení → Kapela a synchronizace → Jiné úložiště zvolit GitHub (soukromý repozitář a token – každý člen zadá repozitář a token) nebo v programu synchronizovanou složku (MEGA Desktop, OneDrive, Dropbox, síťový disk).
 
 > Připojení k Mega používá neoficiální knihovnu `megajs`. Kdyby ho Mega někdy změnou na své straně rozbila, přepni na GitHub. Písně v programu zůstanou.
 
