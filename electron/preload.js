@@ -27,6 +27,7 @@ contextBridge.exposeInMainWorld('native', {
   megaRead: (cfg, p, v) => ipcRenderer.invoke('megaRead', cfg, p, v),
   megaCommit: (cfg, up, del) => ipcRenderer.invoke('megaCommit', cfg, up, del),
   megaLogout: () => ipcRenderer.invoke('megaLogout'),
+  megaDiag: cfg => ipcRenderer.invoke('megaDiag', cfg),
   protect: text => ipcRenderer.sendSync('protect', text),
   unprotect: val => ipcRenderer.sendSync('unprotect', val),
 });

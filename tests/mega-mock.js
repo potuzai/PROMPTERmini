@@ -81,10 +81,10 @@ class Storage {
   toJSON() { return { key: 'k', sid: this.sid, name: this.name, user: 'u', options: Object.assign({}, this.options, { password: undefined }), email: this.email }; }
   static fromJSON(json) {
     const s = Object.create(Storage.prototype);
-    s.options = json.options; s.sid = json.sid; s.email = json.email; s.name = json.name; s.files = {};
+    s.options = json.options; s.sid = json.sid; s.email = json.email; s.name = json.name; s.files = {}; s.restored = true;
     return s;
   }
-  async reload() { await delay(); const st = load(); st.calls.reload++; save(st); if (env().MEGA_MOCK_EXPIRED) throw new Error('ESID (-15): Invalid or expired user session'); this._build(st); return []; }
+  async reload() { await delay(); const st = load(); st.calls.reload++; save(st); if (env().MEGA_MOCK_EXPIRED && this.restored) throw new Error('ESID (-15): Invalid or expired user session'); this._build(st); return []; }
   async getAccountInfo() { return { spaceUsed: 1e6, spaceTotal: 20e9 }; }
 }
 if (isBrowser) window.mega = { Storage }; else module.exports = { Storage };

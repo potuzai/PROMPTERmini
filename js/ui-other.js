@@ -488,7 +488,14 @@ const SettingsView = {
             MegaProvider.api().logout();
             if (window.native) window.native.watchFolder('');
             await Sync.resetMeta(); Sync.lastError = ''; Sync.state = 'off'; Sync.refreshState(); App.go(true);
-          } }, mg ? 'Odhlásit' : 'Odpojit')),
+          } }, mg ? 'Odhlásit' : 'Odpojit'),
+          mg ? h('button', { class: 'btn nogrow', title: 'Co aplikace v účtu Mega vidí – pošli to při potížích se synchronizací', onclick: async () => {
+            toast('Načítám obsah Mega…', 'info', 2000);
+            let text;
+            try { text = `PROMPTER mini ${APP_VERSION}\nsložka: ${mg.folder}\nchyba: ${Sync.lastError || '–'}\n` + await MegaProvider.api().diag(mg); }
+            catch (e) { text = 'Diagnostika selhala: ' + ipcError(e); }
+            await modal({ title: '🩺 Diagnostika Mega', wide: true, body: h('textarea', { class: 'inp', rows: 12, readonly: true, style: { fontFamily: 'Consolas, monospace', fontSize: '12px' } }, text) });
+          } }, '🩺 Diagnostika') : null),
         mg && !window.native ? h('label', { class: 'chk', style: { marginTop: '10px' } },
           h('input', { type: 'checkbox', checked: Settings.data.rememberBand !== false, onchange: e => setRememberBand(e.target.checked) }),
           'Zůstat přihlášen na tomto zařízení',

@@ -152,6 +152,7 @@ const WebMega = {
   async read(cfg, p, v) { return (await this.load()).read(cfg, p, v); },
   async commit(cfg, up, del) { return (await this.load()).commit(cfg, up, del); },
   async logout() { if (this.core) this.core.logout(); },
+  async diag(cfg) { return (await this.load()).diag(cfg); },
 };
 
 /* Mega přímo – program i prohlížeč se přihlásí samy (bez aplikace MEGA) */
@@ -160,7 +161,7 @@ const MegaProvider = {
   needsNet: true,
   api() {
     const n = window.native;
-    return n ? { test: n.megaTest, snapshot: n.megaSnapshot, read: n.megaRead, commit: n.megaCommit, logout: n.megaLogout } : WebMega;
+    return n ? { test: n.megaTest, snapshot: n.megaSnapshot, read: n.megaRead, commit: n.megaCommit, logout: n.megaLogout, diag: n.megaDiag } : WebMega;
   },
   cfg() {
     const m = Settings.get('mega') || {};

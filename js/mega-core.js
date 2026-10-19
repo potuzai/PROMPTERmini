@@ -22,17 +22,34 @@
     return 'Mega: ' + m;
   }
 
+  /* Načte strom souborů. Knihovna zařadí uzel pod rodiče jen tehdy, když rodiče už zná –
+     pošle-li Mega podřízený uzel dřív než rodiče, „zmizel“ by (a složka kapely by se zakládala znovu).
+     Proto si zapamatujeme rodiče všech uzlů a osiřelé dodatečně zařadíme. */
+  async function loadTree(s) {
+    if (typeof s._importFile !== 'function') { await s.reload(true); return; }
+    const parents = {};
+    const orig = s._importFile;
+    s._importFile = function (f) { if (f && f.h) parents[f.h] = f.p; return orig.call(this, f); };
+    try { await s.reload(true); } finally { s._importFile = orig; }
+    for (const [h, p] of Object.entries(parents)) {
+      const f = s.files[h], par = p && s.files[p];
+      if (f && par && !f.parent && par.children && f !== par) { f.parent = par; par.children.push(f); }
+    }
+  }
+
   async function login(cfg, fresh) {
     if (!cfg || !cfg.email || !cfg.password) throw new Error('Chybí e-mail nebo heslo k Mega');
     if (!fresh && session && session.email === cfg.email.toLowerCase()) {
       try {
         const s = Storage.fromJSON(JSON.parse(JSON.stringify(session.json)));
-        await s.reload(true);
+        await loadTree(s);
         if (s.root) return s;
       } catch (e) { /* relace vypršela – přihlásit znovu */ }
     }
-    const s = new Storage(Object.assign({ email: cfg.email.trim(), password: cfg.password, keepalive: false, autologin: true, autoload: true }, typeof window === 'undefined' ? { userAgent: 'PrompterMini/1.0' } : {}));
+    const s = new Storage(Object.assign({ email: cfg.email.trim(), password: cfg.password, keepalive: false, autologin: true, autoload: false }, typeof window === 'undefined' ? { userAgent: 'PrompterMini/1.0' } : {}));
     await s.ready;
+    await loadTree(s);
+    if (!s.root) throw new Error('Mega nevrátila obsah účtu, zkus to znovu.');
     session = { email: cfg.email.toLowerCase(), json: s.toJSON() };
     return s;
   }
@@ -83,7 +100,7 @@
       try {
         const st = {};
         let base = await ensureDir(storage.root, folderName, st);
-        if (st.merged) { await storage.reload(true); base = await ensureDir(storage.root, folderName); }
+        if (st.merged) { await loadTree(storage); base = await ensureDir(storage.root, folderName); }
         const folders = {};
         for (const s of STORES) folders[s] = await ensureDir(base, s);
         current = { storage, base, folders, cfgKey };
@@ -91,7 +108,7 @@
       } catch (e) {
         if (!e.stale || i >= 4) throw e;
         await wait(1500 * (i + 1));
-        await storage.reload(true);
+        await loadTree(storage);
       }
     }
   }
@@ -174,5 +191,21 @@
 
   function logout() { session = null; current = null; }
 
-  return { test, snapshot, read, commit, logout };
+  /* Co aplikace v účtu Mega vidí – pro hledání chyb (bez obsahu souborů) */
+  async function diag(cfg) {
+    try {
+      const s = await login(cfg, true);
+      const all = Object.values(s.files || {});
+      const name = (cfg.folder || 'PROMPTERmini').trim();
+      const line = f => `${f.name}  (souborů ${fileCount(f)}, ${f.timestamp ? new Date(f.timestamp * 1000).toLocaleString('cs-CZ') : '?'})`;
+      return [
+        `uzlů celkem: ${all.length}`,
+        `bez rodiče: ${all.filter(f => !f.parent && f !== s.root && f.type < 2).length}`,
+        `složek „${name}“ kdekoli: ${all.filter(f => f.directory && f.name === name).length}`,
+        'v kořeni:', ...dirs(s.root).map(f => '  ' + line(f)),
+      ].join('\n');
+    } catch (e) { throw new Error(friendly(e)); }
+  }
+
+  return { test, snapshot, read, commit, logout, diag };
 });

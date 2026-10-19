@@ -197,6 +197,7 @@ ipcMain.handle('megaSnapshot', (e, cfg) => Mega.snapshot(cfg));
 ipcMain.handle('megaRead', (e, cfg, p, v) => Mega.read(cfg, p, v));
 ipcMain.handle('megaCommit', (e, cfg, up, del) => Mega.commit(cfg, up, del));
 ipcMain.handle('megaLogout', () => Mega.logout());
+ipcMain.handle('megaDiag', (e, cfg) => Mega.diag(cfg));
 
 /* Šifrování hesel a tokenů v nastavení (Windows: DPAPI – rozšifruje jen tento uživatel na tomto PC) */
 ipcMain.on('protect', (e, text) => {

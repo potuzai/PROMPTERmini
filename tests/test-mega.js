@@ -64,6 +64,7 @@ async function browserMember(browser) {
   await A.w.click('.modal button:has-text("Přihlásit")');
   await A.w.waitForSelector('.modal .login-err:has-text("špatný e-mail nebo heslo")', { timeout: 8000 });
   assert(true, 'špatné heslo → srozumitelná chyba, okno zůstane otevřené');
+  await sleep(500);
   await A.w.fill('.modal input[type=password]', 'heslo123');
   await A.w.click('.modal button:has-text("Přihlásit")');
   await A.w.waitForFunction(() => !document.querySelector('.modal') && Sync.mode() === 'mega' && Sync.state === 'idle', null, { timeout: 15000 }).catch(async e => { console.log('DBG', await A.w.evaluate(() => JSON.stringify({ modal: !!document.querySelector('.modal'), err: (document.querySelector('.login-err') || {}).textContent, mode: Sync.mode(), st: Sync.state, le: Sync.lastError }))); throw e; });
