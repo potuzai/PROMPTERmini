@@ -126,7 +126,11 @@ const App = {
     if (!Sync.enabled()) return loginDialog();
     if (Sync.locked()) return loginDialog({ expired: true });
     try { const r = await Sync.run(); toast(`Synchronizováno · staženo ${r.downloaded || 0}, odesláno ${r.pushed || 0}`, 'ok'); }
-    catch (e) { toast(e.message, 'err', 6000); }
+    catch (e) {
+      // Mega odmítla uložené přihlášení → rovnou nabídnout nové přihlášení i s důvodem
+      if (Sync.mode() === 'mega' && /heslo|zablokovan|ESID|expired/i.test(e.message)) return loginDialog({ error: e.message });
+      toast(e.message, 'err', 8000);
+    }
   },
 
   onStore(type, id) {

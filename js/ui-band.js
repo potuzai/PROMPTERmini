@@ -38,7 +38,8 @@ async function bandLogin({ email, password, folder, remember = true, ro = false 
   return { email: r.email || cfg.email, res };
 }
 
-/* Přihlašovací okno: e-mail + heslo kapely + „Zůstat přihlášen“ (expired = přihlášení vypršelo po zavření prohlížeče) */
+/* Přihlašovací okno: e-mail + heslo kapely + „Zůstat přihlášen“
+   (expired = přihlášení vypršelo po zavření prohlížeče, error = Mega odmítla uložené přihlášení) */
 async function loginDialog(opts = {}) {
   const m = Settings.data.mega || {};
   const email = h('input', { class: 'inp', type: 'email', name: 'email', autocomplete: 'username', value: m.email || '', placeholder: 'e-mail kapely' });
@@ -46,9 +47,11 @@ async function loginDialog(opts = {}) {
   const remember = h('input', { type: 'checkbox', checked: Settings.data.rememberBand !== false });
   const folder = h('input', { class: 'inp', value: m.folder || 'PROMPTERmini' });
   const ro = h('input', { type: 'checkbox', checked: !!Settings.get('readOnly') });
-  const err = h('div', { class: 'login-err' });
+  const err = h('div', { class: 'login-err' }, opts.error || '');
   const body = h('form', { class: 'login', onsubmit: e => e.preventDefault() },
-    h('p', {}, opts.expired
+    h('p', {}, opts.error
+      ? 'Synchronizace s Mega se nepovedla. Zkontroluj e-mail, heslo a složku kapely (Další možnosti) a přihlas se znovu – písně v zařízení zůstaly.'
+      : opts.expired
       ? 'Toto zařízení si přihlášení nepamatuje. Přihlas se znovu – písně v něm zůstaly, jen se teď nesynchronizují.'
       : 'Přihlas se e-mailem a heslem kapely (společný účet Mega). Písně a playlisty se pak samy stáhnou a synchronizují.'),
     h('label', { class: 'f' }, h('span', {}, 'E-mail'), email),
@@ -62,7 +65,7 @@ async function loginDialog(opts = {}) {
         ' založ nový účet jen pro kapelu (ne svůj osobní, bez dvoufázového ověření) a přihlas se jím. Aplikace si v něm vše připraví sama.')),
     err);
   while (true) {
-    const v = await modal({ title: '🔑 Přihlásit ke kapele', body, buttons: [{ label: opts.expired ? 'Teď ne' : 'Zrušit', value: null }, { label: 'Přihlásit', primary: true, value: true }],
+    const v = await modal({ title: '🔑 Přihlásit ke kapele', body, buttons: [{ label: opts.expired || opts.error ? 'Teď ne' : 'Zrušit', value: null }, { label: 'Přihlásit', primary: true, value: true }],
       onOpen: () => { if (email.value) setTimeout(() => pass.focus(), 40); } });
     if (!v) return false;
     err.textContent = '';
