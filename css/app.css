@@ -199,7 +199,22 @@ kbd { font: 600 11px/1 var(--mono); padding: 3px 5px; border: 1px solid var(--li
 .sl-cols { padding: 8px 22px; font-size: 11.5px; color: var(--dim); border-bottom: 1px solid var(--line); }
 .big-list .list .item.sl-row { padding: 11px 22px; border-bottom: 1px solid var(--line); border-radius: 0; }
 .big-list .list .item.sl-row:hover { background: var(--hover); }
-.sl-row.pl-row { grid-template-columns: 110px minmax(180px, 1.6fr) 90px minmax(100px, 1fr) 34px; }
+.sl-row.pl-row { grid-template-columns: 110px minmax(180px, 1.6fr) 90px minmax(100px, 1fr); }
+/* Připraveno k přehrání: vlastní pořadí nad ostatními playlisty */
+.pl-sec { display: flex; align-items: baseline; gap: 8px; padding: 14px 22px 6px; font-size: 11.5px; letter-spacing: .04em; color: var(--dim); border-bottom: 1px solid var(--line); }
+.pl-sec b { font-weight: 600; }
+.pl-sec-ready { color: var(--acc-hi); }
+.pl-sec-ready span { min-width: 18px; padding: 0 6px; border-radius: 9px; background: var(--acc-soft); color: var(--acc-hi); text-align: center; }
+.big-list .list .item.sl-row.ready { background: rgba(232,73,63,.06); }
+.big-list .list .item.sl-row.ready:hover { background: var(--hover); }
+.big-list .list .item.sl-row.ready.active { background: var(--sel); }
+.pl-drop { margin: 8px 22px; padding: 14px; border: 1px dashed var(--line2); border-radius: var(--rc); color: var(--faint); font-size: 12.5px; text-align: center; }
+.pl-drop.slim { margin: 0; padding: 0; height: 10px; border: 0; border-radius: 0; }
+.pl-sec.over, .pl-drop.over, .item.ready.over { box-shadow: inset 0 3px 0 var(--acc); }
+.pl-drop.over { border-color: var(--acc); color: var(--text); }
+.list.over { box-shadow: inset 0 0 0 2px var(--line2); }
+.item.drag { opacity: .45; }
+.btn.pl-pin.on { color: var(--acc-hi); border-color: var(--acc); }
 .view.pl-open > .side { display: none; }
 .pl-split { flex: 1; min-height: 0; display: flex; gap: 8px; }
 .pl-main { flex: 2 1 0; min-width: 0; display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line); border-radius: var(--rc); overflow: hidden; }
@@ -761,7 +776,6 @@ input[type=checkbox].switch:focus-visible { outline: 2px solid var(--acc-hi); ou
   .pl-row .sl-title { grid-column: 1; grid-row: 1; }
   .pl-row .sl-key { display: none; }
   .pl-row .sl-artist:nth-child(4) { display: none; }
-  .pl-row > .btn { grid-column: 2; grid-row: 1 / 3; }
   .sl-head { padding: 10px 12px; }
   .sl-head .inp[type=search] { flex-basis: 100%; max-width: none; order: 5; }
   .view.has-detail > .side { display: none; }
