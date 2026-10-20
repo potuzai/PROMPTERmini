@@ -147,7 +147,7 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   await p.click('.pl-list .item:has-text("Koncert")'); await sleep(200);
   assert(await p.isVisible('.pl-prev h3:has-text("Koncert")') && await p.isVisible('.pl-prev .pl-item:has-text("Holubí dům")'), 'klik = náhled obsahu playlistu vpravo');
   const prevW = await p.evaluate(() => [document.querySelector('.pl-main').getBoundingClientRect().width, document.querySelector('.pl-prev').getBoundingClientRect().width]);
-  assert(Math.abs(prevW[0] / prevW[1] - 2) < 0.3, 'seznam 2/3, náhled 1/3');
+  assert(Math.abs(prevW[0] / prevW[1] - 1.5) < 0.25, 'seznam 60 %, úprava vpravo 40 %');
   await p.dblclick('.pl-list .item:has-text("Akustika")'); await sleep(300);
   assert(!(await p.isVisible('.pl-list')) && await p.isVisible('.btn.pl-back'), 'otevřený playlist: seznam schovaný, tlačítko zpět');
   await p.click('.btn.pl-back'); await sleep(300);

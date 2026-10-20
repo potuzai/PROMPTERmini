@@ -228,6 +228,8 @@ kbd { font: 600 11px/1 var(--mono); padding: 3px 5px; border: 1px solid var(--li
 .sl-titlebar span { color: var(--dim); }
 .pl-main > .list { flex: 1; overflow-y: auto; }
 .pl-prev { flex: 1 1 0; min-width: 280px; overflow-y: auto; border: 1px solid var(--line); border-radius: var(--rc); background: var(--panel); padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+.pl-list .pl-main { flex: 3 1 0; }   /* playlisty: seznam 60 %, úprava vybraného playlistu vpravo 40 % */
+.pl-list .pl-prev { flex: 2 1 0; }
 .pl-prev-head h3 { margin: 0 0 4px; font: 600 19px var(--font); letter-spacing: 0; text-transform: none; color: var(--text); }
 .pl-prev-meta { font-size: 12.5px; color: var(--dim); }
 .pl-prev-btns { display: flex; flex-wrap: wrap; gap: 6px; }
