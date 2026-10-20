@@ -7,16 +7,6 @@ const plEncore = pl => typeof pl.encore === 'number' ? Math.max(0, Math.min(pl.e
 const durSec = s => { const m = /^\s*(\d+)(?:[:.,](\d{1,2}))?\s*$/.exec((s && s.duration) || ''); return m ? +m[1] * 60 + +(m[2] || 0) : 0; };
 const fmtDur = sec => sec >= 3600 ? `${Math.floor(sec / 3600)} h ${Math.round(sec % 3600 / 60)} min` : `${Math.round(sec / 60)} min`;
 const LINE = '__line__';
-// Řazení textů: prázdné na konec; ladění podle tónů od C (české H = B, B = B♭), moll za dur
-const cmpText = (a, b) => !a !== !b ? (a ? -1 : 1) : String(a || '').localeCompare(String(b || ''), 'cs', { sensitivity: 'base' });
-function keyNum(key) {
-  const m = /^\s*([a-hA-H])(is|es|s|#|♯|b|♭)?\s*(m(?!aj)|mi|moll)?/i.exec(key || '');
-  if (!m) return 1e9;
-  const base = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, H: 11, B: 10 }[m[1].toUpperCase()];
-  const acc = !m[2] || (m[1].toUpperCase() === 'B' && !/^(is|#|♯)$/i.test(m[2])) ? 0 : /^(is|#|♯)$/i.test(m[2]) ? 1 : -1;   // „Bb“ = české B
-  return ((base + acc + 12) % 12) * 2 + (m[3] ? 1 : 0);
-}
-
 const PlaylistsView = {
 
   search: '',
@@ -158,10 +148,11 @@ const PlaylistsView = {
     let dirty = false;
     const savedInd = h('span', { class: 'saved-ind' });
     const saveBtn = h('button', { class: 'btn', title: 'Uložit změny (Ctrl+S)', onclick: () => save(true) }, '💾 Uložit');
+    const savedBtns = [saveBtn];   // tlačítka, která se při neuložených změnách zvýrazní
     const paintSaved = () => {
-      savedInd.textContent = dirty ? 'Neuloženo' : pl.updatedBy ? `Upravil(a) ${pl.updatedBy}, ${fmtDate(pl.updatedAt)}` : '';
+      savedInd.textContent = dirty ? 'Neuloženo' : compact ? '' : pl.updatedBy ? `Upravil(a) ${pl.updatedBy}, ${fmtDate(pl.updatedAt)}` : '';
       savedInd.classList.toggle('dirty', dirty);
-      saveBtn.classList.toggle('primary', dirty);
+      savedBtns.forEach(b => b.classList.toggle('primary', dirty));
     };
     const markDirty = () => { dirty = true; paintSaved(); };
     const save = async manual => {
@@ -236,23 +227,6 @@ const PlaylistsView = {
       });
       return inp;
     };
-    const SORTS = {
-      artist: ['kapely', (a, b) => cmpText(a.artist, b.artist) || cmpText(a.title, b.title)],
-      title: ['názvu', (a, b) => cmpText(a.title, b.title)],
-      tempo: ['BPM', (a, b) => (parseFloat(a.tempo) || 1e9) - (parseFloat(b.tempo) || 1e9)],
-      key: ['ladění', (a, b) => keyNum(a.key) - keyNum(b.key) || cmpText(a.key, b.key)],
-      duration: ['délky', (a, b) => (durSec(a) || 1e9) - (durSec(b) || 1e9)],
-    };
-    const sortSongs = by => {   // řadí zvlášť písně nad čarou a pod ní; prázdné hodnoty na konec
-      const [, cmp] = SORTS[by];
-      const seg = list => list.map(id => [id, Store.songs.get(id) || {}]).sort((x, y) => cmp(x[1], y[1])).map(x => x[0]);
-      const at = rows.indexOf(LINE);
-      rows = at >= 0 ? [...seg(rows.slice(0, at)), LINE, ...seg(rows.slice(at + 1))] : seg(rows);
-      commit();
-    };
-    const sortSel = h('select', { class: 'inp pl-sort', title: 'Jednorázově přeřadí písně (nad čarou i pod ní zvlášť)' },
-      h('option', { value: '' }, 'Seřadit…'), Object.entries(SORTS).map(([v, [l]]) => h('option', { value: v }, 'Seřadit podle ' + l)));
-    sortSel.onchange = () => { if (sortSel.value) sortSongs(sortSel.value); sortSel.value = ''; };
     const lineBtn = h('button', { class: 'btn small', title: 'Písně pod čarou jsou možné přídavky', onclick: () => { if (!rows.includes(LINE)) { rows.push(LINE); commit(); } } }, '＋ Čára pro přídavky');
     // Zobrazení ve sloupcích: počet sloupců podle šířky okna (každý dost široký pro všechny údaje), u krátkých playlistů jeden
     const COL_MIN = 520;   // nejmenší šířka sloupce = column-width v css (.pl-multi)
@@ -454,18 +428,22 @@ const PlaylistsView = {
       };
       paintHead();
       itemsBox.classList.add('pl-compact');
+      // uložení, tisk a celá stránka pod jedním tlačítkem (v náhledu je málo místa)
+      const menuBtn = h('button', { class: 'btn', title: 'Uložit, uložit jako, tisk, celá stránka', onclick: e => popupMenu(e.currentTarget, [
+        { label: 'Uložit (Ctrl+S)', action: () => save(true) },
+        { label: 'Uložit jako…', action: () => saveAs() },
+        { label: 'Tisk…', action: () => this.print(pl) },
+        { label: 'Celá stránka úprav', action: () => { location.hash = '#/playlists/' + pl.id; } }]) }, '💾 Uložit ▾');
+      savedBtns.push(menuBtn);
       root.append(
         h('div', { class: 'pl-prev-head' }, h('div', { class: 'pl-prev-title' }, titleEl,
           h('button', { class: 'btn small icon', title: 'Upravit název, datum a poznámku', onclick: editInfo }, '✎')), metaEl),
         h('div', { class: 'pl-prev-btns' },
           h('button', { class: 'btn play', onclick: () => { location.hash = '#/reader/' + pl.id; } }, '▶ Čtečka'),
-          h('button', { class: 'btn', onclick: () => this.print(pl) }, '🖨 Tisk'),
-          readyBtn,
-          h('button', { class: 'btn', title: 'Otevřít úpravu playlistu přes celou stránku', onclick: () => { location.hash = '#/playlists/' + pl.id; } }, 'Celá stránka')),
-        h('div', { class: 'pl-prev-save' }, saveBtn, saveAsBtn, savedInd),
+          readyBtn, menuBtn, savedInd),
         h('div', { class: 'pl-prev-tools' },
           h('button', { class: 'btn small primary', title: 'Přidat písně z knihovny (hledání, výběr více písní, pořadí)', onclick: pickDialog }, '＋ Přidat'),
-          countLbl, h('span', { class: 'grow', style: { flex: 1 } }), lineBtn, sortSel),
+          countLbl, h('span', { class: 'grow', style: { flex: 1 } }), lineBtn),
         itemsBox);
       paintItems(); paintSaved();
       return;
@@ -485,7 +463,7 @@ const PlaylistsView = {
         h('button', { class: 'btn danger', onclick: () => this.del(pl) }, '🗑 Smazat')),
       h('div', { class: 'pl-col pl-songs' },
         h('div', { class: 'pl-add' }, quickAdd(), h('button', { class: 'btn', onclick: pickDialog }, '⧉ Vybrat z knihovny…')),
-        h('div', { class: 'head' }, h('b', {}, 'Pořadí písní'), countLbl, h('span', { class: 'grow', style: { flex: 1 } }), colsBtn, lineBtn, sortSel),
+        h('div', { class: 'head' }, h('b', {}, 'Pořadí písní'), countLbl, h('span', { class: 'grow', style: { flex: 1 } }), colsBtn, lineBtn),
         itemsBox));
     paintItems(); paintSaved();
   },

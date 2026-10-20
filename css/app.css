@@ -235,10 +235,7 @@ kbd { font: 600 11px/1 var(--mono); padding: 3px 5px; border: 1px solid var(--li
 /* Náhled = zkrácená úprava playlistu */
 .pl-prev-title { display: flex; align-items: center; gap: 6px; }
 .pl-prev-title h3 { flex: 1; min-width: 0; }
-.pl-prev-save { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.pl-prev-save .saved-ind { margin-left: 4px; }
 .pl-prev-tools { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding-top: 10px; border-top: 1px solid var(--line); }
-.pl-prev-tools .pl-sort { width: auto; height: 28px; padding: 0 8px; font-size: 12.5px; }
 .pl-prev .list.pl-compact { padding: 0; }
 .pl-compact .pl-item { gap: 6px; padding: 5px 6px; }
 .pl-compact .pl-item .t { white-space: normal; display: flex; flex-direction: column; line-height: 1.25; }
@@ -358,8 +355,8 @@ kbd { font: 600 11px/1 var(--mono); padding: 3px 5px; border: 1px solid var(--li
 .pl-item { display: flex; gap: 8px; align-items: center; padding: 6px 8px; border-radius: var(--r); background: var(--panel2); border: 1px solid var(--line); margin-bottom: 4px; cursor: grab; }
 /* Číslo pořadí jako samostatný čtvereček (klikem se mění) */
 .pl-item .num { flex: 0 0 auto; min-width: 32px; height: 28px; padding: 0 4px; display: inline-flex; align-items: center; justify-content: center;
-  border: 1px solid var(--line2); border-radius: var(--r); background: var(--bg); color: var(--acc-hi); font: 600 12.5px var(--mono); cursor: text; }
-.pl-item .num:hover { border-color: var(--acc); background: var(--acc-soft); }
+  border: 1px solid var(--line); border-radius: var(--r); background: rgba(0,0,0,.18); color: var(--dim); font: 500 12.5px var(--mono); cursor: text; }
+.pl-item .num:hover { border-color: var(--line2); color: var(--text); }
 .pl-item.encore .num { font-style: italic; }
 .pos-inp { width: 112px; flex: 0 0 auto; text-align: center; font-family: var(--mono); }
 .pl-item .pos-inp { width: 58px; height: 26px; padding: 0 4px; font-size: 12.5px; }
