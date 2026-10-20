@@ -429,11 +429,12 @@ const PlaylistsView = {
       paintHead();
       itemsBox.classList.add('pl-compact');
       // uložení, tisk a celá stránka pod jedním tlačítkem (v náhledu je málo místa)
-      const menuBtn = h('button', { class: 'btn', title: 'Uložit, uložit jako, tisk, celá stránka', onclick: e => popupMenu(e.currentTarget, [
+      const menuBtn = h('button', { class: 'btn', title: 'Uložit, uložit jako, čára pro přídavky, tisk, celá stránka', onclick: e => popupMenu(e.currentTarget, [
         { label: 'Uložit (Ctrl+S)', action: () => save(true) },
         { label: 'Uložit jako…', action: () => saveAs() },
+        rows.includes(LINE) ? null : { label: 'Čára pro přídavky', action: () => { rows.push(LINE); commit(); } },
         { label: 'Tisk…', action: () => this.print(pl) },
-        { label: 'Celá stránka úprav', action: () => { location.hash = '#/playlists/' + pl.id; } }]) }, '💾 Uložit ▾');
+        { label: 'Celá stránka úprav', action: () => { location.hash = '#/playlists/' + pl.id; } }].filter(Boolean)) }, '💾 Uložit ▾');
       savedBtns.push(menuBtn);
       root.append(
         h('div', { class: 'pl-prev-head' }, h('div', { class: 'pl-prev-title' }, titleEl,
@@ -443,7 +444,7 @@ const PlaylistsView = {
           readyBtn, menuBtn, savedInd),
         h('div', { class: 'pl-prev-tools' },
           h('button', { class: 'btn small primary', title: 'Přidat písně z knihovny (hledání, výběr více písní, pořadí)', onclick: pickDialog }, '＋ Přidat'),
-          countLbl, h('span', { class: 'grow', style: { flex: 1 } }), lineBtn),
+          countLbl),
         itemsBox);
       paintItems(); paintSaved();
       return;
