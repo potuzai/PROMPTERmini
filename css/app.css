@@ -371,8 +371,10 @@ kbd { font: 600 11px/1 var(--mono); padding: 3px 5px; border: 1px solid var(--li
 .pl-item .pi-sing { width: 60px; flex: 0 0 auto; justify-content: flex-start; padding-left: 10px; }
 .pl-item .none { font-style: normal; color: var(--faint); }
 /* Písně ve sloupcích: sloupec široký aspoň na všechny údaje řádku, počet podle šířky; plní se shora dolů */
-.pl-songs .list.pl-multi { column-width: 640px; column-gap: 14px; }
+.pl-songs .list.pl-multi { column-width: 520px; column-gap: 14px; }
 .pl-songs .list.pl-multi > * { break-inside: avoid; }
+.pl-songs .list.pl-multi .pl-item .t { white-space: normal; display: flex; flex-direction: column; line-height: 1.25; }   /* ve sloupcích interpret pod názvem, nic se neschová */
+.pl-songs .list.pl-multi .pl-item .t b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pl-item.drag { opacity: .4; }
 .pl-item.over { box-shadow: 0 -2px 0 var(--acc); }
 .tag { display: inline-block; padding: 0 5px; border: 1px solid var(--line2); border-radius: var(--r); color: var(--dim); font-family: var(--mono); font-size: 10.5px; margin-right: 3px; }
@@ -813,14 +815,15 @@ input[type=checkbox].switch:focus-visible { outline: 2px solid var(--acc-hi); ou
   .tpl-layout { grid-template-columns: 1fr; height: auto; }
   .tpl-preview .preview-wrap { flex: 0 0 auto; height: 60vh; }
   .pl-col .head { flex-wrap: wrap; }
+  .tpl-layout > * { min-width: 0; }
+}
+@media (max-width: 820px) {
+  /* úprava playlistu na telefonu: přes celou šířku, v řádku jen ladění, lišta přidávání zalomená */
   .pl-songs { width: 100%; }
   .pl-item .pi-bpm, .pl-item .pi-dur, .pl-item .pi-sing { display: none; }
   .pl-add { flex-wrap: wrap; }
   .pl-add .qa { flex: 1 1 100%; }
   .pl-add .pos-inp { flex: 1 1 auto; }
-  .tpl-layout > * { min-width: 0; }
-}
-@media (max-width: 820px) {
   html, body { font-size: 15px; }
   /* lišta: v telefonu nahoře, jen ikony */
   body { flex-direction: column; }

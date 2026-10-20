@@ -271,7 +271,18 @@ const PlaylistsView = {
     sortSel.onchange = () => { if (sortSel.value) sortSongs(sortSel.value); sortSel.value = ''; };
     const lineBtn = h('button', { class: 'btn small', title: 'Písně pod čarou jsou možné přídavky', onclick: () => { if (!rows.includes(LINE)) { rows.push(LINE); commit(); } } }, '＋ Čára pro přídavky');
     // Zobrazení ve sloupcích: počet sloupců podle šířky okna (každý dost široký pro všechny údaje), u krátkých playlistů jeden
-    const colsBtn = h('button', { class: 'btn small', onclick: () => { Settings.set('plCols', !Settings.get('plCols')); paintItems(); } });
+    const COL_MIN = 520;   // nejmenší šířka sloupce = column-width v css (.pl-multi)
+    const colsBtn = h('button', { class: 'btn small', onclick: () => { Settings.set('plCols', !Settings.get('plCols')); paintCols(); } });
+    const paintCols = () => {   // tlačítko jen tehdy, když se vejdou aspoň 2 sloupce a písní je víc než 8
+      const many = rows.length > 8, fits = itemsBox.clientWidth >= 2 * COL_MIN + 14;
+      const multi = !!Settings.get('plCols') && many && fits;
+      itemsBox.classList.toggle('pl-multi', multi);
+      colsBtn.disabled = !many || !fits;
+      colsBtn.replaceChildren(...glyphToIcon(multi ? '▤ Jeden sloupec' : '▥ Ve sloupcích'));
+      colsBtn.title = !many ? 'Ve sloupcích až od 9 písní' : !fits ? 'Okno je na více sloupců úzké – rozšiř ho'
+        : multi ? 'Zobrazit písně pod sebou v jednom sloupci' : 'Zobrazit písně ve více sloupcích (podle šířky okna)';
+    };
+    new ResizeObserver(() => paintCols()).observe(itemsBox);
     let dragFrom = null;
 
     const paintItems = () => {
@@ -280,10 +291,7 @@ const PlaylistsView = {
       const total = pl.items.reduce((t, id) => t + durSec(Store.songs.get(id)), 0);
       countLbl.textContent = (at >= 0 ? plural(at, 'píseň', 'písně', 'písní') + ' + ' + plural(rows.length - at - 1, 'přídavek', 'přídavky', 'přídavků') : plural(pl.items.length, 'píseň', 'písně', 'písní')) + (total ? ' · ' + fmtDur(total) : '');
       lineBtn.style.display = at >= 0 ? 'none' : '';
-      const multi = !!Settings.get('plCols');
-      itemsBox.classList.toggle('pl-multi', multi && rows.length > 8);
-      colsBtn.replaceChildren(...glyphToIcon(multi ? '▤ Jeden sloupec' : '▥ Ve sloupcích'));
-      colsBtn.title = multi ? 'Zobrazit písně pod sebou v jednom sloupci' : 'Zobrazit písně ve více sloupcích (podle šířky okna)';
+      paintCols();
       let n = 0;
       rows.forEach((id, i) => {
         const move = d => { const j = i + d; if (j >= 0 && j < rows.length) { rows.splice(j, 0, rows.splice(i, 1)[0]); commit(); } };
