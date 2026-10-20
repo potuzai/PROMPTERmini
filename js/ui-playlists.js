@@ -190,7 +190,7 @@ const PlaylistsView = {
       Store.put('playlists', pl); paintItems();
     };
     const addSong = id => { const at = rows.indexOf(LINE); rows.splice(at >= 0 ? at : rows.length, 0, id); commit(); };   // nová píseň nad čáru
-    // Číselná pozice (1 = první píseň; čára se nepočítá). Obsazená pozice: nová píseň se vloží (po potvrzení), přesouvaná jde i prohodit.
+    // Číslo pořadí (1 = první píseň; čára se nepočítá). Obsazené číslo: nová píseň se vloží (po potvrzení), přesouvaná jde i prohodit.
     const songRows = () => rows.map((r, i) => r === LINE ? -1 : i).filter(i => i >= 0);
     const placeSong = async (id, pos, from = -1) => {   // from = řádek, když píseň v seznamu už je
       pos = Math.max(1, Math.floor(pos));
@@ -202,9 +202,9 @@ const PlaylistsView = {
         rows.push(id); return commit();
       }
       const s = Store.songs.get(rows[target]);
-      const how = await modal({ title: `Pozice ${pos} je obsazená`,
-        body: h('p', {}, `Na pozici ${pos} je „${s ? s.title : '?'}“. ` + (from >= 0
-          ? 'Písně můžeš prohodit, nebo tuto vložit na pozici ' + pos + ' a ostatní posunout.'
+      const how = await modal({ title: `Pořadí ${pos}. je obsazené`,
+        body: h('p', {}, `Jako ${pos}. je „${s ? s.title : '?'}“. ` + (from >= 0
+          ? 'Písně můžeš prohodit, nebo tuto vložit jako ' + pos + '. a ostatní posunout.'
           : 'Vložením se ona i všechny další písně posunou o jedno dál.')),
         buttons: [{ label: 'Zrušit', value: null }, from >= 0 ? { label: 'Prohodit', value: 'swap' } : null,
           { label: 'Vložit a posunout', value: 'shift', primary: true }].filter(Boolean) });
@@ -263,7 +263,7 @@ const PlaylistsView = {
           const s = Store.songs.get(id);
           const idx = n++;
           el = h('div', { class: 'pl-item' + (at >= 0 && i > at ? ' encore' : ''), draggable: 'true' },
-            h('span', { class: 'num', title: 'Klikni a napiš novou pozici', onclick: e => {
+            h('span', { class: 'num', title: 'Klikni a napiš nové pořadí', onclick: e => {
               const span = e.currentTarget;
               let done = false;
               const inp = posInput(idx + 1, v => { if (done) return; done = true; if (v > 0 && v !== idx + 1) placeSong(id, v, i); else paintItems(); });
@@ -319,7 +319,7 @@ const PlaylistsView = {
         if (q && !hits.length) drop.appendChild(h('div', { class: 'qa-hit dim' }, 'Nic nenalezeno'));
         drop.style.display = q ? '' : 'none';
       };
-      const pos = h('input', { class: 'inp pos-inp', type: 'number', min: '1', placeholder: 'pozice', title: 'Na kterou pozici píseň přidat (prázdné = na konec)' });
+      const pos = h('input', { class: 'inp pos-inp', type: 'number', min: '1', placeholder: 'pořadí', title: 'Kolikátá má píseň v playlistu být (prázdné = na konec)' });
       const add = async s => {
         const p = parseInt(pos.value, 10);
         if (p > 0) await placeSong(s.id, p); else addSong(s.id);
@@ -345,7 +345,7 @@ const PlaylistsView = {
       const tags = [...new Set([...Store.songs.values()].flatMap(s => s.tags || []))].sort((a, b) => a.localeCompare(b, 'cs'));
       const tagSel = h('select', { class: 'inp' }, h('option', { value: '' }, 'Všechny štítky'), tags.map(t => h('option', { value: t }, t)));
       const hideIn = h('input', { type: 'checkbox' });
-      const fromPos = h('input', { class: 'inp pos-inp', type: 'number', min: '1', placeholder: 'konec', title: 'Vybrané písně se vloží za sebou od této pozice, ostatní se posunou' });
+      const fromPos = h('input', { class: 'inp pos-inp', type: 'number', min: '1', placeholder: 'konec', title: 'Vybrané písně se vloží za sebou od tohoto pořadí, ostatní se posunou' });
       const box = h('div', { class: 'pick-list' });
       let okBtn = null;
       const paint = () => {
@@ -377,7 +377,7 @@ const PlaylistsView = {
       paint();
       const ok = await modal({ title: 'Vybrat písně do playlistu', wide: true,
         body: h('div', { class: 'pick-dlg' }, h('div', { class: 'row' }, q, tagSel, h('label', { class: 'chk' }, hideIn, 'Skrýt písně, které už v playlistu jsou')), box,
-          h('label', { class: 'pick-pos' }, 'Vložit od pozice', fromPos, h('span', { class: 'help' }, 'prázdné = na konec (nad čáru přídavků); ostatní písně se posunou'))),
+          h('label', { class: 'pick-pos' }, 'Vložit od pořadí', fromPos, h('span', { class: 'help' }, 'prázdné = na konec (nad čáru přídavků); ostatní písně se posunou'))),
         buttons: [{ label: 'Zrušit', value: false }, { label: 'Přidat vybrané', value: true, primary: true }],
         onOpen: b => { okBtn = b.querySelector('.modal-buttons .primary'); setTimeout(() => q.focus(), 40); } });
       if (!ok || !chosen.size) return;

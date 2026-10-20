@@ -351,7 +351,7 @@ kbd { font: 600 11px/1 var(--mono); padding: 3px 5px; border: 1px solid var(--li
 .pl-item .num { width: 28px; text-align: right; color: var(--acc-hi); font-family: var(--mono); font-size: 12.5px; }
 .pl-item .num { cursor: text; border-radius: var(--r); }
 .pl-item .num:hover { background: var(--acc-soft); }
-.pos-inp { width: 92px; flex: 0 0 auto; text-align: center; font-family: var(--mono); }
+.pos-inp { width: 112px; flex: 0 0 auto; text-align: center; font-family: var(--mono); }
 .pl-item .pos-inp { width: 58px; height: 26px; padding: 0 4px; font-size: 12.5px; }
 .pick-pos { display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: 13px; }
 .pick-pos .help { font-size: 12px; }
