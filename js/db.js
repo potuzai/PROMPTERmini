@@ -84,7 +84,7 @@ const DEFAULT_SETTINGS = {
   musView: { on: false, chords: true, inst: {} },   // náhled „Pro muzikanty“ – co zobrazit (jen tento počítač)
   gh: { owner: '', repo: '', branch: 'main', token: '', login: '', canPush: null },
   lastSyncAt: '',                // poslední úspěšná synchronizace (ISO)
-  songSort: 'artist', plSort: 'new', editScreen: '', printOpts: null,   // poslední volby v seznamech, editoru a tisku
+  songSort: 'artist', plSort: 'new', plCols: false, editScreen: '', printOpts: null,   // poslední volby v seznamech, editoru a tisku
 };
 const OBSOLETE_SETTINGS = ['bandName', 'bandLink', 'editorFontSize', 'pasteClean'];   // klíče zrušených funkcí
 

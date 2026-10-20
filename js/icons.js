@@ -5,6 +5,7 @@ const ICONS = {
   song: '<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',
   list: '<path d="M8 6h13M8 12h13M8 18h13"/><path d="M3.5 6h.01M3.5 12h.01M3.5 18h.01" stroke-width="2.6" stroke-linecap="round"/>',
   layout: '<rect x="3" y="3" width="18" height="18" rx="1.5"/><path d="M3 9h18M9 9v12"/>',
+  cols: '<rect x="3" y="4" width="7.5" height="16" rx="1.2"/><rect x="13.5" y="4" width="7.5" height="16" rx="1.2"/>',
   mic: '<rect x="9" y="2.5" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3.5M8.5 21.5h7"/>',
   sliders: '<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3"/><path d="M1.5 14h5M9.5 8h5M17.5 16h5"/>',
   play: '<path d="M7 4.5v15l12.5-7.5z"/>',
@@ -62,7 +63,7 @@ const GLYPH_ICONS = {
   '⇩': 'download', '⧉': 'copy', '🗑': 'trash', '🔑': 'key', '⚠': 'warn', '✎': 'edit', '👥': 'users',
   '★': 'star', '◀': 'left', '🔒': 'lock', '🔓': 'unlock', '💾': 'save', '⟳': 'sync', '🔗': 'link', '🧹': 'clean',
   '🖨': 'print', '⏻': 'power', '🖥': 'monitor', '⌖': 'target', '☁': 'cloud',
-  '📁': 'folder', 'ⓘ': 'info', '📱': 'phone', '✕': 'x', '✓': 'check',
+  '📁': 'folder', 'ⓘ': 'info', '▤': 'list', '▥': 'cols', '📱': 'phone', '✕': 'x', '✓': 'check',
 };
 const GLYPH_RE = new RegExp('^(' + Object.keys(GLYPH_ICONS).map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')\\uFE0F?\\s*');
 function glyphToIcon(text) {

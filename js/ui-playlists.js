@@ -241,6 +241,8 @@ const PlaylistsView = {
       h('option', { value: '' }, 'Seřadit…'), Object.entries(SORTS).map(([v, [l]]) => h('option', { value: v }, 'Seřadit podle ' + l)));
     sortSel.onchange = () => { if (sortSel.value) sortSongs(sortSel.value); sortSel.value = ''; };
     const lineBtn = h('button', { class: 'btn small', title: 'Písně pod čarou jsou možné přídavky', onclick: () => { if (!rows.includes(LINE)) { rows.push(LINE); commit(); } } }, '＋ Čára pro přídavky');
+    // Zobrazení ve sloupcích: počet sloupců podle šířky okna (každý dost široký pro všechny údaje), u krátkých playlistů jeden
+    const colsBtn = h('button', { class: 'btn small', onclick: () => { Settings.set('plCols', !Settings.get('plCols')); paintItems(); } });
     let dragFrom = null;
 
     const paintItems = () => {
@@ -249,6 +251,10 @@ const PlaylistsView = {
       const total = pl.items.reduce((t, id) => t + durSec(Store.songs.get(id)), 0);
       countLbl.textContent = (at >= 0 ? plural(at, 'píseň', 'písně', 'písní') + ' + ' + plural(rows.length - at - 1, 'přídavek', 'přídavky', 'přídavků') : plural(pl.items.length, 'píseň', 'písně', 'písní')) + (total ? ' · ' + fmtDur(total) : '');
       lineBtn.style.display = at >= 0 ? 'none' : '';
+      const multi = !!Settings.get('plCols');
+      itemsBox.classList.toggle('pl-multi', multi && rows.length > 8);
+      colsBtn.replaceChildren(...glyphToIcon(multi ? '▤ Jeden sloupec' : '▥ Ve sloupcích'));
+      colsBtn.title = multi ? 'Zobrazit písně pod sebou v jednom sloupci' : 'Zobrazit písně ve více sloupcích (podle šířky okna)';
       let n = 0;
       rows.forEach((id, i) => {
         const move = d => { const j = i + d; if (j >= 0 && j < rows.length) { rows.splice(j, 0, rows.splice(i, 1)[0]); commit(); } };
@@ -412,7 +418,7 @@ const PlaylistsView = {
         h('button', { class: 'btn danger', onclick: () => this.del(pl) }, '🗑 Smazat')),
       h('div', { class: 'pl-col pl-songs' },
         h('div', { class: 'pl-add' }, quickAdd(), h('button', { class: 'btn', onclick: pickDialog }, '⧉ Vybrat z knihovny…')),
-        h('div', { class: 'head' }, h('b', {}, 'Pořadí písní'), countLbl, h('span', { class: 'grow', style: { flex: 1 } }), lineBtn, sortSel),
+        h('div', { class: 'head' }, h('b', {}, 'Pořadí písní'), countLbl, h('span', { class: 'grow', style: { flex: 1 } }), colsBtn, lineBtn, sortSel),
         itemsBox));
     paintItems();
   },
