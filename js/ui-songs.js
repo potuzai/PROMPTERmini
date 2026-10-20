@@ -42,6 +42,7 @@ const SongsView = {
       if (!s) { prev.appendChild(h('div', { class: 'help pl-prev-empty' }, 'Klikni na píseň a tady uvidíš její náhled.')); return; }
       const pls = [...Store.playlists.values()].filter(p => p.items.includes(s.id));
       const box = h('div', { class: 'mini-page' });
+      const wrap = h('div', { class: 'mini-wrap' }, box);   // stránka co největší ve volném místě, v poměru stran displeje
       prev.append(
         h('div', { class: 'pl-prev-head' },
           h('h3', {}, s.title || '(bez názvu)'),
@@ -49,11 +50,14 @@ const SongsView = {
         h('div', { class: 'pl-prev-btns two' },
           h('button', { class: 'btn primary', onclick: () => { location.hash = '#/songs/' + s.id; } }, '✎ Upravit'),
           h('button', { class: 'btn play', onclick: () => { location.hash = '#/reader/song:' + s.id; } }, '▶ Čtečka')),
-        box,
+        wrap,
         h('div', { class: 'ep-lbl' }, 'V playlistech'),
         pls.length ? h('div', { class: 'chips' }, pls.map(p => h('button', { class: 'chip', onclick: () => { location.hash = '#/playlists/' + p.id; } }, `${p.name} · ${p.items.indexOf(s.id) + 1}.`)))
           : h('div', { class: 'help' }, 'Zatím v žádném playlistu.'));
       miniPage(box, s);
+      const scr = Screens.mine(), ratio = scr.w / scr.h;
+      const size = () => { const r = wrap.getBoundingClientRect(); if (r.width && r.height) box.style.width = Math.floor(Math.min(r.width, r.height * ratio)) + 'px'; };
+      new ResizeObserver(size).observe(wrap);
     };
     const select = id => {
       this.selected = id;
