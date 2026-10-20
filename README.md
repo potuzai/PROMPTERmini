@@ -53,6 +53,12 @@ Monitor čtečky během běhu programu neusne. Program se po případném pádu 
 - Na **cizím počítači** při přihlášení vypni **Zůstat přihlášen**, nebo se po práci odhlas: **Nastavení → Kapela a synchronizace → Odhlásit**. Heslo se tím z prohlížeče smaže.
 - Pro PC čtečky doporučuji program `PROMPTER mini.exe`: data má v souborech, startuje sám a nezávisí na aktualizacích prohlížeče.
 
+### Playlisty
+
+**Seznam playlistů** (úvodní stránka) má nahoře sekci **PŘIPRAVENO k přehrání**. Playlist do ní dostaneš přetažením nebo tlačítkem **★ Připravit** a zůstane tam, dokud ho nevrátíš. Pořadí v ní určuješ přetažením, řazení (nejnovější, nejstarší, název, počet písní) platí jen pro ostatní playlisty. Vpravo je náhled vybraného playlistu s laděním a BPM u každé písně. Ladění má barevný štítek, každý tón svou barvu.
+
+**V úpravě playlistu** přidáš píseň psaním do pole **Přidat píseň…** (nabídnou se shody, Enter přidá) nebo jich vybereš víc najednou přes **Vybrat z knihovny…**. Pořadí změníš šipkami nebo přetažením, **Seřadit…** jednorázově přeřadí písně podle kapely, názvu, BPM, ladění nebo délky. **＋ Čára pro přídavky** oddělí písně, které jsou jen jako možné přídavky. Čára je vidět i ve čtečce a v tisku.
+
 ### Psaní textu
 
 **Seznam písní** zabírá dvě třetiny okna (interpret, název, ladění a BPM, kdo zpívá, štítky), vpravo je náhled vybrané písně: první stránka, tlačítka **Upravit** a **▶ Čtečka** a playlisty, ve kterých píseň je (i s pořadím). Klik = náhled, dvojklik nebo Enter = editor, šipky ↑↓ vybírají.

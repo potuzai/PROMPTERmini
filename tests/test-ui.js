@@ -67,8 +67,14 @@ const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode
   await p.click('button:has-text("Nový playlist")');
   await p.keyboard.press('Enter');
   await p.waitForTimeout(400);
-  await p.click('.lib-item:has-text("Testovací") button');
-  await p.click('.lib-item:has-text("Ukázková") button');
+  // přidání psaním (Enter přidá shodu) a výběrem z knihovny (zaškrtnout, Přidat vybrané)
+  await p.fill('.pl-add .qa input', 'Testovací');
+  await p.keyboard.press('Enter');
+  await p.click('button:has-text("Vybrat z knihovny")');
+  await p.fill('.pick-dlg input[type=search]', 'Ukázková');
+  await p.click('.pick-row:has-text("Ukázková")');
+  assert(await p.isVisible('.modal-buttons .primary:has-text("Přidat vybrané (1)")'), 'výběr z knihovny: počet vybraných');
+  await p.click('.modal-buttons .primary');
   await p.waitForTimeout(300);
   const items = await p.$$eval('.pl-item b', els => els.map(e => e.textContent));
   assert(items.length === 2 && items[0] === 'Testovací', 'přidání do playlistu');

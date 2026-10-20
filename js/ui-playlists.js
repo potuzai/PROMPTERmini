@@ -18,7 +18,6 @@ function keyNum(key) {
 }
 
 const PlaylistsView = {
-  libSearch: '',
 
   search: '',
 
@@ -180,9 +179,7 @@ const PlaylistsView = {
     inNote.oninput = () => { pl.note = inNote.value; save(); };
 
     const itemsBox = h('div', { class: 'list' });
-    const libBox = h('div', { class: 'list' });
     const countLbl = h('span', { class: 'dim' });
-    const libSearch = h('input', { class: 'inp', type: 'search', placeholder: 'Hledat píseň…', value: this.libSearch });
 
     // Úpravy pracují s řádky = písně + případná čára (LINE); při uložení se čára převede na pl.encore
     let rows = plEncore(pl) >= 0 ? [...pl.items.slice(0, plEncore(pl)), LINE, ...pl.items.slice(plEncore(pl))] : [...pl.items];
@@ -190,7 +187,7 @@ const PlaylistsView = {
       const at = rows.indexOf(LINE);
       pl.items = rows.filter(r => r !== LINE);
       if (at >= 0) pl.encore = at; else delete pl.encore;
-      Store.put('playlists', pl); paintItems(); paintLib();
+      Store.put('playlists', pl); paintItems();
     };
     const addSong = id => { const at = rows.indexOf(LINE); rows.splice(at >= 0 ? at : rows.length, 0, id); commit(); };   // nová píseň nad čáru
     const SORTS = {
@@ -244,56 +241,32 @@ const PlaylistsView = {
             h('button', { class: 'btn small icon danger', title: 'Odebrat z playlistu', onclick: () => { rows.splice(i, 1); commit(); } }, '✕'));
           el.addEventListener('dblclick', () => { location.hash = `#/reader/${pl.id}/${idx}`; });
         }
-        el.addEventListener('dragstart', e => { dragFrom = { from: i }; el.classList.add('drag'); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', id); });
+        el.addEventListener('dragstart', e => { dragFrom = i; el.classList.add('drag'); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', id); });
         el.addEventListener('dragend', () => el.classList.remove('drag'));
         el.addEventListener('dragover', e => { e.preventDefault(); el.classList.add('over'); });
         el.addEventListener('dragleave', () => el.classList.remove('over'));
         el.addEventListener('drop', e => {
           e.preventDefault(); e.stopPropagation(); el.classList.remove('over');
-          if (dragFrom && dragFrom.from !== undefined) {
-            const [m] = rows.splice(dragFrom.from, 1);
-            rows.splice(dragFrom.from < i ? i - 1 : i, 0, m);
-          } else if (dragFrom && dragFrom.songId) rows.splice(i, 0, dragFrom.songId);
+          if (dragFrom !== null) {
+            const [m] = rows.splice(dragFrom, 1);
+            rows.splice(dragFrom < i ? i - 1 : i, 0, m);
+          }
           dragFrom = null; commit();
         });
         itemsBox.appendChild(el);
       });
-      if (!pl.items.length) itemsBox.appendChild(h('div', { class: 'empty', style: { height: 'auto', padding: '40px 10px' } }, 'Přidej písně z knihovny vpravo (＋, dvojklik nebo přetažením).'));
+      if (!pl.items.length) itemsBox.appendChild(h('div', { class: 'empty', style: { height: 'auto', padding: '40px 10px' } }, 'Přidej písně polem „Přidat píseň…“ nebo tlačítkem „Vybrat z knihovny…“ nahoře.'));
     };
     itemsBox.addEventListener('dragover', e => e.preventDefault());
     itemsBox.addEventListener('drop', e => {
       e.preventDefault();
-      if (dragFrom && dragFrom.songId) rows.push(dragFrom.songId);
-      else if (dragFrom && dragFrom.from !== undefined) rows.push(rows.splice(dragFrom.from, 1)[0]);
-      dragFrom = null; commit();
+      if (dragFrom !== null) { rows.push(rows.splice(dragFrom, 1)[0]); commit(); }
+      dragFrom = null;
     });
 
-    const paintLib = () => {
-      const q = normalizeForSearch(libSearch.value);
-      libBox.innerHTML = '';
-      for (const s of Store.sortedSongs()) {
-        if (q && !normalizeForSearch([s.title, s.artist, (s.tags || []).join(' ')].join(' ')).includes(q)) continue;
-        const inList = pl.items.includes(s.id);
-        const el = h('div', { class: 'lib-item', draggable: 'true' },
-          h('div', { class: 't' }, h('b', { style: { opacity: inList ? 0.5 : 1 } }, s.title), ' ', h('span', { class: 'dim' }, [s.artist, s.key].filter(Boolean).join(' · ')),
-            ' ', (s.tags || []).map(t => h('span', { class: 'tag' }, t))),
-          inList ? h('span', { class: 'dim', title: 'Už je v playlistu' }, '✓') : null,
-          h('button', { class: 'btn small icon', title: 'Přidat na konec (nad čáru přídavků)', onclick: () => addSong(s.id) }, '＋'));
-        el.addEventListener('dblclick', () => addSong(s.id));
-        el.addEventListener('dragstart', e => { dragFrom = { songId: s.id }; e.dataTransfer.setData('text/plain', s.id); });
-        libBox.appendChild(el);
-      }
-    };
-    libSearch.addEventListener('input', () => { this.libSearch = libSearch.value; paintLib(); });
-
-    // NÁVRH (jen v náhledu): jak přidávat písně bez stálého pravého okna – side = dosavadní, a = okno, b = psaním, ab = obojí, c = vysouvací panel
-    const LIB_UI = [['side', 'Současný'], ['a', 'A: okno'], ['b', 'B: psaním'], ['ab', 'A + B'], ['c', 'C: panel']];
-    const libUi = window.NAHLED ? (Settings.get('plLibUi') || 'ab') : 'side';
-    const libCol = h('div', { class: 'pl-col pl-lib' + (libUi === 'c' ? ' drawer' : '') },
-      h('div', { class: 'head' }, h('b', { style: { whiteSpace: 'nowrap' } }, 'Knihovna'), libSearch,
-        libUi === 'c' ? h('button', { class: 'btn small icon', title: 'Schovat knihovnu', onclick: () => libCol.classList.remove('open') }, '✕') : null), libBox);
-    const quickAdd = () => {   // B: pole s nabídkou shod, Enter přidá první/vybranou
-      const inp = h('input', { class: 'inp', type: 'search', placeholder: 'Přidat píseň… (napiš název nebo kapelu, Enter přidá)' });
+    /* Přidávání písní: psaním s nabídkou shod, nebo výběrem více písní z knihovny */
+    const quickAdd = () => {   // Enter přidá vybranou shodu
+      const inp = h('input', { class: 'inp', type: 'search', placeholder: 'Přidat píseň…', title: 'Napiš název nebo kapelu, šipkami vyber, Enter přidá' });
       const drop = h('div', { class: 'qa-drop' });
       let hits = [], sel = 0;
       const paint = () => {
@@ -320,7 +293,7 @@ const PlaylistsView = {
       drop.style.display = 'none';
       return h('div', { class: 'qa' }, inp, drop);
     };
-    const pickDialog = async () => {   // A: okno s hledáním, filtrem štítku a zaškrtáváním
+    const pickDialog = async () => {   // okno s hledáním, filtrem štítku a zaškrtáváním
       const chosen = new Set();
       const q = h('input', { class: 'inp', type: 'search', placeholder: 'Hledat název nebo kapelu…' });
       const tags = [...new Set([...Store.songs.values()].flatMap(s => s.tags || []))].sort((a, b) => a.localeCompare(b, 'cs'));
@@ -356,15 +329,7 @@ const PlaylistsView = {
       rows.splice(at >= 0 ? at : rows.length, 0, ...Store.sortedSongs().filter(s => chosen.has(s.id)).map(s => s.id));
       commit();
     };
-    const addTools = libUi === 'side' ? null : h('div', { class: 'pl-add' },
-      libUi === 'b' || libUi === 'ab' ? quickAdd() : null,
-      libUi === 'a' || libUi === 'ab' ? h('button', { class: 'btn', onclick: pickDialog }, libUi === 'a' ? '＋ Přidat písně' : '⧉ Vybrat z knihovny…') : null,
-      libUi === 'c' ? h('button', { class: 'btn', onclick: () => { libCol.classList.add('open'); libSearch.focus(); } }, '＋ Přidat písně') : null);
-    const uiSwitch = window.NAHLED ? h('div', { class: 'pl-uiswitch', 'data-uncommentable': '' }, h('span', {}, 'Návrh přidávání písní:'),
-      LIB_UI.map(([v, l]) => h('button', { class: 'btn small' + (v === libUi ? ' primary' : ''), onclick: () => { Settings.set('plLibUi', v); App.go(true); } }, l))) : null;
-
     root.append(
-      uiSwitch,
       h('div', { class: 'row', style: { marginBottom: '10px' } },
         f('Název playlistu', inName), h('div', { style: { flex: '0 0 160px' } }, f('Datum', inDate)), f('Poznámka', inNote)),
       h('div', { class: 'bottom-actions', style: { marginBottom: '12px' } },
@@ -383,10 +348,11 @@ const PlaylistsView = {
         h('span', { class: 'grow' }),
         h('span', { class: 'saved-ind' }, pl.updatedBy ? `Upravil(a) ${pl.updatedBy}, ${fmtDate(pl.updatedAt)}` : ''),
         h('button', { class: 'btn danger', onclick: () => this.del(pl) }, '🗑 Smazat')),
-      h('div', { class: 'pl-grid' + (libUi === 'side' ? '' : ' one') },
-        h('div', { class: 'pl-col' }, h('div', { class: 'head' }, h('b', {}, 'Pořadí písní'), countLbl, h('span', { class: 'grow', style: { flex: 1 } }), lineBtn, sortSel), itemsBox, addTools),
-        libUi === 'side' || libUi === 'c' ? libCol : null));
-    paintItems(); paintLib();
+      h('div', { class: 'pl-col pl-songs' },
+        h('div', { class: 'pl-add' }, quickAdd(), h('button', { class: 'btn', onclick: pickDialog }, '⧉ Vybrat z knihovny…')),
+        h('div', { class: 'head' }, h('b', {}, 'Pořadí písní'), countLbl, h('span', { class: 'grow', style: { flex: 1 } }), lineBtn, sortSel),
+        itemsBox));
+    paintItems();
   },
 
   async duplicate(pl) {
