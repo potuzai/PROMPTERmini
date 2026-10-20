@@ -59,7 +59,7 @@ const PlaylistsView = {
       if (by === 'old') return all.sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')) || cmp(a.name, b.name));
       return Store.sortedPlaylists();
     };
-    // „Připraveno k přehrání“: playlisty s polem ready (pořadí určuje uživatel, řazení se na ně nevztahuje)
+    // „Oblíbené“: playlisty s polem ready (pořadí určuje uživatel, řazení se na ně nevztahuje)
     let dragId = null;
     const isReady = isReadyPl;
     const setReady = (id, before) => this.setReady(id, before);
@@ -91,12 +91,12 @@ const PlaylistsView = {
       const pls = sorted(sortSel.value).filter(p => !isReady(p)).filter(hit);
       readyIds = ready.map(p => p.id);
       if (!q || ready.length) {
-        const sec = h('div', { class: 'pl-sec pl-sec-ready' }, h('b', {}, 'PŘIPRAVENO k přehrání'), ready.length ? h('span', {}, String(ready.length)) : null);
+        const sec = h('div', { class: 'pl-sec pl-sec-ready' }, h('b', {}, '★ OBLÍBENÉ'), ready.length ? h('span', {}, String(ready.length)) : null);
         dropZone(sec, () => readyIds[0] || null);
         list.appendChild(sec);
         ready.forEach(p => list.appendChild(row(p, true)));
         const end = h('div', { class: 'pl-drop' + (ready.length ? ' slim' : '') },
-          ready.length ? '' : 'Sem přetáhni playlist, který chystáte hrát (nebo v náhledu vpravo „★ Připravit“). Zůstane tu, dokud ho nevrátíš.');
+          ready.length ? '' : 'Sem přetáhni oblíbený playlist (nebo v náhledu vpravo „☆ Oblíbený“). Zůstane tu, dokud ho nevrátíš.');
         dropZone(end, () => null);
         list.appendChild(end);
         const other = h('div', { class: 'pl-sec' }, h('b', {}, 'Ostatní playlisty'));
@@ -107,7 +107,7 @@ const PlaylistsView = {
       dropZone(list, () => false);   // puštěno kamkoli mezi ostatní = vrátit
       if (!pls.length && !ready.length) list.appendChild(h('div', { class: 'help', style: { padding: '16px' } }, q ? 'Nic nenalezeno.' : 'Zatím žádné playlisty. Playlist = seznam písní v pořadí, jak je budete hrát.'));
       const shown = ready.length + pls.length;
-      count.textContent = q ? `${shown} z ${Store.playlists.size} playlistů` : 'Klik = náhled · dvojklik = upravit · přetažením do „Připraveno“';
+      count.textContent = q ? `${shown} z ${Store.playlists.size} playlistů` : 'Klik = náhled · dvojklik = upravit · přetažením do „Oblíbené“';
       total.textContent = plural(Store.playlists.size, 'playlist', 'playlisty', 'playlistů');
       const keep = [...ready, ...pls].find(p => p.id === this.selected) || ready[0] || pls[0];
       select(keep ? keep.id : null);
@@ -121,7 +121,7 @@ const PlaylistsView = {
     this.editor(content, pl);
   },
 
-  /* „Připraveno k přehrání“: before = id playlistu, před který vložit; null = na konec; false = vrátit mezi ostatní */
+  /* „Oblíbené“: before = id playlistu, před který vložit; null = na konec; false = vrátit mezi ostatní */
   async setReady(id, before) {
     const order = [...Store.playlists.values()].filter(isReadyPl).sort((x, y) => x.ready - y.ready).map(p => p.id).filter(x => x !== id);
     if (before !== false) order.splice(before && order.includes(before) ? order.indexOf(before) : order.length, 0, id);
@@ -400,11 +400,11 @@ const PlaylistsView = {
       rows.splice(p > 0 ? (i === undefined ? rows.length : i) : (at >= 0 ? at : rows.length), 0, ...ids);
       commit();
     };
-    const readyLbl = () => isReadyPl(pl) ? '★ Připraveno' : compact ? '★ Připravit' : '★ Připravit k přehrání';
-    const readyBtn = h('button', { class: 'btn pl-pin' + (isReadyPl(pl) ? ' on' : ''), title: 'Připraveno k přehrání: playlist je v seznamu nahoře, dokud ho nevrátíš',
+    const readyLbl = () => isReadyPl(pl) ? '★ Oblíbený' : '☆ Oblíbený';
+    const readyBtn = h('button', { class: 'btn pl-pin' + (isReadyPl(pl) ? ' on' : ''), title: 'Oblíbený playlist: je v seznamu nahoře v Oblíbených, dokud ho nevrátíš',
       onclick: async () => {
         await this.setReady(pl.id, isReadyPl(pl) ? false : null);
-        const st = Store.playlists.get(pl.id);   // „připraveno“ se ukládá hned (pořadí sekce), kopie ho jen převezme
+        const st = Store.playlists.get(pl.id);   // „oblíbený“ se ukládá hned (pořadí sekce), kopie ho jen převezme
         if (st && isReadyPl(st)) pl.ready = st.ready; else delete pl.ready;
         readyBtn.classList.toggle('on', isReadyPl(pl));
         readyBtn.replaceChildren(...glyphToIcon(readyLbl()));

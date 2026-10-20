@@ -205,9 +205,10 @@ kbd { font: 600 11px/1 var(--mono); padding: 3px 5px; border: 1px solid var(--li
 .big-list .list .item.sl-row { margin: 0 12px; padding: 11px 10px; border-bottom: 1px solid var(--line); border-radius: var(--r); }   /* řádky neleží až na krajích panelu; text lícuje se záhlavím */
 .big-list .list .item.sl-row:hover { background: var(--hover); }
 .sl-row.pl-row { grid-template-columns: 110px minmax(180px, 1.6fr) 90px minmax(100px, 1fr); }
-/* Připraveno k přehrání: vlastní pořadí nad ostatními playlisty */
+/* Oblíbené playlisty: vlastní pořadí nad ostatními playlisty */
 .pl-sec { display: flex; align-items: baseline; gap: 8px; margin: 0 12px; padding: 14px 10px 6px; font-size: 11.5px; letter-spacing: .04em; color: var(--dim); border-bottom: 1px solid var(--line); }
-.pl-sec b { font-weight: 600; }
+.pl-sec b { font-weight: 600; display: inline-flex; align-items: center; gap: 5px; }
+.pl-sec b .ic { width: 13px; height: 13px; }
 .pl-sec-ready { color: var(--acc-hi); }
 .pl-sec-ready span { min-width: 18px; padding: 0 6px; border-radius: 9px; background: var(--acc-soft); color: var(--acc-hi); text-align: center; }
 .big-list .list .item.sl-row.ready { background: rgba(232,73,63,.06); }
