@@ -440,11 +440,9 @@ const PlaylistsView = {
         h('div', { class: 'pl-prev-head' }, h('div', { class: 'pl-prev-title' }, titleEl,
           h('button', { class: 'btn small icon', title: 'Upravit název, datum a poznámku', onclick: editInfo }, '✎')), metaEl),
         h('div', { class: 'pl-prev-btns' },
-          h('button', { class: 'btn play', onclick: () => { location.hash = '#/reader/' + pl.id; } }, '▶ Čtečka'),
+          h('button', { class: 'btn primary', title: 'Přidat písně z knihovny (hledání, výběr více písní, pořadí)', onclick: pickDialog }, '＋ Přidat'),
           readyBtn, menuBtn, savedInd),
-        h('div', { class: 'pl-prev-tools' },
-          h('button', { class: 'btn small primary', title: 'Přidat písně z knihovny (hledání, výběr více písní, pořadí)', onclick: pickDialog }, '＋ Přidat'),
-          countLbl),
+        h('div', { class: 'pl-prev-tools' }, countLbl),
         itemsBox);
       paintItems(); paintSaved();
       return;
