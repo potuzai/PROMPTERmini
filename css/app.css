@@ -19,6 +19,7 @@
   --acc-hi: #ff6b61;
   --acc-ink: #ffffff;
   --acc-soft: rgba(232,73,63,.18);
+  --play: #2b9a5d; --play-hi: #34b36d; --play-soft: rgba(43,154,93,.18);   /* vstup do čtečky: tlumená zelená k červenému akcentu */
   --desk: #3a3a3e;      /* plocha kolem stránky čtečky */
   --shadow: 0 10px 30px rgba(0,0,0,.45);
   --ok: #3ccf6e; --warn: #e8a93c; --err: #ff6a4d;
@@ -60,8 +61,12 @@ body { display: flex; }
 .tab.active { background: var(--panel2); color: var(--text); }
 .tab.active::before { content: ""; position: absolute; left: 0; top: 50%; margin-top: -9px; width: 3px; height: 18px; border-radius: 2px; background: var(--acc); }
 .tab.active .ic { color: var(--acc-hi); }
-.rail-btn.play { color: #fff; background: var(--acc); min-height: 48px; }
-.rail-btn.play:hover { background: var(--acc-hi); color: #fff; }
+.rail-btn.play { color: #fff; background: var(--play); min-height: 48px; }
+.rail-btn.play:hover { background: var(--play-hi); color: #fff; }
+.btn.play { background: var(--play); border-color: var(--play); color: #fff; }
+.btn.play:hover { background: var(--play-hi); border-color: var(--play-hi); color: #fff; }
+.btn.icon.play { background: var(--play-soft); border-color: transparent; color: var(--play-hi); }
+.btn.icon.play:hover { background: var(--play); color: #fff; }
 .sync-pill { position: relative; width: 58px; min-height: 40px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; border: 0; border-radius: 6px; background: none; cursor: pointer; color: var(--faint); font-size: 9.5px; line-height: 1.15; text-align: center; }
 .sync-pill:hover { background: var(--hover); color: var(--text); }
 .sync-pill .lbl { max-width: 58px; overflow-wrap: anywhere; }

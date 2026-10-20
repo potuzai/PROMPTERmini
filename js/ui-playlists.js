@@ -55,7 +55,7 @@ const PlaylistsView = {
           h('div', { class: 'pl-prev-meta' }, [p.date ? new Date(p.date).toLocaleDateString('cs-CZ') : '', p.note].filter(Boolean).join(' · ') || ' ')),
         h('div', { class: 'pl-prev-btns' },
           h('button', { class: 'btn primary', onclick: () => { location.hash = '#/playlists/' + p.id; } }, '✎ Upravit'),
-          h('button', { class: 'btn', onclick: () => { location.hash = '#/reader/' + p.id; } }, '▶ Čtečka'),
+          h('button', { class: 'btn play', onclick: () => { location.hash = '#/reader/' + p.id; } }, '▶ Čtečka'),
           h('button', { class: 'btn', onclick: () => this.print(p) }, '🖨 Tisk'),
           readyBtn(p)),
         p.items.length
@@ -312,7 +312,7 @@ const PlaylistsView = {
             h('span', { class: 'pi-dur', title: 'Délka' }, s && durSec(s) ? s.duration : h('i', { class: 'none' }, '—:——')),
             h('span', { class: 'pi-sing sl-dots', title: 'Zpívá' }, s ? songSingers(s).map(g => h('i', { title: g.name, style: { background: g.color } })) : null),
             h('button', { class: 'btn small icon', title: 'Upravit píseň', onclick: () => { location.hash = '#/songs/' + id; } }, '✎'),
-            h('button', { class: 'btn small icon', title: 'Spustit od této písně', onclick: () => { location.hash = `#/reader/${pl.id}/${idx}`; } }, '▶'),
+            h('button', { class: 'btn small icon play', title: 'Spustit od této písně', onclick: () => { location.hash = `#/reader/${pl.id}/${idx}`; } }, '▶'),
             h('button', { class: 'btn small icon danger', title: 'Odebrat z playlistu', onclick: async () => {
               if (!await confirmDlg(`Odebrat „${s ? s.title : 'smazanou píseň'}“ z playlistu? Píseň zůstane v seznamu písní.`, 'Odebrat', true)) return;
               rows.splice(i, 1); commit();
@@ -430,7 +430,7 @@ const PlaylistsView = {
       h('div', { class: 'row', style: { marginBottom: '10px' } },
         f('Název playlistu', inName), h('div', { style: { flex: '0 0 160px' } }, f('Datum', inDate)), f('Poznámka', inNote)),
       h('div', { class: 'bottom-actions', style: { marginBottom: '12px' } },
-        h('button', { class: 'btn primary', onclick: () => { location.hash = '#/reader/' + pl.id; } }, '▶ Spustit ve čtečce'),
+        h('button', { class: 'btn play', onclick: () => { location.hash = '#/reader/' + pl.id; } }, '▶ Spustit ve čtečce'),
         h('button', { class: 'btn', onclick: () => this.print(pl) }, '🖨 Tisk'),
         h('button', { class: 'btn', onclick: () => this.duplicate(pl) }, '⧉ Duplikovat'),
         h('button', { class: 'btn', onclick: () => this.exportTxt(pl) }, '⇩ Export textů'),

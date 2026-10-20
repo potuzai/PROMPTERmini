@@ -48,7 +48,7 @@ const SongsView = {
           h('div', { class: 'pl-prev-meta' }, [s.artist, s.key, s.tempo ? s.tempo + ' BPM' : ''].filter(Boolean).join(' · ') || ' ')),
         h('div', { class: 'pl-prev-btns two' },
           h('button', { class: 'btn primary', onclick: () => { location.hash = '#/songs/' + s.id; } }, '✎ Upravit'),
-          h('button', { class: 'btn', onclick: () => { location.hash = '#/reader/song:' + s.id; } }, '▶ Čtečka')),
+          h('button', { class: 'btn play', onclick: () => { location.hash = '#/reader/song:' + s.id; } }, '▶ Čtečka')),
         box,
         h('div', { class: 'ep-lbl' }, 'V playlistech'),
         pls.length ? h('div', { class: 'chips' }, pls.map(p => h('button', { class: 'chip', onclick: () => { location.hash = '#/playlists/' + p.id; } }, `${p.name} · ${p.items.indexOf(s.id) + 1}.`)))
@@ -176,7 +176,7 @@ class SongEditor {
       this.savedInd,
       this.saveBtn = h('button', { class: 'btn', title: 'Uložit změny (Ctrl+S)', onclick: () => this.save(true) }, '💾 Uložit'),
       h('button', { class: 'btn', title: 'Uložit jako novou píseň pod jiným názvem (původní zůstane beze změny)', onclick: () => this.saveAs() }, 'Uložit jako…'),
-      h('button', { class: 'btn primary', title: 'Otevřít ve čtečce přes celou obrazovku', onclick: () => this.openReader() }, '▶ Čtečka'));
+      h('button', { class: 'btn play', title: 'Otevřít ve čtečce přes celou obrazovku', onclick: () => this.openReader() }, '▶ Čtečka'));
 
     // Levý sloupec: struktura písně, zpěváci, celá píseň
     this.legend = h('div', { class: 'ep-legend' }, Store.singers().map((s, i) => h('div', { class: 'ep-leg', title: `Přiřadit vybraným řádkům (Alt+${i + 1})`, onclick: () => this.se.assignSinger(s.code, 'force') },
