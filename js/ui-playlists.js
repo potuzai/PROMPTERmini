@@ -286,7 +286,85 @@ const PlaylistsView = {
     };
     libSearch.addEventListener('input', () => { this.libSearch = libSearch.value; paintLib(); });
 
+    // NÁVRH (jen v náhledu): jak přidávat písně bez stálého pravého okna – side = dosavadní, a = okno, b = psaním, ab = obojí, c = vysouvací panel
+    const LIB_UI = [['side', 'Současný'], ['a', 'A: okno'], ['b', 'B: psaním'], ['ab', 'A + B'], ['c', 'C: panel']];
+    const libUi = window.NAHLED ? (Settings.get('plLibUi') || 'ab') : 'side';
+    const libCol = h('div', { class: 'pl-col pl-lib' + (libUi === 'c' ? ' drawer' : '') },
+      h('div', { class: 'head' }, h('b', { style: { whiteSpace: 'nowrap' } }, 'Knihovna'), libSearch,
+        libUi === 'c' ? h('button', { class: 'btn small icon', title: 'Schovat knihovnu', onclick: () => libCol.classList.remove('open') }, '✕') : null), libBox);
+    const quickAdd = () => {   // B: pole s nabídkou shod, Enter přidá první/vybranou
+      const inp = h('input', { class: 'inp', type: 'search', placeholder: 'Přidat píseň… (napiš název nebo kapelu, Enter přidá)' });
+      const drop = h('div', { class: 'qa-drop' });
+      let hits = [], sel = 0;
+      const paint = () => {
+        drop.innerHTML = '';
+        const q = normalizeForSearch(inp.value);
+        hits = q ? Store.sortedSongs().filter(s => normalizeForSearch([s.title, s.artist].join(' ')).includes(q)).slice(0, 8) : [];
+        sel = Math.min(sel, Math.max(0, hits.length - 1));
+        hits.forEach((s, i) => drop.appendChild(h('div', { class: 'qa-hit' + (i === sel ? ' sel' : ''), onmousedown: e => { e.preventDefault(); add(s); } },
+          h('b', {}, s.title), ' ', h('span', { class: 'dim' }, s.artist || ''), s.key ? [' ', keyBadge(s.key)] : null,
+          rows.includes(s.id) ? h('span', { class: 'dim qa-in' }, 'už v playlistu') : null)));
+        if (q && !hits.length) drop.appendChild(h('div', { class: 'qa-hit dim' }, 'Nic nenalezeno'));
+        drop.style.display = q ? '' : 'none';
+      };
+      const add = s => { addSong(s.id); inp.value = ''; sel = 0; paint(); inp.focus(); };
+      inp.addEventListener('input', () => { sel = 0; paint(); });
+      inp.addEventListener('keydown', e => {
+        if (e.key === 'ArrowDown') { sel = Math.min(hits.length - 1, sel + 1); paint(); e.preventDefault(); }
+        else if (e.key === 'ArrowUp') { sel = Math.max(0, sel - 1); paint(); e.preventDefault(); }
+        else if (e.key === 'Enter' && hits[sel]) { add(hits[sel]); e.preventDefault(); }
+        else if (e.key === 'Escape') { inp.value = ''; paint(); }
+      });
+      inp.addEventListener('blur', () => setTimeout(() => { drop.style.display = 'none'; }, 150));
+      inp.addEventListener('focus', paint);
+      drop.style.display = 'none';
+      return h('div', { class: 'qa' }, inp, drop);
+    };
+    const pickDialog = async () => {   // A: okno s hledáním, filtrem štítku a zaškrtáváním
+      const chosen = new Set();
+      const q = h('input', { class: 'inp', type: 'search', placeholder: 'Hledat název nebo kapelu…' });
+      const tags = [...new Set([...Store.songs.values()].flatMap(s => s.tags || []))].sort((a, b) => a.localeCompare(b, 'cs'));
+      const tagSel = h('select', { class: 'inp' }, h('option', { value: '' }, 'Všechny štítky'), tags.map(t => h('option', { value: t }, t)));
+      const hideIn = h('input', { type: 'checkbox' });
+      const box = h('div', { class: 'pick-list' });
+      let okBtn = null;
+      const paint = () => {
+        box.innerHTML = '';
+        const nq = normalizeForSearch(q.value);
+        for (const s of Store.sortedSongs()) {
+          const inPl = rows.includes(s.id);
+          if (hideIn.checked && inPl) continue;
+          if (tagSel.value && !(s.tags || []).includes(tagSel.value)) continue;
+          if (nq && !normalizeForSearch([s.title, s.artist].join(' ')).includes(nq)) continue;
+          const cb = h('input', { type: 'checkbox', checked: chosen.has(s.id), onchange: () => { cb.checked ? chosen.add(s.id) : chosen.delete(s.id); count(); } });
+          box.appendChild(h('label', { class: 'pick-row' + (inPl ? ' in' : '') }, cb,
+            h('span', { class: 'pick-t' }, h('b', {}, s.title), h('span', { class: 'dim' }, s.artist || '')),
+            s.key ? keyBadge(s.key) : h('span'), h('span', { class: 'dim' }, s.tempo ? s.tempo + ' BPM' : ''),
+            h('span', { class: 'dim' }, inPl ? 'v playlistu' : '')));
+        }
+        if (!box.children.length) box.appendChild(h('div', { class: 'help', style: { padding: '20px' } }, 'Nic nenalezeno.'));
+      };
+      const count = () => { if (okBtn) okBtn.textContent = chosen.size ? `Přidat vybrané (${chosen.size})` : 'Přidat vybrané'; };
+      q.oninput = paint; tagSel.onchange = paint; hideIn.onchange = paint;
+      paint();
+      const ok = await modal({ title: 'Vybrat písně do playlistu', wide: true,
+        body: h('div', { class: 'pick-dlg' }, h('div', { class: 'row' }, q, tagSel, h('label', { class: 'chk' }, hideIn, 'Skrýt písně, které už v playlistu jsou')), box),
+        buttons: [{ label: 'Zrušit', value: false }, { label: 'Přidat vybrané', value: true, primary: true }],
+        onOpen: b => { okBtn = b.querySelector('.modal-buttons .primary'); setTimeout(() => q.focus(), 40); } });
+      if (!ok || !chosen.size) return;
+      const at = rows.indexOf(LINE);
+      rows.splice(at >= 0 ? at : rows.length, 0, ...Store.sortedSongs().filter(s => chosen.has(s.id)).map(s => s.id));
+      commit();
+    };
+    const addTools = libUi === 'side' ? null : h('div', { class: 'pl-add' },
+      libUi === 'b' || libUi === 'ab' ? quickAdd() : null,
+      libUi === 'a' || libUi === 'ab' ? h('button', { class: 'btn', onclick: pickDialog }, libUi === 'a' ? '＋ Přidat písně' : '⧉ Vybrat z knihovny…') : null,
+      libUi === 'c' ? h('button', { class: 'btn', onclick: () => { libCol.classList.add('open'); libSearch.focus(); } }, '＋ Přidat písně') : null);
+    const uiSwitch = window.NAHLED ? h('div', { class: 'pl-uiswitch', 'data-uncommentable': '' }, h('span', {}, 'Návrh přidávání písní:'),
+      LIB_UI.map(([v, l]) => h('button', { class: 'btn small' + (v === libUi ? ' primary' : ''), onclick: () => { Settings.set('plLibUi', v); App.go(true); } }, l))) : null;
+
     root.append(
+      uiSwitch,
       h('div', { class: 'row', style: { marginBottom: '10px' } },
         f('Název playlistu', inName), h('div', { style: { flex: '0 0 160px' } }, f('Datum', inDate)), f('Poznámka', inNote)),
       h('div', { class: 'bottom-actions', style: { marginBottom: '12px' } },
@@ -305,9 +383,9 @@ const PlaylistsView = {
         h('span', { class: 'grow' }),
         h('span', { class: 'saved-ind' }, pl.updatedBy ? `Upravil(a) ${pl.updatedBy}, ${fmtDate(pl.updatedAt)}` : ''),
         h('button', { class: 'btn danger', onclick: () => this.del(pl) }, '🗑 Smazat')),
-      h('div', { class: 'pl-grid' },
-        h('div', { class: 'pl-col' }, h('div', { class: 'head' }, h('b', {}, 'Pořadí písní'), countLbl, h('span', { class: 'grow', style: { flex: 1 } }), lineBtn, sortSel), itemsBox),
-        h('div', { class: 'pl-col' }, h('div', { class: 'head' }, h('b', { style: { whiteSpace: 'nowrap' } }, 'Knihovna'), libSearch), libBox)));
+      h('div', { class: 'pl-grid' + (libUi === 'side' ? '' : ' one') },
+        h('div', { class: 'pl-col' }, h('div', { class: 'head' }, h('b', {}, 'Pořadí písní'), countLbl, h('span', { class: 'grow', style: { flex: 1 } }), lineBtn, sortSel), itemsBox, addTools),
+        libUi === 'side' || libUi === 'c' ? libCol : null));
     paintItems(); paintLib();
   },
 
