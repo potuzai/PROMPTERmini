@@ -4,6 +4,7 @@
 (() => {
   const INFO = window.NAHLED || {};
   const POS_KEY = 'nahled-ukol-pozice';
+  const DRAFT_KEY = 'nahled-ukol-koncept';   // rozepsaný úkol přežije obnovení stránky (každé zveřejnění náhledu ji načte znovu)
   const MAX_TASK = 1500;      // znaků úkolu; celý komentář smí mít nejvýš 4 KiB
   const INTERACTIVE = 'button, a, input, select, textarea, label, summary, [role=button], [role=switch], [role=tab], [role=menuitem], [role=option]';
   const BLOCK = ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'click', 'dblclick', 'auxclick', 'contextmenu', 'touchstart', 'touchend'];
@@ -225,6 +226,7 @@
     document.body.appendChild(host);
     placeFab(loadPos());
     dragFab();
+    restoreDraft();
   }
 
   function previewInfo() {
@@ -283,6 +285,7 @@
 
   function stop() {
     active = false; trail = []; busy = false;
+    dropDraft();
     document.documentElement.classList.remove('nahled-vyber');
     ui.fab.classList.remove('on');
     ui.fab.lastChild.textContent = 'Úkol';
@@ -330,8 +333,37 @@
     ui.panel.classList.toggle('top', r.top + r.height / 2 > innerHeight / 2);
     ui.panel.style.display = 'block';
     redraw();
-    if (!busy) { ui.send.disabled = false; setTimeout(() => ui.text.focus(), 0); }
+    if (!busy) { ui.send.disabled = false; setTimeout(() => { ui.text.focus(); ui.text.setSelectionRange(ui.text.value.length, ui.text.value.length); }, 0); }
+    saveDraft();
     await refreshMode();
+  }
+
+  /* ===== Rozepsaný úkol ===== */
+  function saveDraft() {
+    if (!trail.length) return;
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ text: ui.text.value, path: cssPath(picked()), hash: location.hash, at: Date.now() })); } catch (e) { /* bez úložiště */ }
+  }
+  function dropDraft() {
+    try { localStorage.removeItem(DRAFT_KEY); } catch (e) { /* bez úložiště */ }
+  }
+
+  async function restoreDraft() {
+    let d = null;
+    try { d = JSON.parse(localStorage.getItem(DRAFT_KEY)); } catch (e) { /* bez úložiště */ }
+    if (!d || !d.path || Date.now() - d.at > 6 * 3600e3) return;
+    if ((d.hash || '') !== location.hash) location.hash = d.hash || '';
+    let el = null;
+    for (let i = 0; i < 40 && !el; i++) {   // aplikace se po načtení ještě vykresluje
+      await new Promise(r => setTimeout(r, 100));
+      try { el = document.querySelector(d.path); } catch (e) { break; }
+    }
+    begin();
+    trail = [el || document.getElementById('main') || document.body];
+    ui.banner.style.display = 'none';
+    ui.fab.lastChild.textContent = 'Ukončit';
+    ui.text.value = d.text || '';
+    await showPanel();
+    status('Náhled se mezitím aktualizoval – rozepsaný úkol jsem vrátil.' + (el ? '' : ' Prvek jsem nenašel, klikni na něj znovu.'), el ? 'ok' : 'err');
   }
 
   // Jestli jde úkol poslat rovnou Claudovi; zjišťuje se při každém otevření (Claude se může připojit i odpojit)
@@ -421,6 +453,7 @@
       const inside = inUi(e);
       if (!inside && !(active || trail.length)) return;
       if (type === 'keydown' && e.key === 'Escape') { e.preventDefault(); stop(); }
+      else if (inside && type === 'input') saveDraft();
       else if (inside && type === 'keydown' && e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); send(); }
       e.stopImmediatePropagation();   // psaní v panelu ani klávesy během výběru aplikace nevidí
     }, true);
