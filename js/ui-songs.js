@@ -70,7 +70,7 @@ const SongsView = {
           ondblclick: () => { location.hash = '#/songs/' + s.id; } },
           h('span', { class: 'sl-artist' }, s.artist || '—'),
           h('b', { class: 'sl-title' }, s.title || '(bez názvu)'),
-          h('span', { class: 'sl-key' }, [s.key, s.tempo ? s.tempo + ' BPM' : ''].filter(Boolean).join(' · ')),
+          h('span', { class: 'sl-key' }, s.key ? keyBadge(s.key) : null, s.key && s.tempo ? ' · ' : '', s.tempo ? s.tempo + ' BPM' : ''),
           h('span', { class: 'sl-dots' }, singersIn(s).map(g => h('i', { title: g.name, style: { background: g.color } }))),
           h('span', { class: 'sl-tags' }, (s.tags || []).map(t => h('span', { class: 'tag' }, t)))));
       }

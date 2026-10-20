@@ -35,6 +35,12 @@ function uid() {
 }
 
 /* český tvar podle počtu: plural(3, 'píseň', 'písně', 'písní') → „3 písně“ */
+/* Ladění písně jako štítek: každý tón (C D E F G A H B) má svou barvu, křížky/béčka a moll ji nemění */
+function keyBadge(key) {
+  const k = String(key || '').trim();
+  const tone = (/^[a-hA-H]/.exec(k) || [''])[0].toUpperCase();
+  return h('span', { class: 'key-badge' + (tone ? ' k-' + tone : ''), title: 'Ladění ' + k }, k);
+}
 function plural(n, one, few, many) { return n + ' ' + (n === 1 ? one : n >= 2 && n <= 4 ? few : many); }
 
 /* fyzické rozlišení obrazovky, na které je aplikace otevřená */

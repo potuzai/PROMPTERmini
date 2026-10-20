@@ -16,7 +16,7 @@ const PlaylistsView = {
 
     const searchInp = h('input', { class: 'inp', type: 'search', placeholder: 'Hledat playlist, poznámku nebo píseň v něm…', value: this.search });
     const sortSel = h('select', { class: 'inp sl-sort', title: 'Řazení' },
-      [['new', 'Řadit: nejnovější'], ['old', 'Řadit: nejstarší'], ['name', 'Řadit: název']]
+      [['new', 'Řadit: nejnovější'], ['old', 'Řadit: nejstarší'], ['name', 'Řadit: název'], ['count', 'Řadit: počet písní']]
         .map(([v, l]) => h('option', { value: v, selected: (Settings.get('plSort') || 'new') === v }, l)));
     const list = h('div', { class: 'list' });
     const count = h('div', { class: 'sl-count' });
@@ -51,7 +51,7 @@ const PlaylistsView = {
               h('b', {}, s ? s.title : '(smazaná píseň)'),
               s ? h('span', {}, s.artist || ' ') : null,
               s ? h('em', { class: 'pl-prev-keys', title: 'Ladění a tempo (doplníš v údajích písně)' },
-                h('i', { class: s.key ? '' : 'none' }, 'ladění ' + (s.key || '—')),
+                s.key ? h('i', {}, 'ladění ', keyBadge(s.key)) : h('i', { class: 'none' }, 'ladění —'),
                 h('i', { class: s.tempo ? '' : 'none' }, (s.tempo || '—') + ' BPM')) : null);
           }))
           : h('div', { class: 'help pl-prev-empty' }, 'Playlist je zatím prázdný.'));
@@ -68,6 +68,7 @@ const PlaylistsView = {
       const cmp = (a, b) => String(a || '').localeCompare(String(b || ''), 'cs', { sensitivity: 'base' });
       const all = [...Store.playlists.values()];
       if (by === 'name') return all.sort((a, b) => cmp(a.name, b.name) || String(b.date || '').localeCompare(String(a.date || '')));
+      if (by === 'count') return all.sort((a, b) => b.items.length - a.items.length || cmp(a.name, b.name));
       if (by === 'old') return all.sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')) || cmp(a.name, b.name));
       return Store.sortedPlaylists();
     };
