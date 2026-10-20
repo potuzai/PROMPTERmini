@@ -86,10 +86,12 @@ const TemplatesView = {
     const savedInd = h('span', { class: 'saved-ind' });
     const saveBtn = h('button', { class: 'btn nogrow', title: 'Uložit změny (Ctrl+S)', onclick: () => save(true) }, '💾 Uložit');
     const paintSaved = () => { savedInd.textContent = dirty ? 'Neuloženo' : ''; savedInd.classList.toggle('dirty', dirty); saveBtn.classList.toggle('primary', dirty); };
-    const markDirty = () => { dirty = true; paintSaved(); };
+    // „neuloženo“ = jiný stav než při posledním uložení (změna tam a zpět nic nemění)
+    let base = JSON.stringify(t);
+    const markDirty = () => { dirty = JSON.stringify(t) !== base; paintSaved(); };
     const save = async manual => {
       if (!dirty && !manual) return;
-      dirty = false;
+      dirty = false; base = JSON.stringify(t);
       await Store.put('templates', clone(t));
       paintSaved();
       if (manual) toast('Uloženo', 'ok', 1500);

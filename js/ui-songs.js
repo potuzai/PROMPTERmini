@@ -121,6 +121,7 @@ class SongEditor {
     // náhled pro obrazovku: naposledy zvolená v tomto zařízení, jinak vlastní obrazovka zařízení
     this.screenId = Screens.get(Settings.get('editScreen') || Screens.editId()).id;
     this.build(song);
+    this.base = this.snap();
     const ed = this;
     App.edit = { get what() { return `Píseň „${ed.inTitle.value.trim() || 'bez názvu'}“`; },
       dirty: () => ed.dirty, save: m => ed.save(m), saveAs: stay => ed.saveAs(stay) };
@@ -430,11 +431,16 @@ class SongEditor {
       style: this.style === undefined ? (old.style || null) : this.style,
     });
   }
+  // „neuloženo“ = jiný stav než při posledním uložení (úprava tam a zpět nic nemění)
+  snap() {
+    const o = this.collect();
+    return JSON.stringify([o.title, o.artist, o.key, o.tempo, o.duration, o.tags, o.templateId, o.text, o.style || null]);
+  }
   markDirty() {
-    this.dirty = true;
-    this.savedInd.textContent = 'Neuloženo';
-    this.savedInd.classList.add('dirty');
-    this.saveBtn.classList.add('primary');
+    this.dirty = this.snap() !== this.base;
+    this.savedInd.textContent = this.dirty ? 'Neuloženo' : 'Uloženo';
+    this.savedInd.classList.toggle('dirty', this.dirty);
+    this.saveBtn.classList.toggle('primary', this.dirty);
   }
   async save(manual) {
     if (!this.dirty && !manual) return;
@@ -442,6 +448,7 @@ class SongEditor {
     this.se.finishEdit(true);
     const s = this.collect();
     this.dirty = false;
+    this.base = this.snap();
     await Store.put('songs', s);
     this.savedInd.textContent = 'Uloženo';
     this.savedInd.title = fmtDate(s.updatedAt);

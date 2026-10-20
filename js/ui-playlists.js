@@ -154,10 +154,13 @@ const PlaylistsView = {
       savedInd.classList.toggle('dirty', dirty);
       savedBtns.forEach(b => b.classList.toggle('primary', dirty));
     };
-    const markDirty = () => { dirty = true; paintSaved(); };
+    // „neuloženo“ = jiný stav než při posledním uložení (přesun tam a zpět nic nemění)
+    const snap = () => JSON.stringify([pl.name || '', pl.date || '', pl.note || '', pl.items, plEncore(pl)]);
+    let base = snap();
+    const markDirty = () => { dirty = snap() !== base; paintSaved(); };
     const save = async manual => {
       if (!dirty && !manual) return;
-      dirty = false;
+      dirty = false; base = snap();
       const saved = await Store.put('playlists', clone(pl));
       pl.updatedAt = saved.updatedAt; pl.updatedBy = saved.updatedBy;
       paintSaved();
