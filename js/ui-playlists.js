@@ -275,7 +275,7 @@ const PlaylistsView = {
               const inp = posInput(idx + 1, v => { if (done) return; done = true; if (v > 0 && v !== idx + 1) placeSong(id, v, i); else paintItems(); });
               inp.addEventListener('blur', () => { if (!done) { done = true; const v = parseInt(inp.value, 10); if (v > 0 && v !== idx + 1) placeSong(id, v, i); else paintItems(); } });
               span.replaceWith(inp); inp.focus(); inp.select();
-            } }, idx + 1 + '.'),
+            } }, String(idx + 1)),
             h('div', { class: 't' }, h('b', {}, s ? s.title : '(smazaná píseň)'), ' ', h('span', { class: 'dim' }, s ? s.artist || '' : '')),
             // základní údaje vždy na stejném místě; nevyplněné jako pomlčka
             h('span', { class: 'pi-key', title: 'Ladění' }, s && s.key ? keyBadge(s.key) : h('i', { class: 'none' }, '—')),
