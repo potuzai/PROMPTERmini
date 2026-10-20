@@ -1,5 +1,11 @@
 'use strict';
 /* ===== Písně: seznam + editor ===== */
+// Zpěváci, kteří v písni zpívají (podle značek @kód a {kód:…} v textu)
+function songSingers(s) {
+  const sm = Store.singerMap(), codes = new Set();
+  for (const m of String(s.text || '').matchAll(/(?:^|\n)\s*(?:##[^\n@]*)?@([A-Za-z0-9+]+)|\{([A-Za-z0-9+]+):/g)) parseCodes(m[1] || m[2]).forEach(c => codes.add(c));
+  return [...codes].filter(c => sm[c]).map(c => sm[c]);
+}
 const SongsView = {
   search: '',
   editor: null,
@@ -31,12 +37,6 @@ const SongsView = {
         h('div', { class: 'sl-row sl-cols' }, h('span', {}, 'Interpret'), h('span', {}, 'Název'), h('span', {}, 'Ladění · BPM'), h('span', {}, 'Zpívá'), h('span', {}, 'Štítky')),
         list, count),
       prev));
-    const sm = Store.singerMap();
-    const singersIn = s => {
-      const codes = new Set();
-      for (const m of String(s.text || '').matchAll(/(?:^|\n)\s*(?:##[^\n@]*)?@([A-Za-z0-9+]+)|\{([A-Za-z0-9+]+):/g)) parseCodes(m[1] || m[2]).forEach(c => codes.add(c));
-      return [...codes].filter(c => sm[c]).map(c => sm[c]);
-    };
     const paintPrev = s => {
       prev.innerHTML = '';
       if (!s) { prev.appendChild(h('div', { class: 'help pl-prev-empty' }, 'Klikni na píseň a tady uvidíš její náhled.')); return; }
@@ -71,7 +71,7 @@ const SongsView = {
           h('span', { class: 'sl-artist' }, s.artist || '—'),
           h('b', { class: 'sl-title' }, s.title || '(bez názvu)'),
           h('span', { class: 'sl-key' }, s.key ? keyBadge(s.key) : null, s.key && s.tempo ? ' · ' : '', s.tempo ? s.tempo + ' BPM' : ''),
-          h('span', { class: 'sl-dots' }, singersIn(s).map(g => h('i', { title: g.name, style: { background: g.color } }))),
+          h('span', { class: 'sl-dots' }, songSingers(s).map(g => h('i', { title: g.name, style: { background: g.color } }))),
           h('span', { class: 'sl-tags' }, (s.tags || []).map(t => h('span', { class: 'tag' }, t)))));
       }
       if (!songs.length) list.appendChild(h('div', { class: 'help', style: { padding: '16px 22px' } }, q ? 'Nic nenalezeno.' : 'Zatím žádné písně. Vytvoř novou nebo importuj .txt soubory.'));

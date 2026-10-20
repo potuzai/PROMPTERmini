@@ -78,7 +78,9 @@ const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode
   await p.waitForTimeout(300);
   const items = await p.$$eval('.pl-item b', els => els.map(e => e.textContent));
   assert(items.length === 2 && items[0] === 'Testovací', 'přidání do playlistu');
-  await p.click('.pl-item >> nth=1 >> button[title=Nahoru]');
+  await p.click('.pl-item >> nth=1 >> .num');
+  await p.keyboard.press('Control+a'); await p.keyboard.type('1'); await p.keyboard.press('Enter');
+  await p.click('.modal-buttons button:has-text("Vložit a posunout")');
   await p.waitForTimeout(200);
   assert((await p.$$eval('.pl-item b', els => els.map(e => e.textContent)))[0].startsWith('Ukázková'), 'změna pořadí');
   // číslo pořadí: 1. píseň jako 2., obsazeno → Prohodit
@@ -93,6 +95,12 @@ const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode
   await p.click('.modal-buttons button:has-text("Vložit a posunout")');
   await p.waitForTimeout(200);
   assert((await p.$$eval('.pl-item b', els => els.map(e => e.textContent)))[0].startsWith('Ukázková'), 'přesun na zadané pořadí (vložit a posunout)');
+  // odebrání z playlistu se vždy potvrzuje (tady Zrušit – píseň zůstane)
+  await p.click('.pl-item >> nth=0 >> button[title="Odebrat z playlistu"]');
+  assert(await p.isVisible('.modal-buttons button:has-text("Odebrat")'), 'odebrání z playlistu chce potvrzení');
+  await p.click('.modal-buttons button:has-text("Zrušit")');
+  await p.waitForTimeout(200);
+  assert((await p.$$('.pl-item')).length === 2, 'po zrušení píseň v playlistu zůstala');
   await p.screenshot({ path: '/tmp/claude-0/shots/6-playlist.png' });
   // čtečka
   await p.click('button:has-text("Spustit ve čtečce")');

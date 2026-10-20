@@ -270,14 +270,18 @@ const PlaylistsView = {
               inp.addEventListener('blur', () => { if (!done) { done = true; const v = parseInt(inp.value, 10); if (v > 0 && v !== idx + 1) placeSong(id, v, i); else paintItems(); } });
               span.replaceWith(inp); inp.focus(); inp.select();
             } }, idx + 1 + '.'),
-            h('div', { class: 't' }, h('b', {}, s ? s.title : '(smazaná píseň)'), ' ', h('span', { class: 'dim' }, s ? s.artist || '' : ''),
-              s && s.key ? [' ', keyBadge(s.key)] : null, s && s.tempo ? h('span', { class: 'dim' }, ' ' + s.tempo + ' BPM') : null,
-              s && durSec(s) ? h('span', { class: 'dim' }, ' · ' + s.duration) : null),
-            h('button', { class: 'btn small icon', title: 'Nahoru', onclick: () => move(-1) }, '↑'),
-            h('button', { class: 'btn small icon', title: 'Dolů', onclick: () => move(1) }, '↓'),
+            h('div', { class: 't' }, h('b', {}, s ? s.title : '(smazaná píseň)'), ' ', h('span', { class: 'dim' }, s ? s.artist || '' : '')),
+            // základní údaje vždy na stejném místě; nevyplněné jako pomlčka
+            h('span', { class: 'pi-key', title: 'Ladění' }, s && s.key ? keyBadge(s.key) : h('i', { class: 'none' }, '—')),
+            h('span', { class: 'pi-bpm', title: 'Tempo' }, s && s.tempo ? s.tempo + ' BPM' : h('i', { class: 'none' }, '— BPM')),
+            h('span', { class: 'pi-dur', title: 'Délka' }, s && durSec(s) ? s.duration : h('i', { class: 'none' }, '—:——')),
+            h('span', { class: 'pi-sing sl-dots', title: 'Zpívá' }, s ? songSingers(s).map(g => h('i', { title: g.name, style: { background: g.color } })) : null),
             h('button', { class: 'btn small icon', title: 'Upravit píseň', onclick: () => { location.hash = '#/songs/' + id; } }, '✎'),
             h('button', { class: 'btn small icon', title: 'Spustit od této písně', onclick: () => { location.hash = `#/reader/${pl.id}/${idx}`; } }, '▶'),
-            h('button', { class: 'btn small icon danger', title: 'Odebrat z playlistu', onclick: () => { rows.splice(i, 1); commit(); } }, '✕'));
+            h('button', { class: 'btn small icon danger', title: 'Odebrat z playlistu', onclick: async () => {
+              if (!await confirmDlg(`Odebrat „${s ? s.title : 'smazanou píseň'}“ z playlistu? Píseň zůstane v seznamu písní.`, 'Odebrat', true)) return;
+              rows.splice(i, 1); commit();
+            } }, '✕'));
           el.addEventListener('dblclick', () => { location.hash = `#/reader/${pl.id}/${idx}`; });
         }
         el.addEventListener('dragstart', e => { dragFrom = i; el.classList.add('drag'); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', id); });
