@@ -132,6 +132,7 @@ class SongEditor {
     this.inArtist = h('input', { class: 'inp', value: song.artist || '', placeholder: 'Interpret / autor' });
     this.inKey = h('input', { class: 'inp', value: song.key || '', placeholder: 'C, Am…' });
     this.inTempo = h('input', { class: 'inp', value: song.tempo || '', placeholder: 'BPM' });
+    this.inDur = h('input', { class: 'inp', value: song.duration || '', placeholder: 'např. 3:45' });
     this.inTags = h('input', { class: 'inp', value: (song.tags || []).join(', '), placeholder: 'rock, pomalá…' });
     this.inTpl = h('select', { class: 'inp' }, h('option', { value: '' }, '— výchozí —'),
       [...Store.templates.values()].map(t => h('option', { value: t.id, selected: t.id === song.templateId }, t.name)));
@@ -252,7 +253,7 @@ class SongEditor {
     const onMeta = () => { this.markDirty(); this.schedulePreview(); this.paintMeta(); };
     this.paintMeta();
     this.privNote.addEventListener('input', () => { PrivateNotes.set(this.id, this.privNote.value); this.schedulePreview(); });
-    [this.inTitle, this.inArtist, this.inKey, this.inTempo, this.inTags].forEach(i => i.addEventListener('input', onMeta));
+    [this.inTitle, this.inArtist, this.inKey, this.inTempo, this.inDur, this.inTags].forEach(i => i.addEventListener('input', onMeta));
     this.inTpl.addEventListener('change', onMeta);
     this.inPl.addEventListener('change', () => this.se.render());
     this.inTitle.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === 'Escape') { e.preventDefault(); this.stageWrap.focus(); } });
@@ -301,6 +302,7 @@ class SongEditor {
     const box = h('div', { class: 'meta-dlg' },
       f('Interpret', this.inArtist),
       h('div', { class: 'grid2' }, f('Ladění', this.inKey), f('Tempo (BPM)', this.inTempo)),
+      h('div', { class: 'grid2' }, f('Délka (min:s)', this.inDur), h('span')),
       f('Štítky (oddělené čárkou)', this.inTags),
       f('Šablona písně', this.inTpl),
       f('Ukázat jako v playlistu', this.inPl),
@@ -415,6 +417,7 @@ class SongEditor {
       artist: this.inArtist.value.trim(),
       key: this.inKey.value.trim(),
       tempo: this.inTempo.value.trim(),
+      duration: this.inDur.value.trim(),
       tags: this.inTags.value.split(',').map(t => t.trim()).filter(Boolean),
       templateId: this.inTpl.value,
       text: this.src,

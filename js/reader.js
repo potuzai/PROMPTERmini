@@ -68,8 +68,11 @@ const Reader = {
     else if (this.plId.startsWith('song:')) this.items = [this.plId.slice(5)].filter(id => Store.songs.has(id));
     else {
       const pl = Store.playlists.get(this.plId);
+      const enc = pl && typeof pl.encore === 'number' ? pl.encore : -1;
       this.items = pl ? pl.items.filter(id => Store.songs.has(id)) : [];
+      this.encoreAt = enc >= 0 ? pl.items.slice(0, enc).filter(id => Store.songs.has(id)).length : -1;   // první přídavek
     }
+    if (this.plId === 'all' || this.plId.startsWith('song:')) this.encoreAt = -1;
     if (this.songIdx >= this.items.length) this.songIdx = Math.max(0, this.items.length - 1);
   },
 
@@ -397,7 +400,8 @@ const Reader = {
     const opts = this.items.map((id, i) => {
       const s = Store.songs.get(id);
       return { idx: i, n: i + 1, label: s ? s.title : '?', sub: s ? [s.artist, s.key].filter(Boolean).join(' · ') : '',
-        cls: i < this.songIdx ? 'done' : i === this.songIdx ? 'cur' : '', badge: i === this.songIdx ? 'hraje' : '' };
+        cls: [i < this.songIdx ? 'done' : i === this.songIdx ? 'cur' : '', i === this.encoreAt ? 'encore-first' : '', this.encoreAt >= 0 && i >= this.encoreAt ? 'encore' : ''].filter(Boolean).join(' '),
+        badge: i === this.songIdx ? 'hraje' : '' };
     });
     opts.push({ idx: -3, icon: 'sliders', label: 'Nabídka', key: 'Q', foot: true });
     opts.push({ idx: -1, icon: 'back', label: 'Jiný playlist', foot: true });

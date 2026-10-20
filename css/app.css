@@ -247,6 +247,18 @@ kbd { font: 600 11px/1 var(--mono); padding: 3px 5px; border: 1px solid var(--li
 .key-badge { display: inline-block; min-width: 26px; padding: 1px 7px; border-radius: 4px; background: #8a8a90; color: #111; font: 700 12.5px/1.45 var(--mono); text-align: center; vertical-align: middle; letter-spacing: .02em; }
 .pl-prev-list li span.key-badge { grid-column: auto; color: #111; font-size: 12.5px; }
 .key-badge.k-C { background: #ff5c5c; }
+/* Čára pro přídavky */
+.pl-item.pl-line { border-top: 2px dashed var(--acc); background: none; padding-top: 8px; margin-top: 4px; }
+.pl-item.pl-line .t b { color: var(--acc-hi); text-transform: uppercase; font-size: 12px; letter-spacing: .05em; }
+.pl-item.encore .num, .pl-item.encore .t b { color: var(--dim); font-style: italic; }
+.pl-col .head .pl-sort { flex: 0 0 auto; width: auto; height: 28px; padding: 0 8px; font-size: 12.5px; }
+.pl-col .head .dim { white-space: nowrap; }
+.pl-prev-list li.encore-first { border-top: 2px dashed var(--acc); position: relative; margin-top: 22px; }
+.pl-prev-list li.encore-first::after { content: "Přídavky"; position: absolute; left: 0; top: -20px; font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--acc-hi); }
+.pl-prev-list li.encore b { font-style: italic; color: var(--dim); }
+.r-menu .r-opt.encore-first { margin-top: 30px; overflow: visible; }
+.r-menu .r-opt.encore-first::after { content: "PŘÍDAVKY"; position: absolute; left: 16px; right: 16px; top: -24px; padding-top: 4px; border-top: 2px dashed #e8493f; font-size: 14px; letter-spacing: .08em; color: #ff8a80; }
+.r-menu .r-opt.encore .r-l { font-style: italic; }
 .key-badge.k-D { background: #ff9f43; }
 .key-badge.k-E { background: #ffd93d; }
 .key-badge.k-F { background: #6bdc6b; }
@@ -710,6 +722,8 @@ input[type=checkbox].switch:focus-visible { outline: 2px solid var(--acc-hi); ou
 .pr-setlist td { padding: 5pt 4pt; border-bottom: .5pt solid #bbb; font-size: 13pt; vertical-align: baseline; }
 .pr-setlist .n { width: 2.2em; text-align: right; color: #c22f24; font-family: "Roboto Mono", monospace; }
 .pr-setlist .a { color: #555; font-weight: 400; }
+.pr-setlist tr.pr-encore td { padding-top: 14pt; border-bottom: 1.5pt dashed #000; font: 700 10pt "Roboto Condensed", sans-serif; letter-spacing: .1em; text-transform: uppercase; }
+.pr-setlist tr.pr-extra .t b { font-style: italic; }
 .pr-setlist .k, .pr-setlist .bpm { white-space: nowrap; text-align: right; color: #333; font-family: "Roboto Mono", monospace; font-size: 10.5pt; }
 .pr-setlist.big td { font-size: 26pt; padding: 7pt 4pt; }
 .pr-setlist.big .k, .pr-setlist.big .bpm { font-size: 16pt; }

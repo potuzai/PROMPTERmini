@@ -179,7 +179,7 @@ const TYPES = {
 };
 
 /* Nové položky – výchozí pole na jednom místě */
-const newSong = o => Object.assign({ id: uid(), title: 'Nová píseň', artist: '', key: '', tempo: '', tags: [], templateId: '', text: '' }, o);
+const newSong = o => Object.assign({ id: uid(), title: 'Nová píseň', artist: '', key: '', tempo: '', duration: '', tags: [], templateId: '', text: '' }, o);
 const newPlaylist = (name, items = []) => ({ id: uid(), name, date: new Date().toISOString().slice(0, 10), note: '', items });
 const playlistNameHint = () => 'Koncert ' + new Date().toLocaleDateString('cs-CZ');
 
