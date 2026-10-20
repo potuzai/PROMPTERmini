@@ -81,12 +81,12 @@ const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode
   await p.click('.pl-item >> nth=1 >> button[title=Nahoru]');
   await p.waitForTimeout(200);
   assert((await p.$$eval('.pl-item b', els => els.map(e => e.textContent)))[0].startsWith('Ukázková'), 'změna pořadí');
-  // číslo pozice: 1. píseň na pozici 2, obsazeno → potvrdit vložení
+  // číslo pozice: 1. píseň na pozici 2, obsazeno → Prohodit
   await p.click('.pl-item >> nth=0 >> .num');
   await p.keyboard.press('Control+a'); await p.keyboard.type('2'); await p.keyboard.press('Enter');
-  await p.click('.modal-buttons button:has-text("Vložit a posunout")');
+  await p.click('.modal-buttons button:has-text("Prohodit")');
   await p.waitForTimeout(200);
-  assert((await p.$$eval('.pl-item b', els => els.map(e => e.textContent)))[0] === 'Testovací', 'přesun na zadanou pozici');
+  assert((await p.$$eval('.pl-item b', els => els.map(e => e.textContent)))[0] === 'Testovací', 'přesun na zadanou pozici (prohodit)');
   // a zpět: 2. píseň na pozici 1 (pořadí jako předtím, čtečka níže s ním počítá)
   await p.click('.pl-item >> nth=1 >> .num');
   await p.keyboard.press('Control+a'); await p.keyboard.type('1'); await p.keyboard.press('Enter');

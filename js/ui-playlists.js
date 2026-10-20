@@ -190,7 +190,7 @@ const PlaylistsView = {
       Store.put('playlists', pl); paintItems();
     };
     const addSong = id => { const at = rows.indexOf(LINE); rows.splice(at >= 0 ? at : rows.length, 0, id); commit(); };   // nová píseň nad čáru
-    // Číselná pozice (1 = první píseň; čára se nepočítá). Na obsazenou pozici se vkládá po potvrzení, ostatní se posunou.
+    // Číselná pozice (1 = první píseň; čára se nepočítá). Obsazená pozice: nová píseň se vloží (po potvrzení), přesouvaná jde i prohodit.
     const songRows = () => rows.map((r, i) => r === LINE ? -1 : i).filter(i => i >= 0);
     const placeSong = async (id, pos, from = -1) => {   // from = řádek, když píseň v seznamu už je
       pos = Math.max(1, Math.floor(pos));
@@ -202,10 +202,14 @@ const PlaylistsView = {
         rows.push(id); return commit();
       }
       const s = Store.songs.get(rows[target]);
-      const ok = await modal({ title: `Pozice ${pos} je obsazená`,
-        body: h('p', {}, `Na pozici ${pos} je „${s ? s.title : '?'}“. Vložením se ona i všechny další písně posunou o jedno dál.`),
-        buttons: [{ label: 'Zrušit', value: false }, { label: 'Vložit a posunout', value: true, primary: true }] });
-      if (!ok) return paintItems();
+      const how = await modal({ title: `Pozice ${pos} je obsazená`,
+        body: h('p', {}, `Na pozici ${pos} je „${s ? s.title : '?'}“. ` + (from >= 0
+          ? 'Písně můžeš prohodit, nebo tuto vložit na pozici ' + pos + ' a ostatní posunout.'
+          : 'Vložením se ona i všechny další písně posunou o jedno dál.')),
+        buttons: [{ label: 'Zrušit', value: null }, from >= 0 ? { label: 'Prohodit', value: 'swap' } : null,
+          { label: 'Vložit a posunout', value: 'shift', primary: true }].filter(Boolean) });
+      if (!how) return paintItems();
+      if (how === 'swap') { [rows[from], rows[target]] = [rows[target], rows[from]]; return commit(); }
       if (from >= 0) rows.splice(from, 1);
       const i = songRows()[pos - 1];
       rows.splice(i === undefined ? rows.length : i, 0, id);
