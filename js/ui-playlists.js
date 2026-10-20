@@ -190,6 +190,41 @@ const PlaylistsView = {
       Store.put('playlists', pl); paintItems();
     };
     const addSong = id => { const at = rows.indexOf(LINE); rows.splice(at >= 0 ? at : rows.length, 0, id); commit(); };   // nová píseň nad čáru
+    // Číselná pozice (1 = první píseň; čára se nepočítá). Obsazená pozice: prohodit, nebo vložit a ostatní posunout.
+    const songRows = () => rows.map((r, i) => r === LINE ? -1 : i).filter(i => i >= 0);
+    const placeSong = async (id, pos, from = -1) => {   // from = řádek, když píseň v seznamu už je
+      pos = Math.max(1, Math.floor(pos));
+      const idxs = songRows();
+      if (from >= 0 && idxs.indexOf(from) + 1 === pos) return;
+      const target = idxs[pos - 1];
+      if (target === undefined) {   // za posledním číslem = na konec
+        if (from >= 0) rows.splice(from, 1);
+        rows.push(id); return commit();
+      }
+      const s = Store.songs.get(rows[target]);
+      const how = await modal({ title: `Pozice ${pos} je obsazená`,
+        body: h('p', {}, `Na pozici ${pos} je „${s ? s.title : '?'}“. ` + (from >= 0
+          ? 'Mám písně prohodit, nebo tuto vložit na pozici ' + pos + ' a ostatní posunout?'
+          : 'Mám ji vytlačit na konec (prohodit), nebo novou píseň vložit a ostatní posunout?')),
+        buttons: [{ label: 'Zrušit', value: null }, { label: 'Prohodit', value: 'swap' }, { label: 'Vložit a posunout', value: 'shift', primary: true }] });
+      if (!how) return paintItems();
+      if (how === 'swap' && from >= 0) [rows[from], rows[target]] = [rows[target], rows[from]];
+      else if (how === 'swap') { const old = rows[target]; rows[target] = id; const at = rows.indexOf(LINE); rows.splice(at >= 0 ? at : rows.length, 0, old); }
+      else {
+        if (from >= 0) rows.splice(from, 1);
+        const i = songRows()[pos - 1];
+        rows.splice(i === undefined ? rows.length : i, 0, id);
+      }
+      commit();
+    };
+    const posInput = (value, onDone) => {   // malé číselné pole: Enter potvrdí, Esc zruší
+      const inp = h('input', { class: 'inp pos-inp', type: 'number', min: '1', value: value || '' });
+      inp.addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); onDone(parseInt(inp.value, 10)); }
+        if (e.key === 'Escape') { e.preventDefault(); onDone(NaN); }
+      });
+      return inp;
+    };
     const SORTS = {
       artist: ['kapely', (a, b) => cmpText(a.artist, b.artist) || cmpText(a.title, b.title)],
       title: ['názvu', (a, b) => cmpText(a.title, b.title)],
@@ -230,7 +265,13 @@ const PlaylistsView = {
           const s = Store.songs.get(id);
           const idx = n++;
           el = h('div', { class: 'pl-item' + (at >= 0 && i > at ? ' encore' : ''), draggable: 'true' },
-            h('span', { class: 'num' }, idx + 1 + '.'),
+            h('span', { class: 'num', title: 'Klikni a napiš novou pozici', onclick: e => {
+              const span = e.currentTarget;
+              let done = false;
+              const inp = posInput(idx + 1, v => { if (done) return; done = true; if (v > 0 && v !== idx + 1) placeSong(id, v, i); else paintItems(); });
+              inp.addEventListener('blur', () => { if (!done) { done = true; const v = parseInt(inp.value, 10); if (v > 0 && v !== idx + 1) placeSong(id, v, i); else paintItems(); } });
+              span.replaceWith(inp); inp.focus(); inp.select();
+            } }, idx + 1 + '.'),
             h('div', { class: 't' }, h('b', {}, s ? s.title : '(smazaná píseň)'), ' ', h('span', { class: 'dim' }, s ? s.artist || '' : ''),
               s && s.key ? [' ', keyBadge(s.key)] : null, s && s.tempo ? h('span', { class: 'dim' }, ' ' + s.tempo + ' BPM') : null,
               s && durSec(s) ? h('span', { class: 'dim' }, ' · ' + s.duration) : null),
@@ -280,7 +321,12 @@ const PlaylistsView = {
         if (q && !hits.length) drop.appendChild(h('div', { class: 'qa-hit dim' }, 'Nic nenalezeno'));
         drop.style.display = q ? '' : 'none';
       };
-      const add = s => { addSong(s.id); inp.value = ''; sel = 0; paint(); inp.focus(); };
+      const pos = h('input', { class: 'inp pos-inp', type: 'number', min: '1', placeholder: 'pozice', title: 'Na kterou pozici píseň přidat (prázdné = na konec)' });
+      const add = async s => {
+        const p = parseInt(pos.value, 10);
+        if (p > 0) await placeSong(s.id, p); else addSong(s.id);
+        inp.value = ''; pos.value = ''; sel = 0; paint(); inp.focus();
+      };
       inp.addEventListener('input', () => { sel = 0; paint(); });
       inp.addEventListener('keydown', e => {
         if (e.key === 'ArrowDown') { sel = Math.min(hits.length - 1, sel + 1); paint(); e.preventDefault(); }
@@ -291,7 +337,8 @@ const PlaylistsView = {
       inp.addEventListener('blur', () => setTimeout(() => { drop.style.display = 'none'; }, 150));
       inp.addEventListener('focus', paint);
       drop.style.display = 'none';
-      return h('div', { class: 'qa' }, inp, drop);
+      pos.addEventListener('keydown', e => { if (e.key === 'Enter' && hits[sel]) { e.preventDefault(); add(hits[sel]); } });
+      return [h('div', { class: 'qa' }, inp, drop), pos];
     };
     const pickDialog = async () => {   // okno s hledáním, filtrem štítku a zaškrtáváním
       const chosen = new Set();
@@ -299,6 +346,7 @@ const PlaylistsView = {
       const tags = [...new Set([...Store.songs.values()].flatMap(s => s.tags || []))].sort((a, b) => a.localeCompare(b, 'cs'));
       const tagSel = h('select', { class: 'inp' }, h('option', { value: '' }, 'Všechny štítky'), tags.map(t => h('option', { value: t }, t)));
       const hideIn = h('input', { type: 'checkbox' });
+      const fromPos = h('input', { class: 'inp pos-inp', type: 'number', min: '1', placeholder: 'konec', title: 'Vybrané písně se vloží za sebou od této pozice, ostatní se posunou' });
       const box = h('div', { class: 'pick-list' });
       let okBtn = null;
       const paint = () => {
@@ -321,12 +369,15 @@ const PlaylistsView = {
       q.oninput = paint; tagSel.onchange = paint; hideIn.onchange = paint;
       paint();
       const ok = await modal({ title: 'Vybrat písně do playlistu', wide: true,
-        body: h('div', { class: 'pick-dlg' }, h('div', { class: 'row' }, q, tagSel, h('label', { class: 'chk' }, hideIn, 'Skrýt písně, které už v playlistu jsou')), box),
+        body: h('div', { class: 'pick-dlg' }, h('div', { class: 'row' }, q, tagSel, h('label', { class: 'chk' }, hideIn, 'Skrýt písně, které už v playlistu jsou')), box,
+          h('label', { class: 'pick-pos' }, 'Vložit od pozice', fromPos, h('span', { class: 'help' }, 'prázdné = na konec (nad čáru přídavků); ostatní písně se posunou'))),
         buttons: [{ label: 'Zrušit', value: false }, { label: 'Přidat vybrané', value: true, primary: true }],
         onOpen: b => { okBtn = b.querySelector('.modal-buttons .primary'); setTimeout(() => q.focus(), 40); } });
       if (!ok || !chosen.size) return;
-      const at = rows.indexOf(LINE);
-      rows.splice(at >= 0 ? at : rows.length, 0, ...Store.sortedSongs().filter(s => chosen.has(s.id)).map(s => s.id));
+      const ids = Store.sortedSongs().filter(s => chosen.has(s.id)).map(s => s.id);
+      const p = parseInt(fromPos.value, 10), at = rows.indexOf(LINE);
+      const i = p > 0 ? songRows()[p - 1] : undefined;
+      rows.splice(p > 0 ? (i === undefined ? rows.length : i) : (at >= 0 ? at : rows.length), 0, ...ids);
       commit();
     };
     root.append(

@@ -57,7 +57,7 @@ Monitor čtečky během běhu programu neusne. Program se po případném pádu 
 
 **Seznam playlistů** (úvodní stránka) má nahoře sekci **PŘIPRAVENO k přehrání**. Playlist do ní dostaneš přetažením nebo tlačítkem **★ Připravit** a zůstane tam, dokud ho nevrátíš. Pořadí v ní určuješ přetažením, řazení (nejnovější, nejstarší, název, počet písní) platí jen pro ostatní playlisty. Vpravo je náhled vybraného playlistu s laděním a BPM u každé písně. Ladění má barevný štítek, každý tón svou barvu.
 
-**V úpravě playlistu** přidáš píseň psaním do pole **Přidat píseň…** (nabídnou se shody, Enter přidá) nebo jich vybereš víc najednou přes **Vybrat z knihovny…**. Pořadí změníš šipkami nebo přetažením, **Seřadit…** jednorázově přeřadí písně podle kapely, názvu, BPM, ladění nebo délky. **＋ Čára pro přídavky** oddělí písně, které jsou jen jako možné přídavky. Čára je vidět i ve čtečce a v tisku.
+**V úpravě playlistu** přidáš píseň psaním do pole **Přidat píseň…** (nabídnou se shody, Enter přidá) nebo jich vybereš víc najednou přes **Vybrat z knihovny…**. Vedle pole je políčko **pozice**: píseň se přidá rovnou na zadané číslo. Pozici písně v seznamu změníš kliknutím na její číslo. Když je pozice obsazená, vybereš, jestli písně prohodit, nebo vložit a ostatní posunout. Při výběru z knihovny lze zadat **Vložit od pozice**. Pořadí změníš také šipkami nebo přetažením, **Seřadit…** jednorázově přeřadí písně podle kapely, názvu, BPM, ladění nebo délky. **＋ Čára pro přídavky** oddělí písně, které jsou jen jako možné přídavky. Čára je vidět i ve čtečce a v tisku.
 
 ### Psaní textu
 

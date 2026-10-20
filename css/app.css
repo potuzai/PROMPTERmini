@@ -347,6 +347,12 @@ kbd { font: 600 11px/1 var(--mono); padding: 3px 5px; border: 1px solid var(--li
 .pick-t .dim { font-size: 12px; }
 .pl-item { display: flex; gap: 8px; align-items: center; padding: 6px 8px; border-radius: var(--r); background: var(--panel2); border: 1px solid var(--line); margin-bottom: 4px; cursor: grab; }
 .pl-item .num { width: 28px; text-align: right; color: var(--acc-hi); font-family: var(--mono); font-size: 12.5px; }
+.pl-item .num { cursor: text; border-radius: var(--r); }
+.pl-item .num:hover { background: var(--acc-soft); }
+.pos-inp { width: 76px; flex: 0 0 auto; text-align: center; font-family: var(--mono); }
+.pl-item .pos-inp { width: 58px; height: 26px; padding: 0 4px; font-size: 12.5px; }
+.pick-pos { display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: 13px; }
+.pick-pos .help { font-size: 12px; }
 .pl-item .t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pl-item .t b { font-weight: 500; }
 .pl-item.drag { opacity: .4; }
