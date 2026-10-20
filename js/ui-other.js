@@ -34,7 +34,7 @@ const TPL_FIELDS = [
   { k: 'fit', l: 'Dlouhá píseň', t: 'select', o: [['shrink', 'zmenšit písmo, aby se vešla na 1 stránku'], ['paginate', 'rozdělit na více stránek']] },
   { k: 'minScale', l: 'Nejmenší zmenšení písma', t: 'range', min: 0.4, max: 1, step: 0.05, pct: true },
   { g: 'Zobrazení' },
-  { k: 'showHeader', l: 'Záhlaví (název, tónina, pořadí)', t: 'check' },
+  { k: 'showHeader', l: 'Záhlaví (název, ladění, pořadí)', t: 'check' },
   { k: 'showFooter', l: 'Zápatí (strana, další píseň)', t: 'check' },
   { k: 'headerSize', l: 'Velikost záhlaví/zápatí (px)', t: 'range', min: 14, max: 70, step: 1 },
   { k: 'showSections', l: 'Zobrazit nadpisy sekcí', t: 'check' },

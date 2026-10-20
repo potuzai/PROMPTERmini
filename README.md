@@ -55,9 +55,9 @@ Monitor čtečky během běhu programu neusne. Program se po případném pádu 
 
 ### Psaní textu
 
-**Seznam písní** zabírá dvě třetiny okna (interpret, název, tónina a tempo, kdo zpívá, štítky), vpravo je náhled vybrané písně: první stránka, tlačítka **Upravit** a **▶ Čtečka** a playlisty, ve kterých píseň je (i s pořadím). Klik = náhled, dvojklik nebo Enter = editor, šipky ↑↓ vybírají.
+**Seznam písní** zabírá dvě třetiny okna (interpret, název, ladění a BPM, kdo zpívá, štítky), vpravo je náhled vybrané písně: první stránka, tlačítka **Upravit** a **▶ Čtečka** a playlisty, ve kterých píseň je (i s pořadím). Klik = náhled, dvojklik nebo Enter = editor, šipky ↑↓ vybírají.
 
-V editoru je nahoře název a údaje písně (klikem je upravíš), **Uložit jako…** a **▶ Čtečka**. Uprostřed je přesně stránka čtečky: celý rozměr monitoru včetně záhlaví (název, interpret, tónina, BPM a pořadí v playlistu). Text se upravuje přímo v ní, bez značek.
+V editoru je nahoře název a údaje písně (klikem je upravíš), **Uložit jako…** a **▶ Čtečka**. Uprostřed je přesně stránka čtečky: celý rozměr monitoru včetně záhlaví (název, interpret, ladění, BPM a pořadí v playlistu). Text se upravuje přímo v ní, bez značek.
 
 **Ovládání jen šipkami a OK (airmouse):**
 

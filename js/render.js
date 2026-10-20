@@ -201,7 +201,7 @@ const Render = {
     });
     const hl = $('.st-h-left', stage), hr = $('.st-h-right', stage), fl = $('.st-f-left', stage), fr = $('.st-f-right', stage);
     hl.innerHTML = `<b>${esc(info.title || '')}</b>${info.artist ? ' <span class="dim">– ' + esc(info.artist) + '</span>' : ''}`;
-    hr.innerHTML = [info.key ? 'tónina ' + esc(info.key) : '', info.tempo ? esc(info.tempo) + ' BPM' : '', info.pos ? esc(info.pos) : '']
+    hr.innerHTML = [info.key ? 'ladění ' + esc(info.key) : '', info.tempo ? esc(info.tempo) + ' BPM' : '', info.pos ? esc(info.pos) : '']
       .filter(Boolean).join(' &nbsp;·&nbsp; ');
     const n = lay.pages.length;
     fl.innerHTML = n > 1 ? `strana ${pageIdx + 1}/${n}${pageIdx < n - 1 ? ' &nbsp;<span class="more">▼ pokračuje</span>' : ''}` : '';

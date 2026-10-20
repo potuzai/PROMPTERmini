@@ -28,7 +28,7 @@ const SongsView = {
           searchInp,
           h('button', { class: 'btn sl-push', title: 'Importovat písně z .txt souborů', onclick: () => importTxtFiles() }, '⇪ Import'),
           sortSel),
-        h('div', { class: 'sl-row sl-cols' }, h('span', {}, 'Interpret'), h('span', {}, 'Název'), h('span', {}, 'Tónina · tempo'), h('span', {}, 'Zpívá'), h('span', {}, 'Štítky')),
+        h('div', { class: 'sl-row sl-cols' }, h('span', {}, 'Interpret'), h('span', {}, 'Název'), h('span', {}, 'Ladění · BPM'), h('span', {}, 'Zpívá'), h('span', {}, 'Štítky')),
         list, count),
       prev));
     const sm = Store.singerMap();
@@ -161,7 +161,7 @@ class SongEditor {
 
     const act = (label, key, title, onclick, cls = '') => h('button', { class: 'tl wide act ' + cls, title, onclick }, h('span', { class: 'act-l' }, label), key ? h('kbd', {}, key) : null);
     this.structBox = h('div', { class: 'ep-struct' });
-    this.metaBtn = h('button', { class: 'ed-meta', title: 'Interpret, tónina, tempo, štítky, šablona (klikni pro úpravu)', onclick: () => this.metaDialog() });
+    this.metaBtn = h('button', { class: 'ed-meta', title: 'Interpret, ladění, BPM, štítky, šablona (klikni pro úpravu)', onclick: () => this.metaDialog() });
 
     // Horní řádek: zpět, název, údaje, uložení, čtečka
     this.head = h('div', { class: 'ed-top' },
@@ -191,7 +191,7 @@ class SongEditor {
           this.layersBtn)),
       h('div', { class: 'grow' }),
       h('div', { class: 'tl-grid2' },
-        tool('Údaje…', 'Interpret, tónina, tempo, štítky, šablona, playlist', () => this.metaDialog()),
+        tool('Údaje…', 'Interpret, ladění, BPM, štítky, šablona, playlist', () => this.metaDialog()),
         tool('Do playlistu', 'Přidat do playlistu', e => addToPlaylistMenu(e.currentTarget, [this.id])),
         tool('Uložit', 'Uložit hned (Ctrl+S) – jinak se ukládá samo', () => this.save(true)),
         tool('Další ▾', 'Export, smazání písně', e => popupMenu(e.currentTarget, [
@@ -300,7 +300,7 @@ class SongEditor {
     const f = (label, el) => h('label', { class: 'f' }, h('span', {}, label), el);
     const box = h('div', { class: 'meta-dlg' },
       f('Interpret', this.inArtist),
-      h('div', { class: 'grid2' }, f('Tónina', this.inKey), f('Tempo (BPM)', this.inTempo)),
+      h('div', { class: 'grid2' }, f('Ladění', this.inKey), f('Tempo (BPM)', this.inTempo)),
       f('Štítky (oddělené čárkou)', this.inTags),
       f('Šablona písně', this.inTpl),
       f('Ukázat jako v playlistu', this.inPl),
@@ -346,10 +346,10 @@ class SongEditor {
   }
   screen() { return Screens.get(this.screenId); }
   breakLine() { return this.screenId === 'main' ? '---' : '--- ' + this.screenId; }
-  /* Údaje pod názvem (interpret · tónina · tempo) */
+  /* Údaje pod názvem (interpret · ladění · BPM) */
   paintMeta() {
     const t = [this.inArtist.value.trim(), this.inKey.value.trim(), this.inTempo.value.trim() ? this.inTempo.value.trim() + ' BPM' : ''].filter(Boolean).join(' · ');
-    this.metaBtn.textContent = t || 'Doplnit interpreta, tóninu, tempo…';
+    this.metaBtn.textContent = t || 'Doplnit interpreta, ladění, BPM…';
     this.metaBtn.classList.toggle('empty', !t);
   }
   /* Struktura písně vlevo: sekce, opakování, konce stránek – klik skočí na sekci */

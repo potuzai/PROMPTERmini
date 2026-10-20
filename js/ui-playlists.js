@@ -46,7 +46,10 @@ const PlaylistsView = {
             const s = Store.songs.get(id);
             return h('li', { class: s ? '' : 'missing', onclick: () => { if (s) location.hash = '#/songs/' + id; }, title: s ? 'Otevřít píseň' : '' },
               h('b', {}, s ? s.title : '(smazaná píseň)'),
-              s ? h('span', {}, [s.artist, s.key, s.tempo ? s.tempo + ' BPM' : ''].filter(Boolean).join(' · ')) : null);
+              s ? h('span', {}, s.artist || ' ') : null,
+              s ? h('em', { class: 'pl-prev-keys', title: 'Ladění a tempo (doplníš v údajích písně)' },
+                h('i', { class: s.key ? '' : 'none' }, 'ladění ' + (s.key || '—')),
+                h('i', { class: s.tempo ? '' : 'none' }, (s.tempo || '—') + ' BPM')) : null);
           }))
           : h('div', { class: 'help pl-prev-empty' }, 'Playlist je zatím prázdný.'));
     };
@@ -315,7 +318,7 @@ function buildPrintPlaylist(pl, o) {
         h('header', {},
           h('div', { class: 'pr-num' }, String(i + 1)),
           h('div', { class: 'pr-title' }, h('h2', {}, s.title), s.artist ? h('div', { class: 'pr-artist' }, s.artist) : null),
-          h('div', { class: 'pr-keys' }, [s.key ? 'tónina ' + s.key : '', s.tempo ? s.tempo + ' BPM' : ''].filter(Boolean).join(' · '))),
+          h('div', { class: 'pr-keys' }, [s.key ? 'ladění ' + s.key : '', s.tempo ? s.tempo + ' BPM' : ''].filter(Boolean).join(' · '))),
         body);
     });
     const legend = h('div', { class: 'pr-legend' }, 'Zpěváci: ', [...used].map(c => map[c]).filter(Boolean).map(x =>
