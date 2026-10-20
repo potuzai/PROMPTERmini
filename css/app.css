@@ -201,12 +201,12 @@ kbd { font: 600 11px/1 var(--mono); padding: 3px 5px; border: 1px solid var(--li
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { padding: 3px 11px; border-radius: 999px; border: 1px solid var(--line2); background: var(--well); color: var(--text); font-size: 12.5px; cursor: pointer; }
 .chip:hover { border-color: var(--acc); }
-.sl-cols { padding: 8px 22px; font-size: 11.5px; color: var(--dim); border-bottom: 1px solid var(--line); }
-.big-list .list .item.sl-row { padding: 11px 22px; border-bottom: 1px solid var(--line); border-radius: 0; }
+.sl-cols { margin: 0 12px; padding: 8px 10px; font-size: 11.5px; color: var(--dim); border-bottom: 1px solid var(--line); }
+.big-list .list .item.sl-row { margin: 0 12px; padding: 11px 10px; border-bottom: 1px solid var(--line); border-radius: var(--r); }   /* řádky neleží až na krajích panelu; text lícuje se záhlavím */
 .big-list .list .item.sl-row:hover { background: var(--hover); }
 .sl-row.pl-row { grid-template-columns: 110px minmax(180px, 1.6fr) 90px minmax(100px, 1fr); }
 /* Připraveno k přehrání: vlastní pořadí nad ostatními playlisty */
-.pl-sec { display: flex; align-items: baseline; gap: 8px; padding: 14px 22px 6px; font-size: 11.5px; letter-spacing: .04em; color: var(--dim); border-bottom: 1px solid var(--line); }
+.pl-sec { display: flex; align-items: baseline; gap: 8px; margin: 0 12px; padding: 14px 10px 6px; font-size: 11.5px; letter-spacing: .04em; color: var(--dim); border-bottom: 1px solid var(--line); }
 .pl-sec b { font-weight: 600; }
 .pl-sec-ready { color: var(--acc-hi); }
 .pl-sec-ready span { min-width: 18px; padding: 0 6px; border-radius: 9px; background: var(--acc-soft); color: var(--acc-hi); text-align: center; }
