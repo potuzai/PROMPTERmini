@@ -1,14 +1,14 @@
 {
   "name": "prompter-mini",
   "productName": "PROMPTER mini",
-  "version": "1.24.0",
+  "version": "1.24.1",
   "description": "Čtečka a editor textů písní pro kapelu",
   "main": "electron/main.js",
   "private": true,
   "scripts": {
     "start": "electron .",
-    "build:win": "electron-packager . \"PROMPTER mini\" --platform=win32 --arch=x64 --out=dist --overwrite --icon=img/icon.ico --ignore=^/dist --ignore=^/local-data --ignore=^/tests --ignore=^/\\.github --ignore=^/vendor --ignore=^/tools --ignore=^/\\.claude",
-    "build:win32": "electron-packager . \"PROMPTER mini\" --platform=win32 --arch=ia32 --out=dist --overwrite --icon=img/icon.ico --ignore=^/dist --ignore=^/local-data --ignore=^/tests --ignore=^/\\.github --ignore=^/vendor --ignore=^/tools --ignore=^/\\.claude",
+    "build:win": "electron-packager . \"PROMPTER mini\" --platform=win32 --arch=x64 --out=dist --overwrite --icon=img/icon.ico --ignore=\"^/dist\" --ignore=\"^/local-data\" --ignore=\"^/tests\" --ignore=\"^/\\.github\" --ignore=\"^/vendor\" --ignore=\"^/tools\" --ignore=\"^/\\.claude\"",
+    "build:win32": "electron-packager . \"PROMPTER mini\" --platform=win32 --arch=ia32 --out=dist --overwrite --icon=img/icon.ico --ignore=\"^/dist\" --ignore=\"^/local-data\" --ignore=\"^/tests\" --ignore=\"^/\\.github\" --ignore=\"^/vendor\" --ignore=\"^/tools\" --ignore=\"^/\\.claude\"",
     "test": "node tests/run-all.js"
   },
   "devDependencies": {
