@@ -28,7 +28,9 @@ for (const f of fs.readdirSync(path.join(root, 'css'))) {
 setTimeout(() => {
   let failed = process.exitCode === 1;
   const xvfb = process.platform === 'linux' && !process.env.DISPLAY;
+  const only = process.argv.slice(2);   // např. „node tests/run-all.js full stage“ spustí jen vybrané
   for (const t of ['test-ui.js', 'test-full.js', 'test-stage.js', 'test-design.js', 'test-mobile.js', 'test-sync.js', 'test-folder.js', 'test-mega-order.js', 'test-mega-sc.js', 'test-mega.js', 'test-electron.js']) {
+    if (only.length && !only.some(o => t.includes(o))) continue;
     console.log('\n=== ' + t);
     const args = [path.join(__dirname, t)];
     const r = xvfb && /folder|mega|electron/.test(t) ? spawnSync('xvfb-run', ['-a', process.execPath, ...args], { stdio: 'inherit' }) : spawnSync(process.execPath, args, { stdio: 'inherit' });

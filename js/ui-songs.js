@@ -121,6 +121,9 @@ class SongEditor {
     // náhled pro obrazovku: naposledy zvolená v tomto zařízení, jinak vlastní obrazovka zařízení
     this.screenId = Screens.get(Settings.get('editScreen') || Screens.editId()).id;
     this.build(song);
+    const ed = this;
+    App.edit = { get what() { return `Píseň „${ed.inTitle.value.trim() || 'bez názvu'}“`; },
+      dirty: () => ed.dirty, save: m => ed.save(m), saveAs: stay => ed.saveAs(stay) };
   }
 
   /* Rozložení: uprostřed stránka čtečky (upravuje se přímo v ní), vpravo úzký klidný panel
@@ -171,7 +174,8 @@ class SongEditor {
       this.inTitle, this.metaBtn,
       h('span', { class: 'grow' }),
       this.savedInd,
-      h('button', { class: 'btn', title: 'Uložit jako novou píseň pod jiným názvem', onclick: () => this.saveAs() }, 'Uložit jako…'),
+      this.saveBtn = h('button', { class: 'btn', title: 'Uložit změny (Ctrl+S)', onclick: () => this.save(true) }, '💾 Uložit'),
+      h('button', { class: 'btn', title: 'Uložit jako novou píseň pod jiným názvem (původní zůstane beze změny)', onclick: () => this.saveAs() }, 'Uložit jako…'),
       h('button', { class: 'btn primary', title: 'Otevřít ve čtečce přes celou obrazovku', onclick: () => this.openReader() }, '▶ Čtečka'));
 
     // Levý sloupec: struktura písně, zpěváci, celá píseň
@@ -194,7 +198,7 @@ class SongEditor {
       h('div', { class: 'tl-grid2' },
         tool('Údaje…', 'Interpret, ladění, BPM, štítky, šablona, playlist', () => this.metaDialog()),
         tool('Do playlistu', 'Přidat do playlistu', e => addToPlaylistMenu(e.currentTarget, [this.id])),
-        tool('Uložit', 'Uložit hned (Ctrl+S) – jinak se ukládá samo', () => this.save(true)),
+        tool('Uložit', 'Uložit změny (Ctrl+S)', () => this.save(true)),
         tool('Další ▾', 'Export, smazání písně', e => popupMenu(e.currentTarget, [
           { label: 'Export .txt', action: () => this.exportTxt() },
           { label: 'Smazat píseň', action: () => this.del() }]))));
@@ -272,18 +276,20 @@ class SongEditor {
     setTimeout(() => { if (!document.activeElement || document.activeElement === document.body) this.stageWrap.focus({ preventScroll: true }); }, 0);
   }
 
-  /* Uložit jako novou píseň (jiný název) */
-  async saveAs() {
+  /* Uložit jako novou píseň (jiný název); původní píseň zůstane, jak byla naposledy uložená.
+     stay = volá se při odchodu ze stránky – pak se na novou píseň nepřechází. */
+  async saveAs(stay) {
     this.se.finishEdit(true);
     const title = await promptDlg('Uložit jako novou píseň – název', this.inTitle.value.trim() + ' (2)');
-    if (!title) return;
-    await this.save();
+    if (!title) return false;
     const s = clone(this.collect());
     s.id = uid(); s.title = title;
     delete s.sample;
     await Store.put('songs', s);
+    this.dirty = false;
     toast('Uloženo jako „' + title + '“', 'ok');
-    location.hash = '#/songs/' + s.id;
+    if (!stay) location.hash = '#/songs/' + s.id;
+    return true;
   }
   /* Vložit text ze schránky (pro airmouse bez Ctrl+V: okno s polem) */
   async pasteDialog() {
@@ -426,19 +432,21 @@ class SongEditor {
   }
   markDirty() {
     this.dirty = true;
-    this.savedInd.textContent = 'Neuloženo…';
-    clearTimeout(this.saveT);
-    this.saveT = setTimeout(() => this.save(), 1500);
+    this.savedInd.textContent = 'Neuloženo';
+    this.savedInd.classList.add('dirty');
+    this.saveBtn.classList.add('primary');
   }
   async save(manual) {
-    clearTimeout(this.saveT);
     if (!this.dirty && !manual) return;
     if (!Store.songs.has(this.id)) return;
+    this.se.finishEdit(true);
     const s = this.collect();
     this.dirty = false;
     await Store.put('songs', s);
     this.savedInd.textContent = 'Uloženo';
     this.savedInd.title = fmtDate(s.updatedAt);
+    this.savedInd.classList.remove('dirty');
+    this.saveBtn.classList.remove('primary');
     if (manual) toast('Uloženo', 'ok', 1500);
   }
 
@@ -640,15 +648,14 @@ class SongEditor {
     const inPl = [...Store.playlists.values()].filter(p => p.items.includes(this.id));
     const ok = await confirmDlg(`Opravdu smazat píseň „${s.title}“?` + (inPl.length ? ` Odebere se i z ${inPl.length} playlistu/ů.` : ''), 'Smazat', true);
     if (!ok) return;
-    clearTimeout(this.saveT);
+    this.dirty = false;
     for (const p of inPl) { p.items = p.items.filter(x => x !== this.id); await Store.put('playlists', p); }
     await Store.remove('songs', this.id);
     location.hash = '#/songs';
   }
-  async openReader() {
+  openReader() {
     this.se.finishEdit(true);
-    await this.save();
-    location.hash = '#/reader/song:' + this.id;
+    location.hash = '#/reader/song:' + this.id;   // s neuloženými změnami se App zeptá
   }
 }
 
@@ -762,7 +769,7 @@ function showMarkupHelp() {
     h('div', { class: 'help-tips' },
       h('h3', {}, 'Dobré vědět'),
       h('ul', {},
-        h('li', {}, 'Ukládá se samo. Tlačítko ', b('Uložit'), ' (nebo ', k('Ctrl'), '+', k('S'), ') jen uloží hned.'),
+        h('li', {}, 'Změny se ukládají tlačítkem ', b('Uložit'), ' (nebo ', k('Ctrl'), '+', k('S'), '). Při odchodu s neuloženými změnami se aplikace zeptá: uložit, uložit jako, zahodit, nebo zůstat.'),
         h('li', {}, 'Krok zpět: ', k('Ctrl'), '+', k('Z'), '.'),
         h('li', {}, 'Zpěváky a jejich barvy upravíš v záložce ', b('Obsazení'), ', vzhled stránky v ', b('Šablonách'), '.'))),
     h('details', { class: 'help-adv' }, h('summary', {}, 'Pro pokročilé: co znamenají značky v textu'),

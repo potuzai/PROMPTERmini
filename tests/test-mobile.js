@@ -30,6 +30,7 @@ const URL = process.env.APP_URL || 'http://localhost:8123/index.html';
   await p.keyboard.press('End'); await p.keyboard.type(' x'); await sleep(200);
   assert(await p.evaluate(() => SongsView.editor.src.includes('@J řádek 3 x')), 'psaní v telefonu (klepnout, znovu klepnout, psát)');
   await p.keyboard.press('Escape');
+  await p.keyboard.press('Control+S'); await sleep(200);
   await p.tap('.ep-back'); await sleep(300);
   assert(await p.isVisible('.side'), 'tlačítko zpět vede na seznam');
   await p.evaluate(() => { location.hash = '#/reader/mp'; }); await sleep(500);

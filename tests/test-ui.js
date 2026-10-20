@@ -57,9 +57,12 @@ const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode
   await p.click('.ed-panel .sw >> nth=1');
   await p.waitForTimeout(300);
   assert((await src()).includes('@T refrén druhý'), 'tlačítko zpěváka obarví vybraný řádek');
-  await p.waitForTimeout(1800); // autosave
-  const saved = await p.evaluate(() => [...Store.songs.values()].find(s => s.title === 'Testovací').text);
-  assert(saved.includes('@T refrén druhý'), 'automatické uložení');
+  // ukládá se ručně: před uložením je píseň v úložišti beze změny, Ctrl+S ji uloží
+  const stored = () => p.evaluate(() => [...Store.songs.values()].find(s => s.title === 'Testovací').text);
+  await p.waitForTimeout(1800);
+  assert(!(await stored()).includes('@T refrén druhý') && await p.isVisible('.ed-top .saved-ind.dirty'), 'bez uložení se nic neuloží (ukazuje „Neuloženo“)');
+  await p.keyboard.press('Control+S'); await p.waitForTimeout(300);
+  assert((await stored()).includes('@T refrén druhý'), 'uložení Ctrl+S');
   await p.screenshot({ path: '/tmp/claude-0/shots/5-edit.png' });
 
   // playlist
@@ -101,6 +104,15 @@ const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode
   await p.click('.modal-buttons button:has-text("Zrušit")');
   await p.waitForTimeout(200);
   assert((await p.$$('.pl-item')).length === 2, 'po zrušení píseň v playlistu zůstala');
+  // odchod s neuloženými změnami: dotaz Uložit / Uložit jako / Zahodit / Zůstat
+  const plStored = () => p.evaluate(() => [...Store.playlists.values()].find(x => x.items.length === 2) ? 2 : 0);
+  assert(await plStored() === 0, 'playlist se bez uložení neuloží');
+  await p.click('button.pl-back');
+  assert(await p.isVisible('.modal-title:has-text("Neuložené změny")'), 'odchod s neuloženými změnami se ptá');
+  await p.click('.modal-buttons button:has-text("Zůstat")'); await p.waitForTimeout(200);
+  assert(await p.isVisible('.pl-songs'), 'Zůstat nechá úpravu otevřenou');
+  await p.click('.bottom-actions button:has-text("Uložit")'); await p.waitForTimeout(300);
+  assert(await plStored() === 2, 'tlačítko Uložit playlist uloží');
   await p.screenshot({ path: '/tmp/claude-0/shots/6-playlist.png' });
   // čtečka
   await p.click('button:has-text("Spustit ve čtečce")');

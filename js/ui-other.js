@@ -79,16 +79,40 @@ const TemplatesView = {
     location.hash = '#/templates/' + t.id;
   },
 
+  /* Úprava šablony: na kopii, uloží se tlačítkem Uložit (Ctrl+S); při odchodu se App zeptá */
   editor(root, tpl) {
     const t = Object.assign(clone(DEFAULT_TEMPLATE), tpl);
-    const save = debounce(() => { Store.put('templates', t); }, 700);
+    let dirty = false;
+    const savedInd = h('span', { class: 'saved-ind' });
+    const saveBtn = h('button', { class: 'btn nogrow', title: 'Uložit změny (Ctrl+S)', onclick: () => save(true) }, '💾 Uložit');
+    const paintSaved = () => { savedInd.textContent = dirty ? 'Neuloženo' : ''; savedInd.classList.toggle('dirty', dirty); saveBtn.classList.toggle('primary', dirty); };
+    const markDirty = () => { dirty = true; paintSaved(); };
+    const save = async manual => {
+      if (!dirty && !manual) return;
+      dirty = false;
+      await Store.put('templates', clone(t));
+      paintSaved();
+      if (manual) toast('Uloženo', 'ok', 1500);
+    };
+    const saveAs = async stay => {   // nová šablona ze současného nastavení; původní zůstane, jak byla uložená
+      const name = await promptDlg('Uložit jako novou šablonu – název', t.name + ' (2)');
+      if (!name) return false;
+      const c = Object.assign(clone(t), { id: uid(), name });
+      await Store.put('templates', c);
+      dirty = false;
+      toast('Uloženo jako „' + name + '“', 'ok');
+      if (!stay) location.hash = '#/templates/' + c.id;
+      return true;
+    };
+    App.edit = { get what() { return `Šablona „${t.name || 'bez názvu'}“`; }, dirty: () => dirty, save, saveAs };
     const form = h('div', { class: 'tpl-form' });
     const nameInp = h('input', { class: 'inp', value: t.name });
-    nameInp.oninput = () => { t.name = nameInp.value; save(); };
+    nameInp.oninput = () => { t.name = nameInp.value; markDirty(); };
     form.append(h('label', { class: 'f', style: { marginBottom: '10px' } }, h('span', {}, 'Název šablony'), nameInp),
+      h('div', { class: 'row', style: { marginBottom: '12px', alignItems: 'center' } }, saveBtn,
+        h('button', { class: 'btn nogrow', title: 'Uložit jako novou šablonu (původní zůstane beze změny)', onclick: () => saveAs() }, 'Uložit jako…'), savedInd),
       h('div', { class: 'row', style: { marginBottom: '12px' } },
         h('button', { class: 'btn', onclick: async () => { Settings.set('defaultTemplate', t.id); this.paintSide(); toast('Nastaveno jako výchozí šablona', 'ok'); } }, '★ Nastavit jako výchozí'),
-        h('button', { class: 'btn', onclick: () => this.create(t.id) }, '⧉ Kopie'),
         t.id !== 'default' ? h('button', { class: 'btn danger nogrow', onclick: () => this.del(t) }, '🗑') : null));
     let fs = null;
     for (const f of TPL_FIELDS) {
@@ -132,7 +156,7 @@ const TemplatesView = {
       Render.fit(stage, prevWrap, W, H, t.mirror);
       pageLbl.textContent = `strana ${this.page + 1}/${lay.pages.length}` + (lay.k < 0.999 ? ` · písmo zmenšeno na ${Math.round(lay.k * 100)} %` : '');
     };
-    const upd = () => { save(); clearTimeout(this._pt); this._pt = setTimeout(paint, 60); };
+    const upd = () => { markDirty(); clearTimeout(this._pt); this._pt = setTimeout(paint, 60); };
     songSel.onchange = () => { this.previewSong = songSel.value; this.page = 0; paint(); };
     root.appendChild(h('div', { class: 'tpl-layout' }, form,
       h('div', { class: 'tpl-preview' },
@@ -149,6 +173,7 @@ const TemplatesView = {
     if (!await confirmDlg(`Smazat šablonu „${t.name}“? Písně a playlisty s ní přejdou na výchozí šablonu.`, 'Smazat', true)) return;
     if (Settings.get('defaultTemplate') === t.id) Settings.set('defaultTemplate', 'default');
     await Store.remove('templates', t.id);
+    App.edit = null;   // smazanou šablonu už není co ukládat
     location.hash = '#/templates';
   },
 };

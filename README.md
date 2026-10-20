@@ -59,6 +59,10 @@ Monitor čtečky během běhu programu neusne. Program se po případném pádu 
 
 **V úpravě playlistu** přidáš píseň psaním do pole **Přidat píseň…** (nabídnou se shody, Enter přidá) nebo jich vybereš víc najednou přes **Vybrat z knihovny…**. Vedle pole je políčko **pořadí**: píseň se přidá rovnou jako zadané číslo. Pořadí písně v seznamu změníš kliknutím na její číslo. Na obsazené číslo se nová píseň vloží po potvrzení a ostatní se posunou. U písně, která už v seznamu je, si vybereš, jestli písně prohodit, nebo ji vložit a ostatní posunout. Při výběru z knihovny se písně přidají v pořadí, v jakém je označuješ (pořadí ukazuje číslo u zaškrtnutí), a lze zadat **Vložit od pořadí**. Pořadí změníš také přetažením myší. Odebrání písně z playlistu (✕) se vždy potvrzuje. Tlačítkem **Ve sloupcích / Jeden sloupec** přepneš zobrazení; sloupců je tolik, kolik se jich do šířky okna vejde se všemi údaji (u krátkých playlistů jeden). **Seřadit…** jednorázově přeřadí písně podle kapely, názvu, BPM, ladění nebo délky. **＋ Čára pro přídavky** oddělí písně, které jsou jen jako možné přídavky. Čára je vidět i ve čtečce a v tisku.
 
+### Ukládání
+
+Písně, playlisty i šablony se ukládají **ručně**: tlačítkem **💾 Uložit** nebo **Ctrl+S**. Neuložené změny ukazuje nápis „Neuloženo“ a zvýrazněné tlačítko Uložit. Když odcházíš s neuloženými změnami (jiná záložka, zpět, čtečka, zavření okna), aplikace se zeptá: **Uložit**, **Uložit jako…** (vznikne nová píseň / playlist / šablona, původní zůstane beze změny), **Zahodit**, nebo **Zůstat**. Nastavení, Obsazení (zpěváci a nástroje) a sekce „Připraveno k přehrání“ se ukládají hned.
+
 ### Psaní textu
 
 **Seznam písní** zabírá dvě třetiny okna (interpret, název, ladění a BPM, kdo zpívá, štítky), vpravo je náhled vybrané písně: první stránka, tlačítka **Upravit** a **▶ Čtečka** a playlisty, ve kterých píseň je (i s pořadím). Klik = náhled, dvojklik nebo Enter = editor, šipky ↑↓ vybírají.

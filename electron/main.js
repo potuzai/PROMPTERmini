@@ -241,6 +241,12 @@ function createWindow() {
     if (/^https?:/.test(url)) { shell.openExternal(url); return { action: 'deny' }; }
     return { action: 'allow', overrideBrowserWindowOptions: { autoHideMenuBar: true, fullscreen: false } };
   });
+  // zavření okna s neuloženými změnami (stránka zrušila „beforeunload“): zeptat se, jestli opravdu zavřít
+  win.webContents.on('will-prevent-unload', e => {
+    const r = dialog.showMessageBoxSync(win, { type: 'question', buttons: ['Zůstat', 'Zavřít bez uložení'], defaultId: 0, cancelId: 0,
+      title: 'Neuložené změny', message: 'Máš neuložené změny.', detail: 'Vrať se a ulož je (Ctrl+S), nebo okno zavři a změny zahoď.' });
+    if (r === 1) e.preventDefault();   // preventDefault = nechat stránku zavřít
+  });
   win.webContents.on('will-navigate', (e, url) => { if (!url.startsWith('file:')) { e.preventDefault(); shell.openExternal(url); } });
   // Když by se stránka zhroutila, automaticky ji obnovit
   win.webContents.on('render-process-gone', () => setTimeout(() => { if (!win.isDestroyed()) win.reload(); }, 500));

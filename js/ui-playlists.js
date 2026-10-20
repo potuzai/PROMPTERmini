@@ -168,15 +168,44 @@ const PlaylistsView = {
     location.hash = '#/playlists/' + p.id;
   },
 
-  editor(root, pl) {
-    const save = debounce(() => Store.put('playlists', pl), 600);
+  /* Úprava playlistu: pracuje se na kopii, uloží se až tlačítkem Uložit (Ctrl+S); při odchodu se App zeptá */
+  editor(root, stored) {
+    const pl = clone(stored);
+    let dirty = false;
+    const savedInd = h('span', { class: 'saved-ind' });
+    const saveBtn = h('button', { class: 'btn', title: 'Uložit změny (Ctrl+S)', onclick: () => save(true) }, '💾 Uložit');
+    const paintSaved = () => {
+      savedInd.textContent = dirty ? 'Neuloženo' : pl.updatedBy ? `Upravil(a) ${pl.updatedBy}, ${fmtDate(pl.updatedAt)}` : '';
+      savedInd.classList.toggle('dirty', dirty);
+      saveBtn.classList.toggle('primary', dirty);
+    };
+    const markDirty = () => { dirty = true; paintSaved(); };
+    const save = async manual => {
+      if (!dirty && !manual) return;
+      dirty = false;
+      const saved = await Store.put('playlists', clone(pl));
+      pl.updatedAt = saved.updatedAt; pl.updatedBy = saved.updatedBy;
+      paintSaved();
+      if (manual) toast('Uloženo', 'ok', 1500);
+    };
+    const saveAs = async stay => {   // nový playlist ze současného stavu; původní zůstane, jak byl uložený
+      const name = await promptDlg('Uložit jako nový playlist – název', (pl.name || 'Playlist') + ' (2)');
+      if (!name) return false;
+      const c = clone(pl); c.id = uid(); c.name = name; delete c.ready;
+      await Store.put('playlists', c);
+      dirty = false;
+      toast('Uloženo jako „' + name + '“', 'ok');
+      if (!stay) location.hash = '#/playlists/' + c.id;
+      return true;
+    };
+    App.edit = { get what() { return `Playlist „${pl.name || 'bez názvu'}“`; }, dirty: () => dirty, save, saveAs };
     const f = (label, el) => h('label', { class: 'f' }, h('span', {}, label), el);
     const inName = h('input', { class: 'inp', value: pl.name || '' });
     const inDate = h('input', { class: 'inp', type: 'date', value: pl.date || '' });
     const inNote = h('input', { class: 'inp', value: pl.note || '', placeholder: 'místo, čas, poznámka…' });
-    inName.oninput = () => { pl.name = inName.value; save(); };
-    inDate.onchange = () => { pl.date = inDate.value; save(); };
-    inNote.oninput = () => { pl.note = inNote.value; save(); };
+    inName.oninput = () => { pl.name = inName.value; markDirty(); };
+    inDate.onchange = () => { pl.date = inDate.value; markDirty(); };
+    inNote.oninput = () => { pl.note = inNote.value; markDirty(); };
 
     const itemsBox = h('div', { class: 'list' });
     const countLbl = h('span', { class: 'dim' });
@@ -187,7 +216,7 @@ const PlaylistsView = {
       const at = rows.indexOf(LINE);
       pl.items = rows.filter(r => r !== LINE);
       if (at >= 0) pl.encore = at; else delete pl.encore;
-      Store.put('playlists', pl); paintItems();
+      markDirty(); paintItems();
     };
     const addSong = id => { const at = rows.indexOf(LINE); rows.splice(at >= 0 ? at : rows.length, 0, id); commit(); };   // nová píseň nad čáru
     // Číslo pořadí (1 = první píseň; čára se nepočítá). Obsazené číslo: nová píseň se vloží (po potvrzení), přesouvaná jde i prohodit.
@@ -409,18 +438,21 @@ const PlaylistsView = {
           onclick: async e => {
             const b = e.currentTarget;
             await this.setReady(pl.id, isReadyPl(pl) ? false : null);
+            const st = Store.playlists.get(pl.id);   // „připraveno“ se ukládá hned (pořadí sekce), kopie ho jen převezme
+            if (st && isReadyPl(st)) pl.ready = st.ready; else delete pl.ready;
             b.classList.toggle('on', isReadyPl(pl));
             b.replaceChildren(...glyphToIcon(isReadyPl(pl) ? '★ Připraveno' : '★ Připravit k přehrání'));
           } },
           isReadyPl(pl) ? '★ Připraveno' : '★ Připravit k přehrání'),
         h('span', { class: 'grow' }),
-        h('span', { class: 'saved-ind' }, pl.updatedBy ? `Upravil(a) ${pl.updatedBy}, ${fmtDate(pl.updatedAt)}` : ''),
+        savedInd, saveBtn,
+        h('button', { class: 'btn', title: 'Uložit jako nový playlist (původní zůstane beze změny)', onclick: () => saveAs() }, 'Uložit jako…'),
         h('button', { class: 'btn danger', onclick: () => this.del(pl) }, '🗑 Smazat')),
       h('div', { class: 'pl-col pl-songs' },
         h('div', { class: 'pl-add' }, quickAdd(), h('button', { class: 'btn', onclick: pickDialog }, '⧉ Vybrat z knihovny…')),
         h('div', { class: 'head' }, h('b', {}, 'Pořadí písní'), countLbl, h('span', { class: 'grow', style: { flex: 1 } }), colsBtn, lineBtn, sortSel),
         itemsBox));
-    paintItems();
+    paintItems(); paintSaved();
   },
 
   async duplicate(pl) {
@@ -431,6 +463,7 @@ const PlaylistsView = {
   async del(pl) {
     if (!await confirmDlg(`Smazat playlist „${pl.name}“? Písně zůstanou v knihovně.`, 'Smazat', true)) return;
     await Store.remove('playlists', pl.id);
+    App.edit = null;   // smazaný playlist už není co ukládat
     App.home();
   },
   async print(pl) {

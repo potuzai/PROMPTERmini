@@ -111,6 +111,7 @@ const URL = 'http://localhost:8123/index.html';
       // soukromá poznámka a zvýraznění mých řádků
       await r.fill('.ep-priv', 'nádech před refrénem'); await sleep(500);
       assert(await r.evaluate(() => PrivateNotes.get('tb') === 'nádech před refrénem' && !Store.songs.get('tb').text.includes('nádech')), 'soukromá poznámka se uloží jen do zařízení, ne do písně');
+      await r.keyboard.press('Control+S'); await sleep(200);
       await r.evaluate(() => { Settings.set('mySinger', 'J'); Settings.set('highlightMine', true); location.hash = '#/reader/song:tb'; }); await sleep(700);
       assert(await r.isVisible('#reader .b-note.private:has-text("nádech")'), 'čtečka: soukromá poznámka nahoře');
       await r.evaluate(() => Reader.next()); await sleep(200);
@@ -170,6 +171,7 @@ const URL = 'http://localhost:8123/index.html';
     assert((await q.evaluate(() => SongsView.editor.src)).includes('## Refrén @T'), 'klik na zpěváka v legendě přiřadí sekci');
 
     /* ----- Čtečka: lišta, seznam, nabídka ----- */
+    await q.keyboard.press('Control+S'); await sleep(200);
     await q.evaluate(() => { location.hash = '#/reader/p1/0'; }); await sleep(600);
     await q.mouse.move(700, 400); await q.mouse.move(700, 800); await sleep(300);
     assert(await q.isVisible('#reader.bar-on .r-bar') && await q.isVisible('.r-binfo:has-text("Píseň 1 / 2")'), 'pohyb myši dolů ukáže ovládací lištu');

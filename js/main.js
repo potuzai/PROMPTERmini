@@ -2,6 +2,9 @@
 /* ===== Aplikace: směrování, horní lišta ===== */
 const App = {
   lastEditHash: '',
+  // Rozpracované úpravy (píseň, playlist, šablona): editor se zapíše do App.edit = { what, dirty(), save(), saveAs() }.
+  // Ukládá se ručně (Uložit / Ctrl+S); při odchodu s neuloženými změnami se aplikace zeptá.
+  edit: null,
   current: '',
 
   async init() {
@@ -21,13 +24,14 @@ const App = {
     Reader.init();
     Sync.on(() => { this.paintSync(); if (SettingsView.onSync) SettingsView.onSync(); });
     Store.on((type, id) => this.onStore(type, id));
-    window.addEventListener('hashchange', () => this.go());   // i zpět na úvodní stránku bez #
+    window.addEventListener('hashchange', () => this.onHash());   // i zpět na úvodní stránku bez #
     document.addEventListener('keydown', e => {
       if (Reader.isOpen()) return;
-      if (e.ctrlKey && (e.key === 's' || e.key === 'S')) { e.preventDefault(); if (SongsView.editor) SongsView.editor.save(true); }
+      if (e.ctrlKey && (e.key === 's' || e.key === 'S')) { e.preventDefault(); if (this.edit) this.edit.save(true); }
       if (e.key === 'F5' && window.native) { e.preventDefault(); }
     });
-    window.addEventListener('beforeunload', () => { if (SongsView.editor && SongsView.editor.dirty) SongsView.editor.save(); });
+    // zavření okna / obnovení stránky s neuloženými změnami: prohlížeč (v programu okno) se zeptá
+    window.addEventListener('beforeunload', e => { if (this.isDirty()) { e.preventDefault(); e.returnValue = ''; } });
     // Drag & drop .txt/.json souborů kamkoli do okna
     document.addEventListener('dragover', e => { if (e.dataTransfer && [...e.dataTransfer.types].includes('Files')) e.preventDefault(); });
     document.addEventListener('drop', e => {
@@ -100,8 +104,35 @@ const App = {
 
   /* Úvodní stránka (playlisty) – adresa bez # */
   homeUrl() { return location.pathname + location.search; },
-  home() {
+  async home() {
+    if (!await this.leaveOk()) return;
     if (location.hash) history.pushState(null, '', this.homeUrl());
+    this.go();
+  },
+
+  /* ----- Neuložené změny ----- */
+  isDirty() { return !!(this.edit && this.edit.dirty()); },
+  async leaveOk() {
+    const e = this.edit;
+    if (!e || !e.dirty()) return true;
+    const v = await modal({ title: 'Neuložené změny', body: h('p', {}, `${e.what} má neuložené změny. Co s nimi?`),
+      buttons: [{ label: 'Zůstat', value: null }, { label: 'Zahodit', value: 'drop', danger: true },
+        e.saveAs ? { label: 'Uložit jako…', value: 'as' } : null, { label: 'Uložit', value: 'save', primary: true }].filter(Boolean) });
+    if (!v) return false;
+    if (v === 'save') await e.save();
+    if (v === 'as' && !await e.saveAs(true)) return false;
+    this.edit = null;
+    return true;
+  },
+  // změna adresy (odkaz, zpět, jiná záložka): s neuloženými změnami nejdřív zůstat na místě a zeptat se
+  async onHash() {
+    if (this.isDirty() && this.here && location.href !== this.here) {
+      const to = location.href;
+      history.replaceState(null, '', this.here);
+      if (!await this.leaveOk()) return;
+      location.href = to;
+      return;
+    }
     this.go();
   },
   nav(view) { if (view === 'playlists') this.home(); else location.hash = '#/' + view; },
@@ -148,8 +179,8 @@ const App = {
     if (Reader.isOpen()) return;
     const [view, param] = this.parseHash();
     if (type === 'sync') {
-      // změny od ostatních – překreslit, ale neztratit rozepsanou píseň
-      if (view === 'songs' && SongsView.editor && SongsView.editor.dirty) { SongsView.paintList && SongsView.paintList(); return; }
+      // změny od ostatních – překreslit, ale neztratit rozpracované úpravy
+      if (this.isDirty()) { if (SongsView.paintList) SongsView.paintList(); if (PlaylistsView.paintSide) PlaylistsView.paintSide(); if (TemplatesView.paintSide) TemplatesView.paintSide(); return; }
       return this.go(true);
     }
     if (view === 'songs' && SongsView.paintList) SongsView.paintList();
@@ -179,10 +210,10 @@ const App = {
       const ok = await this.unlock().finally(() => { this.unlocking = false; });
       if (!ok) { location.hash = '#/reader/' + (Settings.get('lastPlaylist') || ''); return; }
     }
-    if (SongsView.editor && SongsView.editor.dirty) await SongsView.editor.save();
     const key = location.hash;
     if (!force && key === this.current && $('#main').childElementCount) return;
     this.current = key;
+    this.edit = null;   // nový pohled si editor zapíše znovu
     this.lastEditHash = key;
     for (const [k, el] of Object.entries(this.tabEls)) el.classList.toggle('active', k === view);
     const main = $('#main');
@@ -192,6 +223,7 @@ const App = {
     SongsView.editor = null;
     const views = { songs: SongsView, playlists: PlaylistsView, templates: TemplatesView, singers: SingersView, settings: SettingsView };
     (views[view] || PlaylistsView).render(main, param);
+    this.here = location.href;
     // první spuštění: program (čtečka) → průvodce zařízením; web → jen uvítání a připojení ke kapele
     if (!Settings.get('welcomed')) setTimeout(() => {
       if (Settings.get('welcomed') || $('.modal') || $('.wizard')) return; // jen jednou

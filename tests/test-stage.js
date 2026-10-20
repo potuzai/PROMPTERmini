@@ -144,6 +144,7 @@ const SHOTS = process.env.SHOTS || '/tmp/claude-0/shots';
   assert(!(await p.evaluate(() => document.querySelector('.edit-stage').textContent.includes('Am'))), 'zpět na pohled čtečky');
 
   // playlist: pozice x/y v záhlaví
+  await p.keyboard.press('Control+S'); await sleep(200);
   await p.evaluate(async () => {
     const id = SongsView.editor.id;
     const other = [...Store.songs.keys()].find(k => k !== id);
@@ -168,10 +169,10 @@ const SHOTS = process.env.SHOTS || '/tmp/claude-0/shots';
   await sleep(200);
   assert(await p.isVisible('.edit-stage .b-line:has-text("Ze zdroje")') || (await src()).includes('@J Ze zdroje'), 'změna zdroje se projeví');
 
-  // uložení
-  await sleep(1900);
+  // uložení (ručně, Ctrl+S)
+  await p.keyboard.press('Control+S'); await sleep(300);
   const saved = await p.evaluate(() => [...Store.songs.values()].find(s => s.title === 'Stránková').text);
-  assert(saved.includes('@J Ze zdroje') && saved.includes('**Druhý řádek**'), 'automatické uložení');
+  assert(saved.includes('@J Ze zdroje') && saved.includes('**Druhý řádek**'), 'uložení Ctrl+S');
   await p.screenshot({ path: SHOTS + '/s-3-wide.png' });
   for (const [w, hh, n] of [[1280, 800, 's-4-mid'], [1000, 800, 's-5-narrow']]) {
     await p.setViewportSize({ width: w, height: hh }); await sleep(400);
