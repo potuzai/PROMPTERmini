@@ -625,10 +625,11 @@ input[type=checkbox].switch:focus-visible { outline: 2px solid var(--acc-hi); ou
 #reader .r-wrap { position: absolute; inset: 0; }
 #reader .r-overlay { position: absolute; inset: 0; background: rgba(0,0,0,.62); display: flex; align-items: center; justify-content: center; z-index: 5; }
 /* nabídky čtečky: vždy tmavé (jeviště), velké písmo, výběr bílým rámečkem – vidět i z dálky */
-.r-menu { --rp: #272729; --rl: #36363a; --rd: #a5a5aa; background: var(--rp); border: 1px solid var(--rl); border-radius: 14px; box-shadow: 0 30px 80px rgba(0,0,0,.6); width: min(720px, 92vw); max-height: 88vh; display: flex; flex-direction: column; overflow: hidden; font-size: 24px; color: #f3f3f5; font-family: var(--font); }
-.r-menu h2 { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin: 0; padding: 22px 28px 16px; border-bottom: 1px solid var(--rl); font-size: 30px; font-weight: 600; color: #fff; }
-.r-menu h2 small { font-size: 18px; font-weight: 400; color: var(--rd); }
-.r-menu .r-list { overflow-y: auto; display: flex; flex-direction: column; padding: 8px 14px; gap: 2px; }
+.r-menu { --rp: #313134; --rb: #232325; --rl: #3c3c40; --rd: #a5a5aa; background: var(--rp); border: 1px solid var(--rl); border-radius: 14px; box-shadow: 0 30px 80px rgba(0,0,0,.6); width: min(720px, 92vw); max-height: 88vh; display: flex; flex-direction: column; overflow: hidden; font-size: 24px; color: #f3f3f5; font-family: var(--font); }
+.r-menu h2 { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin: 0; padding: 11px 24px 10px; border-bottom: 1px solid var(--rl); font-size: 24px; font-weight: 600; color: #fff; }
+.r-menu h2 small { font-size: 16px; font-weight: 400; color: var(--rd); }
+.r-menu .r-list { overflow-y: auto; display: flex; flex-direction: column; padding: 8px 14px; gap: 2px; background: var(--rb); }
+.r-menu .r-list .r-opt:hover { background: #2f2f32; }
 .r-menu .r-opt { position: relative; display: flex; align-items: center; gap: 18px; min-height: 64px; padding: 6px 16px; border-radius: 10px; cursor: pointer; }
 .r-menu .r-opt:hover { background: #303033; }
 .r-menu .r-opt .n { color: var(--rd); width: 36px; flex: 0 0 auto; text-align: right; font-size: 20px; }
@@ -642,7 +643,15 @@ input[type=checkbox].switch:focus-visible { outline: 2px solid var(--acc-hi); ou
 .r-menu .r-opt.cur::before { content: ""; position: absolute; left: 6px; top: 50%; margin-top: -14px; width: 4px; height: 28px; border-radius: 2px; background: #e8493f; }
 .r-menu .r-badge { padding: 3px 12px; border-radius: 999px; background: #e8493f; color: #fff; font-size: 15px; font-weight: 600; }
 .r-menu .r-opt.sel { outline: 3px solid #fff; outline-offset: -3px; }
-.r-menu .r-hint { padding: 14px 28px; border-top: 1px solid var(--rl); color: var(--rd); font-size: 17px; }
+.r-menu .r-foot { display: flex; align-items: center; gap: 16px; padding: 10px 14px 10px 24px; border-top: 1px solid var(--rl); }
+.r-menu .r-hint { flex: 1; min-width: 0; color: var(--rd); font-size: 16px; }
+.r-menu .r-tools { display: flex; gap: 8px; }
+.r-menu .r-tools:empty { display: none; }
+.r-menu .r-opt.r-tool { justify-content: center; min-height: 0; width: 58px; height: 52px; padding: 0; gap: 0; border: 1px solid var(--rl); background: #3a3a3e; }
+.r-menu .r-opt.r-tool > .ic { margin: 0; }
+.r-menu .r-opt.r-tool:hover { background: #45454a; }
+.r-menu .r-opt.r-tool.danger { background: #3a2725; border-color: #4a2f2c; color: #ffb3aa; }
+.r-menu .r-opt.r-tool.danger > .ic { color: inherit; }
 .r-menu.r-start .r-opt { min-height: 84px; border: 1px solid var(--rl); margin-bottom: 8px; }
 .r-menu.r-start .r-l { font-size: 27px; }
 /* rychlá nabídka: dlaždice 2 × 4 */

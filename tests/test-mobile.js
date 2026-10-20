@@ -42,7 +42,7 @@ const URL = process.env.APP_URL || 'http://localhost:8123/index.html';
   assert(await pos() === start, 'klepnutí vlevo = zpět');
   await p.touchscreen.tap(200, 40); await sleep(200);
   assert(await p.isVisible('.r-menu'), 'klepnutí nahoru = seznam písní');
-  await p.tap('.r-opt:has-text("Zavřít čtečku")'); await sleep(300);
+  await p.tap('.r-tool[title^="Zavřít čtečku"]'); await sleep(300);
   assert(!(await p.evaluate(() => Reader.isOpen())), 'čtečku jde na mobilu zavřít');
   assert(errors.length === 0, 'žádné chyby JavaScriptu' + (errors.length ? ': ' + errors.join(' | ') : ''));
   await b.close();

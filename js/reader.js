@@ -312,28 +312,33 @@ const Reader = {
     this.closeMenu();
     this.hideBar();
     const list = h('div', { class: 'r-list' + (opt.grid ? ' r-grid' : '') });
+    const tools = h('div', { class: 'r-tools' });   // volby s foot: true = ikony v patičce (šipkami se na ně dojede za seznamem)
     const ov = h('div', { class: 'r-overlay' }, h('div', { class: 'r-menu' + (opt.cls ? ' ' + opt.cls : '') },
-      h('h2', {}, h('span', {}, title), opt.sub ? h('small', {}, opt.sub) : null), list, h('div', { class: 'r-hint' }, hint || '')));
+      h('h2', {}, h('span', {}, title), opt.sub ? h('small', {}, opt.sub) : null), list,
+      h('div', { class: 'r-foot' }, h('div', { class: 'r-hint' }, hint || ''), tools)));
     options.forEach((o, i) => {
-      const el = h('div', { class: 'r-opt' + (o.cls ? ' ' + o.cls : '') },
-        o.icon ? ic(o.icon) : h('span', { class: 'n' }, o.n ?? ''),
-        h('span', { class: 'r-t' }, h('span', { class: 'r-l' }, o.label), o.sub ? h('span', { class: 'r-sub' }, o.sub) : null),
-        o.badge ? h('span', { class: 'r-badge' }, o.badge) : null,
-        o.key ? h('kbd', {}, o.key) : null);
+      const el = o.foot
+        ? h('div', { class: 'r-opt r-tool' + (o.cls ? ' ' + o.cls : ''), title: o.label + (o.key ? ' (' + o.key + ')' : '') }, ic(o.icon))
+        : h('div', { class: 'r-opt' + (o.cls ? ' ' + o.cls : '') },
+          o.icon ? ic(o.icon) : h('span', { class: 'n' }, o.n ?? ''),
+          h('span', { class: 'r-t' }, h('span', { class: 'r-l' }, o.label), o.sub ? h('span', { class: 'r-sub' }, o.sub) : null),
+          o.badge ? h('span', { class: 'r-badge' }, o.badge) : null,
+          o.key ? h('kbd', {}, o.key) : null);
       el.addEventListener('mousedown', ev => {
         ev.preventDefault(); ev.stopPropagation();
         if (ev.button === 0) { this.menu.sel = i; this.menu.pick(); }
         else if (ev.button === 2 || ev.button === 1) this.closeMenu(true);
       });
-      list.appendChild(el);
+      (o.foot ? tools : list).appendChild(el);
     });
     ov.addEventListener('mousedown', ev => { if (ev.target === ov) { ev.preventDefault(); this.closeMenu(true); } });
     this.menu = {
       el: ov, sel: Math.max(0, selIdx), options, list, grid: !!opt.grid,
       pick: () => { const o = options[this.menu.sel]; if (o) onPick(o); },
       paint: () => {
-        $$('.r-opt', list).forEach((x, i) => x.classList.toggle('sel', i === this.menu.sel));
-        const s = list.children[this.menu.sel]; if (s) s.scrollIntoView({ block: 'nearest' });
+        const all = [...list.children, ...tools.children];
+        all.forEach((x, i) => x.classList.toggle('sel', i === this.menu.sel));
+        const s = all[this.menu.sel]; if (s) s.scrollIntoView({ block: 'nearest' });
       },
     };
     this.el.appendChild(ov);
@@ -394,9 +399,9 @@ const Reader = {
       return { idx: i, n: i + 1, label: s ? s.title : '?', sub: s ? [s.artist, s.key].filter(Boolean).join(' · ') : '',
         cls: i < this.songIdx ? 'done' : i === this.songIdx ? 'cur' : '', badge: i === this.songIdx ? 'hraje' : '' };
     });
-    opts.push({ idx: -3, icon: 'sliders', label: 'Nabídka…', key: 'Q' });
-    opts.push({ idx: -1, icon: 'back', label: 'Jiný playlist…' });
-    opts.push({ idx: -2, icon: 'x', label: 'Zavřít čtečku' });
+    opts.push({ idx: -3, icon: 'sliders', label: 'Nabídka', key: 'Q', foot: true });
+    opts.push({ idx: -1, icon: 'back', label: 'Jiný playlist', foot: true });
+    opts.push({ idx: -2, icon: 'x', label: 'Zavřít čtečku', foot: true, cls: 'danger' });
     this.showMenu(this.playlistName() || 'Písně', opts, this.songIdx, o => {
       if (o.idx === -3) return this.showQuickMenu();
       if (o.idx === -1) return this.showStartMenu();
