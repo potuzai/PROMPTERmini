@@ -372,6 +372,8 @@ const SettingsView = {
         setSwitch(Settings.get('readOnly'), v => { Settings.set('readOnly', v); Sync.refreshState(); App.paintSync(); }))));
     const adv = h('details', { class: 'set-adv' }, h('summary', {}, 'Pokročilé'),
       h('div', { class: 'set-rows' },
+        mega ? setRow('Složka kapely v Mega', `„${(Settings.data.mega || {}).folder || 'PROMPTERmini'}“ – měň jen tehdy, když má kapela písně v jinak pojmenované složce.`,
+          h('button', { class: 'btn nogrow', onclick: () => changeBandFolder() }, 'Změnit…')) : null,
         mega ? setRow('Diagnostika Mega', 'Co aplikace v účtu Mega vidí. Při potížích se synchronizací pošli výpis.', h('button', { class: 'btn nogrow', onclick: () => megaDiagDialog() }, 'Zobrazit')) : null,
         mega ? setRow('Neoficiální knihovna', 'Připojení k Mega používá neoficiální knihovnu. Kdyby ho Mega rozbila, přepni na GitHub – písně v aplikaci zůstanou.', null) : null),
       mode === 'github' ? this.ghBlock() : mode === 'folder' ? this.folderBlock() : null);
@@ -381,9 +383,14 @@ const SettingsView = {
 
   /* jiné úložiště než Mega – jen když zatím není nic připojené */
   otherStorage() {
-    return h('details', { class: 'set-adv' }, h('summary', {}, 'Jiné úložiště místo Mega (pokročilé)'),
-      h('h3', {}, 'GitHub'), h('p', { class: 'help' }, 'Zdarma, nejspolehlivější při souběžných úpravách. Každý člen potřebuje přístupový token.'), this.ghBlock(),
-      h('h3', {}, 'Synchronizovaná složka'),
+    const m = Settings.data.mega || {};
+    const folderIn = h('input', { class: 'inp set-sel', id: 'band-folder', value: m.folder || 'PROMPTERmini', autocomplete: 'off', 'data-protonpass-ignore': 'true', 'data-1p-ignore': 'true', 'data-lpignore': 'true', 'data-bwignore': 'true' });
+    folderIn.onchange = () => Settings.set('mega', Object.assign({}, Settings.data.mega, { folder: folderIn.value.trim() || 'PROMPTERmini', folderId: '' }));
+    return h('details', { class: 'set-adv' }, h('summary', {}, 'Pokročilé'),
+      h('div', { class: 'set-rows' },
+        setRow('Složka kapely v Mega', 'Měň jen tehdy, když má kapela písně v jinak pojmenované složce (správce ti řekne).', folderIn)),
+      h('h3', {}, 'Jiné úložiště místo Mega: GitHub'), h('p', { class: 'help' }, 'Zdarma, nejspolehlivější při souběžných úpravách. Každý člen potřebuje přístupový token.'), this.ghBlock(),
+      h('h3', {}, 'Jiné úložiště místo Mega: synchronizovaná složka'),
       window.native ? this.folderBlock() : h('p', { class: 'help' }, 'Jen v programu PROMPTER mini.exe – složka, kterou synchronizuje jiná aplikace (MEGA Desktop, OneDrive, Dropbox, síťový disk).'));
   },
 

@@ -298,7 +298,7 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   assert(await p.isVisible('text=doporučuji písmo alespoň'), 'doporučená velikost písma');
   await p.evaluate(() => { location.hash = '#/settings/band'; }); await sleep(400);
   assert(await p.isVisible('.set-status:has-text("Nepřihlášeno")') && await p.isVisible('.set-actions button:has-text("Přihlásit ke kapele")'), 'nastavení: stav kapely a přihlášení na prvním místě');
-  await p.click('summary:has-text("Jiné úložiště")');
+  await p.click('summary:has-text("Pokročilé")');
   assert(await p.isVisible('button:has-text("Připojit ke GitHubu")') && await p.isVisible('text=Jen v programu PROMPTER mini.exe'), 'jiné úložiště: GitHub, synchronizovaná složka jen v programu');
 
   /* ---------- Data přežijí obnovení stránky ---------- */

@@ -20,8 +20,8 @@ const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode
   await p.evaluate(() => { loginDialog(); }); await p.waitForSelector('.modal form.login');
   const lf = await p.evaluate(() => { const f = document.querySelector('.modal form.login'); return {
     user: !!f.querySelector('input[type=email][autocomplete=username][name=username]'), pw: !!f.querySelector('input[type=password][autocomplete=current-password]'),
-    submit: !!f.querySelector('button[type=submit]'), folderIgnored: f.querySelector('input[name=mega-folder]').getAttribute('data-protonpass-ignore') === 'true' }; });
-  assert(lf.user && lf.pw && lf.submit && lf.folderIgnored, 'přihlášení je skutečný formulář: e-mail, heslo, odeslání; složku správce hesel nevyplňuje');
+    submit: !!f.querySelector('button[type=submit]'), fields: f.querySelectorAll('input:not([type=checkbox])').length, details: f.querySelectorAll('details').length }; });
+  assert(lf.user && lf.pw && lf.submit && lf.fields === 2 && !lf.details, 'přihlášení je jednoduchý formulář: jen e-mail, heslo a odeslání (bez skrytých „dalších možností“)');
   await p.keyboard.press('Escape'); await p.waitForTimeout(200);
   assert(!(await p.isVisible('.modal')), 'přihlášení jde zavřít Esc');
   await p.goto('http://localhost:8123/index.html#/songs');

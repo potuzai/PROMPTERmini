@@ -802,8 +802,7 @@ input[type=checkbox].switch:focus-visible { outline: 2px solid var(--acc-hi); ou
 /* ===== Přihlášení ke kapele ===== */
 .login { display: flex; flex-direction: column; gap: 10px; width: min(400px, 100%); }
 .login p { margin: 0 0 4px; }
-.login-more summary { cursor: pointer; color: var(--dim); }
-.login-more[open] { display: flex; flex-direction: column; gap: 10px; }
+.login-help { margin: 0; padding-top: 10px; border-top: 1px solid var(--line); }
 .login-err { color: var(--err); min-height: 1.4em; }
 .login-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
 .modal-buttons:empty { display: none; }
