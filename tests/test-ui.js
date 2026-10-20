@@ -87,6 +87,12 @@ const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode
   await p.click('.modal-buttons button:has-text("Prohodit")');
   await p.waitForTimeout(200);
   assert((await p.$$eval('.pl-item b', els => els.map(e => e.textContent)))[0] === 'Testovací', 'přesun na zadanou pozici (prohodit)');
+  // a zpět: 2. píseň na pozici 1 → Vložit a posunout (pořadí jako předtím, čtečka níže s ním počítá)
+  await p.click('.pl-item >> nth=1 >> .num');
+  await p.keyboard.press('Control+a'); await p.keyboard.type('1'); await p.keyboard.press('Enter');
+  await p.click('.modal-buttons button:has-text("Vložit a posunout")');
+  await p.waitForTimeout(200);
+  assert((await p.$$eval('.pl-item b', els => els.map(e => e.textContent)))[0].startsWith('Ukázková'), 'přesun na zadanou pozici (vložit a posunout)');
   await p.screenshot({ path: '/tmp/claude-0/shots/6-playlist.png' });
   // čtečka
   await p.click('button:has-text("Spustit ve čtečce")');
