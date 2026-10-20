@@ -5,7 +5,12 @@
   proto se do `main` dostávají jen vydání.
 - **Verze se nezvyšuje po každé úpravě.** Číslo verze (package.json, `APP_VERSION` v js/db.js, `CACHE` v sw.js) se mění
   jen při vydání; testy kontrolují, že sedí na všech třech místech.
-- Průběžné úpravy se ukazují v náhledu (artefakt na claude.ai), ne vydáním.
+- Průběžné úpravy se ukazují v náhledu (artefakt na claude.ai), ne vydáním. Po každé úpravě náhled sestavit a publikovat:
+  `node tools/nahled/sestavit.js <scratchpad>/artifact`, pak Artifact publish `prompter.html` s `root` = ta složka,
+  `files` = vypsaný seznam a schopností `comments`. Data kapely (`data/kapela.json`) leží jen ve složce náhledu, ne v repozitáři.
+- Náhled má **režim úkolů** (tlačítko „Úkol“, tools/nahled/ukoly.js): uživatel klikne na prvek a úkol přijde jako komentář
+  „Send to Claude“ s popisem prvku (obrazovka, cesta CSS, značka). Postup: úprava ve `vyvoj` → sestavit a publikovat náhled →
+  odpovědět ve vlákně komentáře → vlákno vyřešit (resolve).
 - **Vydání doporučit uživateli**, když: je hotový ucelený celek odsouhlasený v náhledu (nic rozdělaného), nebo jde o opravu
   chyby, která vadí v provozu (synchronizace, data), nebo to kapela potřebuje do termínu. Vydat až na pokyn uživatele:
   `vyvoj` → `main`, jednou zvýšit verzi, `npm test`, push.
