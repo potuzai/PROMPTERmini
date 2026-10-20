@@ -325,7 +325,7 @@ kbd { font: 600 11px/1 var(--mono); padding: 3px 5px; border: 1px solid var(--li
 .pl-col .head { padding: 10px 12px; border-bottom: 1px solid var(--line); display: flex; gap: 10px; align-items: center; }
 .pl-col .head > b { font-weight: 600; font-size: 14px; }
 .pl-col .list { padding: 6px; }
-.pl-songs { height: calc(100% - 150px); min-height: 300px; }
+.pl-songs { height: calc(100% - 150px); min-height: 300px; width: 100%; max-width: 900px; margin: 0 auto; }   /* seznam písní užší, na střed */
 .pl-songs .list { flex: 1; overflow-y: auto; }
 /* Přidávání písní do playlistu: psaním (nabídka shod) nebo výběrem z knihovny */
 .pl-add { display: flex; gap: 8px; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--line); background: var(--panel); }
@@ -351,7 +351,7 @@ kbd { font: 600 11px/1 var(--mono); padding: 3px 5px; border: 1px solid var(--li
 .pl-item .num { width: 28px; text-align: right; color: var(--acc-hi); font-family: var(--mono); font-size: 12.5px; }
 .pl-item .num { cursor: text; border-radius: var(--r); }
 .pl-item .num:hover { background: var(--acc-soft); }
-.pos-inp { width: 76px; flex: 0 0 auto; text-align: center; font-family: var(--mono); }
+.pos-inp { width: 92px; flex: 0 0 auto; text-align: center; font-family: var(--mono); }
 .pl-item .pos-inp { width: 58px; height: 26px; padding: 0 4px; font-size: 12.5px; }
 .pick-pos { display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: 13px; }
 .pick-pos .help { font-size: 12px; }
