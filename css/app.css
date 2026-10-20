@@ -325,8 +325,8 @@ kbd { font: 600 11px/1 var(--mono); padding: 3px 5px; border: 1px solid var(--li
 .pl-col .head { padding: 10px 12px; border-bottom: 1px solid var(--line); display: flex; gap: 10px; align-items: center; }
 .pl-col .head > b { font-weight: 600; font-size: 14px; }
 .pl-col .list { padding: 6px; }
-.pl-songs { height: calc(100% - 150px); min-height: 300px; width: 100%; max-width: 900px; margin: 0 auto; }   /* seznam písní užší, na střed */
-.pl-songs .list { flex: 1; overflow-y: auto; }
+.pl-songs { width: 100%; max-width: 900px; margin: 0 auto; overflow: visible; }   /* seznam písní užší, na střed; celý na stránce, bez vlastního posuvníku */
+.pl-songs > .pl-add { border-radius: var(--rc) var(--rc) 0 0; }
 /* Přidávání písní do playlistu: psaním (nabídka shod) nebo výběrem z knihovny */
 .pl-add { display: flex; gap: 8px; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--line); background: var(--panel); }
 .pl-add > .btn { flex: 0 0 auto; }
@@ -795,9 +795,7 @@ input[type=checkbox].switch:focus-visible { outline: 2px solid var(--acc-hi); ou
 @media (max-width: 1100px) {
   .tpl-layout { grid-template-columns: 1fr; height: auto; }
   .tpl-preview .preview-wrap { flex: 0 0 auto; height: 60vh; }
-  .pl-songs { height: auto; }
   .pl-col .head { flex-wrap: wrap; }
-  .pl-col .list { max-height: 50vh; }
   .tpl-layout > * { min-width: 0; }
 }
 @media (max-width: 820px) {
