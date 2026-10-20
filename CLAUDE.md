@@ -5,7 +5,10 @@
   proto se do `main` dostávají jen vydání.
 - **Verze se nezvyšuje po každé úpravě.** Číslo verze (package.json, `APP_VERSION` v js/db.js, `CACHE` v sw.js) se mění
   jen při vydání; testy kontrolují, že sedí na všech třech místech.
-- Průběžné úpravy se ukazují v náhledu (artefakt na claude.ai), ne vydáním. Po každé úpravě náhled sestavit a publikovat:
+- **Lokální sezení v desktopové aplikaci Claude (preferované):** webová verze se spouští z `.claude/launch.json`
+  (http://localhost:8080) v Browser pane; uživatel se v ní přihlásí ke kapele a úkoly zadává výběrem prvku (Ctrl+Shift+S).
+  Po úpravě stačí stránku v Browser pane obnovit.
+- V cloudovém sezení se průběžné úpravy ukazují v náhledu (artefakt na claude.ai), ne vydáním. Po každé úpravě náhled sestavit a publikovat:
   `node tools/nahled/sestavit.js <scratchpad>/artifact`, pak Artifact publish `prompter.html` s `root` = ta složka,
   `files` = vypsaný seznam a schopností `comments`. Data kapely (`data/kapela.json`) leží jen ve složce náhledu, ne v repozitáři.
 - Náhled má **režim úkolů** (tlačítko „Úkol“, tools/nahled/ukoly.js): uživatel klikne na prvek a úkol přijde jako komentář
