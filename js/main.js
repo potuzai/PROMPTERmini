@@ -212,6 +212,7 @@ const App = {
     }
     const key = location.hash;
     if (!force && key === this.current && $('#main').childElementCount) return;
+    if (key !== this.current && this.current != null) this.prev = this.current;   // odkud jsem přišel (tlačítko zpět v editoru)
     this.current = key;
     this.edit = null;   // nový pohled si editor zapíše znovu
     this.lastEditHash = key;

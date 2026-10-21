@@ -177,7 +177,7 @@ class SongEditor {
     // Levý panel: údaje o písni, struktura, moje poznámky
     this.structBox = h('div', { class: 'ep-struct' });
     this.leftPanel = h('div', { class: 'ed-panel ed-left-panel' },
-      h('button', { class: 'ep-back', title: 'Zpět na seznam písní', onclick: () => { location.hash = '#/songs'; } }, '◀ Písně'),
+      this.backBtn(),
       h('div', { class: 'ep-group ep-meta' }, h('div', { class: 'ep-lbl' }, 'Údaje'),
         f('Interpret', this.inArtist),
         f('Název písně', this.inTitle),
@@ -299,6 +299,14 @@ class SongEditor {
     this.se.render();
     if (this.se.targets.length) this.se.select(0);
     setTimeout(() => { if (!document.activeElement || document.activeElement === document.body) this.stageWrap.focus({ preventScroll: true }); }, 0);
+  }
+
+  /* Zpět tam, odkud se do editoru přišlo: z playlistů zpět na playlisty (s původním výběrem), jinak na seznam písní */
+  backBtn() {
+    const from = App.prev;
+    const view = from == null ? 'songs' : from.replace(/^#\/?/, '').split('/')[0] || 'playlists';
+    if (view === 'playlists') return h('button', { class: 'ep-back', title: 'Zpět na playlisty', onclick: () => { if (from) location.hash = from; else App.home(); } }, '◀ Playlisty');
+    return h('button', { class: 'ep-back', title: 'Zpět na seznam písní', onclick: () => { location.hash = '#/songs'; } }, '◀ Písně');
   }
 
   /* Uložit jako novou píseň (jiný název); původní píseň zůstane, jak byla naposledy uložená.

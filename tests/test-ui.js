@@ -130,6 +130,14 @@ const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode
   assert(await p.evaluate(() => [...Store.playlists.values()].filter(x => x.items.length === 2).length) === 2, 'nový playlist převzal písně');
   await p.evaluate(h => location.hash = h, origPl); await p.waitForTimeout(300);
   await p.screenshot({ path: '/tmp/claude-0/shots/6-playlist.png' });
+  // z náhledu playlistu do písně a zpět: tlačítko vede na playlisty a výběr zůstane
+  await p.evaluate(() => App.home()); await p.waitForTimeout(300);
+  const selPl = await p.evaluate(() => PlaylistsView.selected);
+  await p.click('.pl-prev .pi-open >> nth=0'); await p.waitForTimeout(400);
+  assert(await p.isVisible('.ep-back:has-text("Playlisty")'), 'editor otevřený z playlistu má tlačítko zpět na playlisty');
+  await p.click('.ep-back'); await p.waitForTimeout(400);
+  assert(await p.evaluate(s => !App.parseHash()[1] && PlaylistsView.selected === s && !!document.querySelector('.pl-prev .pl-item'), selPl), 'zpět na playlisty se stejným výběrem');
+  await p.evaluate(() => { location.hash = '#/playlists/' + PlaylistsView.selected; }); await p.waitForTimeout(300);
   // čtečka
   await p.click('button:has-text("Spustit ve čtečce")');
   await p.waitForTimeout(600);
