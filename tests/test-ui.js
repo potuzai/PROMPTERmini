@@ -60,7 +60,7 @@ const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode
   // ukládá se ručně: před uložením je píseň v úložišti beze změny, Ctrl+S ji uloží
   const stored = () => p.evaluate(() => [...Store.songs.values()].find(s => s.title === 'Testovací').text);
   await p.waitForTimeout(1800);
-  assert(!(await stored()).includes('@T refrén druhý') && await p.isVisible('.ed-top .saved-ind.dirty'), 'bez uložení se nic neuloží (ukazuje „Neuloženo“)');
+  assert(!(await stored()).includes('@T refrén druhý') && await p.isVisible('.ed-pager .saved-ind.dirty'), 'bez uložení se nic neuloží (ukazuje „Neuloženo“)');
   await p.keyboard.press('Control+S'); await p.waitForTimeout(300);
   assert((await stored()).includes('@T refrén druhý'), 'uložení Ctrl+S');
   await p.screenshot({ path: '/tmp/claude-0/shots/5-edit.png' });

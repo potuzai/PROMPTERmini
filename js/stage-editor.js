@@ -28,6 +28,31 @@ class StageEditor {
       h('b', {}, 'Píseň je zatím prázdná'),
       h('span', {}, 'Vlož text (Ctrl+V) nebo začni psát. Text se automaticky vyčistí a rozdělí na sloky a refrény.'));
     wrap.appendChild(this.placeholder);
+    // vlastní kurzor: stránka je zmenšená, takže kurzor prohlížeče by byl tenčí než pixel
+    this.caretEl = h('div', { class: 'se-caret' });
+    wrap.appendChild(this.caretEl);
+    this.onSel = () => { if (!wrap.isConnected) { document.removeEventListener('selectionchange', this.onSel); return; } this.paintCaret(); };
+    document.addEventListener('selectionchange', this.onSel);
+  }
+  paintCaret() {
+    const c = this.caretEl, el = this.editEl, sel = window.getSelection();
+    const show = el && el.isConnected && document.activeElement === el && sel.rangeCount && sel.isCollapsed && el.contains(sel.anchorNode);
+    if (!show) { c.style.display = 'none'; return; }
+    const r = sel.getRangeAt(0);
+    let rect = [...r.getClientRects()].pop();
+    if (!rect || !rect.height) {
+      // prázdný řádek / začátek řádku: výška řádku, vlevo na začátku textu
+      const er = el.getBoundingClientRect(), cs = getComputedStyle(el);
+      const k = er.width / (el.offsetWidth || er.width || 1);
+      const lh = (parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.2) * k;
+      rect = { left: er.left + (parseFloat(cs.paddingLeft) || 0) * k, top: er.top + (parseFloat(cs.paddingTop) || 0) * k, height: lh };
+    }
+    const w = this.wrap.getBoundingClientRect();
+    c.style.display = 'block';
+    c.style.left = (rect.left - w.left - 1) + 'px';
+    c.style.top = (rect.top - w.top) + 'px';
+    c.style.height = rect.height + 'px';
+    c.classList.remove('blink'); void c.offsetWidth; c.classList.add('blink');   // po pohybu chvíli svítí, pak bliká
   }
 
   /* ---------- Zdroj ---------- */
@@ -125,6 +150,7 @@ class StageEditor {
     if (!this.stage) return;
     const scr = this.ed.screen();
     Render.fit(this.stage, this.wrap, scr.w, scr.h, 'none');
+    this.paintCaret();
   }
 
   /* Cíle pro výběr šipkami: řádky, nadpisy, poznámky, opakování (celé jako jeden cíl), bloky */
@@ -729,34 +755,51 @@ class StageEditor {
   }
 
   /* Formát: v psaní na označený text, jinak na celé vybrané řádky */
-  format(kind) {
+  /* kind: bold, italic, upper, lower, bigger / smaller (o 10 %), size (val = procenta) */
+  format(kind, val) {
     if (this.editing && this.editEl) {
       const sel = window.getSelection();
       const has = sel.rangeCount && !sel.isCollapsed && this.editEl.contains(sel.anchorNode);
       if (has) {
         if (kind === 'bold' || kind === 'italic') this.toggleTag(kind === 'bold' ? 'B' : 'I');
-        else if (kind === 'bigger' || kind === 'smaller') this.sizeSel(kind === 'bigger' ? '+' : '-');
+        else if (kind === 'bigger' || kind === 'smaller' || kind === 'size') this.sizeSel(p => sizeStep(p, kind, val));
         else if (kind === 'upper' || kind === 'lower') { document.execCommand('insertText', false, kind === 'upper' ? sel.toString().toLocaleUpperCase('cs') : sel.toString().toLocaleLowerCase('cs')); }
-        this.syncEdit(); this.pushHist();
+        this.syncEdit(); this.pushHist(); this.ed.onSelChange();
         return;
       }
       this.syncEdit();
       const line = this.editing.line;
       const caret = this.caretOffset();
       const ls = this.lines();
-      ls[line] = formatLine(ls[line], kind);
+      ls[line] = formatLine(ls[line], kind, val);
       this.ed.src = ls.join('\n'); this.ed.changed(); this.pushHist();
       this.editing.caret = caret;
       return this.render();
     }
-    this.formatLines(kind);
+    this.formatLines(kind, val);
   }
-  formatLines(kind) {
+  formatLines(kind, val) {
     const targets = this.selTargets();
     if (!targets.length) return toast('Nejdřív vyber řádek.', 'warn');
     const ls = this.lines();
-    for (const i of this.srcLinesOf(targets)) ls[i] = formatLine(ls[i], kind);
+    for (const i of this.srcLinesOf(targets)) ls[i] = formatLine(ls[i], kind, val);
     this.commit(ls.join('\n'));
+  }
+  /* velikost písma v místě kurzoru / vybraného řádku (v procentech) */
+  sizeAt() {
+    if (this.editing && this.editEl) {
+      const sel = window.getSelection();
+      if (sel.rangeCount && this.editEl.contains(sel.anchorNode)) {
+        const host = (sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentNode).closest('.sz');
+        if (host && this.editEl.contains(host)) return +host.dataset.p || 100;
+      }
+    }
+    const t = this.cur();
+    if (!t) return 100;
+    const src = this.lines()[t.line] || '';
+    const info = parseSong(src).lines[0] || {};
+    const m = /^\{([+-]{1,2}|\d{2,3}%):[\s\S]*\}$/.exec(splitLine(src, info.kind || 'line').body);
+    return m ? szPct(m[1]) : 100;
   }
   toggleTag(tag) {
     const sel = window.getSelection();
@@ -768,18 +811,21 @@ class StageEditor {
     try { el.appendChild(r.extractContents()); r.insertNode(el); } catch (e) { return; }
     selectContents(el);
   }
-  sizeSel(dir) {
+  /* velikost označených slov: fn(stará procenta) → nová procenta (100 % = značku zrušit) */
+  sizeSel(fn) {
     const sel = window.getSelection();
     const host = (sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentNode).closest('.sz');
+    const set = (el, p) => { el.dataset.p = p; el.style.fontSize = p / 100 + 'em'; };
     if (host && this.editEl.contains(host)) {
-      let lvl = host.dataset.l[0] === '+' ? host.dataset.l.length : -host.dataset.l.length;
-      lvl = Math.max(-2, Math.min(2, lvl + (dir === '+' ? 1 : -1)));
-      if (lvl === 0) host.replaceWith(...host.childNodes);
-      else { host.dataset.l = (lvl > 0 ? '+' : '-').repeat(Math.abs(lvl)); host.className = `sz sz${lvl > 0 ? 'p' : 'm'}${Math.abs(lvl)}`; }
+      const p = szClamp(fn(+host.dataset.p || 100));
+      if (p === 100) host.replaceWith(...host.childNodes); else set(host, p);
       return;
     }
+    const p = szClamp(fn(100));
+    if (p === 100) return;
     const r = sel.getRangeAt(0);
-    const el = h('span', { class: 'sz sz' + (dir === '+' ? 'p1' : 'm1'), 'data-l': dir });
+    const el = h('span', { class: 'sz' });
+    set(el, p);
     try { el.appendChild(r.extractContents()); r.insertNode(el); } catch (e) { return; }
     selectContents(el);
   }
@@ -920,20 +966,24 @@ function visibleLength(body) {
   d.innerHTML = veInline(body, Store.singerMap());
   return d.textContent.replace(/​/g, '').length;
 }
-/* Formát celého řádku: tučně, kurzíva, větší, menší, VELKÁ, malá */
-function formatLine(src, kind) {
+/* A+ / A− mění velikost po 10 % (ze starších stupňů na nejbližší desítku), size = zadaná procenta */
+function sizeStep(p, kind, val) {
+  if (kind === 'size') return +val || 100;
+  return kind === 'bigger' ? Math.floor(p / 10) * 10 + 10 : Math.ceil(p / 10) * 10 - 10;
+}
+/* Formát celého řádku: tučně, kurzíva, velikost, VELKÁ, malá */
+function formatLine(src, kind, val) {
   const info = parseSong(src).lines[0] || {};
   if (!['line', 'chords', 'note', 'section', 'mus'].includes(info.kind)) return src;
   const sp = splitLine(src, info.kind);
   let b = sp.body;
   if (kind === 'bold') b = /^\*\*[\s\S]*\*\*$/.test(b) ? b.slice(2, -2) : '**' + b + '**';
   else if (kind === 'italic') b = /^\*(?!\*)[\s\S]*\*$/.test(b) && !/^\*\*/.test(b) ? b.slice(1, -1) : '*' + b + '*';
-  else if (kind === 'bigger' || kind === 'smaller') {
-    const m = /^\{([+-]{1,2}):([\s\S]*)\}$/.exec(b);
-    let lvl = m ? (m[1][0] === '+' ? m[1].length : -m[1].length) : 0;
+  else if (kind === 'bigger' || kind === 'smaller' || kind === 'size') {
+    const m = /^\{([+-]{1,2}|\d{2,3}%):([\s\S]*)\}$/.exec(b);
+    const p = szClamp(sizeStep(m ? szPct(m[1]) : 100, kind, val));
     if (m) b = m[2];
-    lvl = Math.max(-2, Math.min(2, lvl + (kind === 'bigger' ? 1 : -1)));
-    b = lvl === 0 ? b : `{${(lvl > 0 ? '+' : '-').repeat(Math.abs(lvl))}:${b}}`;
+    b = p === 100 ? b : `{${szMark(p)}:${b}}`;
   } else if (kind === 'upper' || kind === 'lower') {
     // jen text, ne značky ([Am], {T:…})
     b = b.split(/(\[[^\]]*\]|\{[^:}]*:|\})/).map((part, i) => i % 2 ? part : (kind === 'upper' ? part.toLocaleUpperCase('cs') : part.toLocaleLowerCase('cs'))).join('');
@@ -963,7 +1013,7 @@ function serializeInline(node) {
     const inner = serializeInline(n);
     if (!inner) continue;
     if (n.classList.contains('sg-in') && n.dataset.c) out += '{' + n.dataset.c + ':' + inner + '}';
-    else if (n.classList.contains('sz') && n.dataset.l) out += '{' + n.dataset.l + ':' + inner + '}';
+    else if (n.classList.contains('sz') && n.dataset.p) out += '{' + szMark(+n.dataset.p) + ':' + inner + '}';
     else if (tag === 'B' || tag === 'STRONG' || (n.style && (n.style.fontWeight === 'bold' || +n.style.fontWeight >= 600))) out += '**' + inner + '**';
     else if (tag === 'I' || tag === 'EM' || (n.style && n.style.fontStyle === 'italic')) out += '*' + inner + '*';
     else if (tag === 'U') out += '__' + inner + '__';

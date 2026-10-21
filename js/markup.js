@@ -7,7 +7,7 @@
   ---                     nová stránka
   {KÓD:slova}             zpěvák uvnitř řádku
   **tučně**  *kurzíva*  __podtržení__
-  {+:slova}  {-:slova}    větší / menší písmo (++ ještě větší)
+  {130%:slova}            velikost písma v procentech (starší zápis {+:…} 125 %, {++:…} 155 %, {-:…} 80 %, {--:…} 65 %)
   (prázdný řádek)         mezera mezi slokami
 
   Pro muzikanty (ve čtečce se NIKDY nezobrazí, jen v náhledu „Pro muzikanty“ a v tisku):
@@ -171,11 +171,19 @@ function filterForView(blocks, mus) {
   return res;
 }
 
+/* Velikost písma části textu: {130%:slova}; starší stupně +, ++, -, -- se čtou dál a pro tyto
+   velikosti se i zapisují (starší verze programu je umí zobrazit) */
+const SZ_STEPS = { '+': 125, '++': 155, '-': 80, '--': 65 };
+const RE_SZ = /\{([+-]{1,2}|\d{2,3}%):([^}]*)\}/g;
+const SZ_MIN = 50, SZ_MAX = 250;
+const szPct = mark => SZ_STEPS[mark] || parseInt(mark, 10) || 100;
+const szMark = pct => Object.keys(SZ_STEPS).find(k => SZ_STEPS[k] === pct) || pct + '%';
+const szClamp = pct => Math.max(SZ_MIN, Math.min(SZ_MAX, Math.round(pct)));
+
 /* Inline formátování → HTML */
 function inlineHtml(text, singerMap) {
   let s = esc(text);
-  // {+:větší} {++:ještě větší} {-:menší}
-  s = s.replace(/\{([+-]{1,2}):([^}]*)\}/g, (all, lvl, inner) => `<span class="sz sz${lvl[0] === '+' ? 'p' : 'm'}${lvl.length}" data-l="${lvl}">${inner}</span>`);
+  s = s.replace(RE_SZ, (all, mark, inner) => { const p = szPct(mark); return `<span class="sz" data-p="${p}" style="font-size:${p / 100}em">${inner}</span>`; });
   s = s.replace(/\{([A-Za-z0-9+]+):([^}]*)\}/g, (all, codes, inner) => {
     const list = parseCodes(codes);
     const sg = singerMap[list[0]];

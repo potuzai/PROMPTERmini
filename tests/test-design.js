@@ -163,8 +163,8 @@ const URL = 'http://localhost:8123/index.html';
     assert(await q.evaluate(() => location.hash) === '#/songs/a1', 'dvojklik otevře editor');
 
     /* ----- Editor: struktura písně ----- */
-    assert(await q.isVisible('.ed-top .ep-title') && await q.evaluate(() => { const e = SongsView.editor; return e.inArtist.value === 'Jarek Nohavica' && e.inKey.value === 'G' && String(e.inTempo.value) === '96'; })
-      && await q.isVisible('.ed-left-panel .ep-meta'), 'editor: název nahoře, údaje v levém panelu');
+    assert(await q.isVisible('.ep-meta .ep-title') && await q.evaluate(() => { const e = SongsView.editor; return e.inArtist.value === 'Jarek Nohavica' && e.inKey.value === 'G' && String(e.inTempo.value) === '96'; })
+      && await q.isVisible('.ed-left-panel .ep-meta'), 'editor: název a údaje v levém panelu');
     assert(await q.locator('.ep-struct .st-item').count() === 3 && await q.isVisible('.ep-struct .st-brk:has-text("Stránka 2")'), 'struktura: sekce, opakování a konec stránky');
     await q.click('.ep-struct .st-item:has-text("Refrén") >> nth=0'); await sleep(200);
     assert(await q.evaluate(() => SongsView.editor.se.cur().line) === 2 && await q.isVisible('.ep-struct .st-item.on:has-text("Refrén")'), 'klik na sekci ji vybere na stránce');
