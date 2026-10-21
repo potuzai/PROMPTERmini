@@ -198,7 +198,8 @@ class SongEditor {
         { sep: true },
         ...this.musItems()].filter(Boolean);
     }, 'ed-mus');
-    this.tools = h('div', { class: 'ed-tools' },
+    // lišta: nástroje uprostřed nad stránkou, Muzikanti vždy vpravo
+    this.tools = h('div', { class: 'ed-tools' }, h('span'), h('div', { class: 'ed-tools-mid' },
       h('div', { class: 'tl-grp sw-row', title: 'Kdo zpívá vybraný řádek (všichni vypnutí = nikdo)' }, ...this.sgButtons,
         tool('Zobrazení ▾', 'Jak se zpěvák na stránce ukáže: proužek vlevo / vpravo, podbarvení, barva písma – jen pro tuto píseň', e => this.singerPopover(e.currentTarget))),
       sep(),
@@ -230,7 +231,7 @@ class SongEditor {
       h('div', { class: 'tl-grp' },
         tool('↶', 'Zpět (Ctrl+Z)', () => this.se.undo(-1)),
         tool('↷', 'Znovu (Ctrl+Y)', () => this.se.undo(1))),
-      h('span', { class: 'grow' }),
+      ),
       this.musBtn);
 
     this.stageWrap = h('div', { class: 'se-wrap' });

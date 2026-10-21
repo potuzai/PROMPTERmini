@@ -453,8 +453,10 @@ details summary { color: var(--text); }
 .st-brk::before, .st-brk::after { content: ""; flex: 1; border-top: 1px dashed var(--line2); }
 /* střed: lišta pro vybraný řádek, stránka, stránkování */
 .ed-center { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--desk); border-radius: var(--rc); overflow: hidden; }
-.ed-tools { flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px; background: var(--panel); border-bottom: 1px solid var(--line); }
-.ed-tools .grow { flex: 1; }
+/* nástroje na střed nad stránkou (vpravo je odsazení o šířku pravého panelu), Muzikanti vždy vpravo nad panelem */
+.ed-tools { position: relative; flex: 0 0 auto; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, max-content) minmax(0, 1fr); align-items: start; gap: 6px; padding: 8px 272px 8px 8px; background: var(--panel); border-bottom: 1px solid var(--line); }
+.ed-tools-mid { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px; }
+.ed-tools > .ed-mus { position: absolute; top: 8px; right: 8px; }
 .tl-grp { display: flex; align-items: center; gap: 3px; }
 .tl-sep { width: 1px; height: 22px; background: var(--line2); }
 .tl { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 30px; height: 32px; padding: 0 8px; border: 1px solid var(--line2); border-radius: var(--r); background: var(--well); color: var(--text); font: 13.5px var(--font); cursor: pointer; white-space: nowrap; }
@@ -846,9 +848,11 @@ input[type=checkbox].switch:focus-visible { outline: 2px solid var(--acc-hi); ou
   .se-wrap { flex: 0 0 auto; height: 68vh; }
   .ed-side { flex: 0 0 auto; border-left: 0; border-top: 1px solid var(--line); }
   .ed-side .grow { display: none; }
-  .ed-tools { flex-wrap: nowrap; overflow-x: auto; padding: 6px 8px; }   /* lišta v jednom řádku, posouvá se prstem */
-  .ed-tools .grow { display: none; }
-  .ed-tools > *, .ed-tools .tl, .ed-tools .sw { flex-shrink: 0; }
+  .ed-tools { display: flex; overflow-x: auto; padding: 6px 8px; }   /* lišta v jednom řádku, posouvá se prstem */
+  .ed-tools > .ed-mus { position: static; }
+  .ed-tools > span:first-child { display: none; }
+  .ed-tools-mid { flex-wrap: nowrap; }
+  .ed-tools > *, .ed-tools-mid > *, .ed-tools .tl, .ed-tools .sw { flex-shrink: 0; }
   .ep-group { margin-top: 16px; }
   .content { padding: 12px max(12px, env(safe-area-inset-left, 0px)); }
   .song-editor { padding: 0; gap: 0; }
