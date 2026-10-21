@@ -49,6 +49,7 @@ const Render = {
     s.setProperty('--hcolor', tpl.headerColor || tpl.sectionColor);
     st.classList.toggle('upper', !!tpl.uppercase);
     st.classList.toggle('with-bar', !!tpl.singerBar);
+    st.classList.toggle('with-bar-r', !!tpl.singerBarRight);
     st.classList.toggle('with-bg', !!tpl.singerBg);
     st.classList.toggle('hide-sections', !tpl.showSections);
     st.classList.toggle('hide-notes', !tpl.showNotes);
@@ -89,9 +90,6 @@ const Render = {
     }
     let inner = b.showChords ? chordedHtml(b.text, singerMap) : (inlineHtml(b.chords ? stripChords(b.text) : b.text, singerMap) || '&nbsp;');
     if (b.showChords) el.classList.add('has-chords');
-    if (tpl.singerBadge && sgs.length) {
-      inner = sgs.map(s => `<span class="badge" style="background:${s.color}">${esc(s.name)}</span>`).join('') + inner;
-    }
     el.innerHTML = inner;
     return el;
   },
@@ -235,6 +233,9 @@ function applySongStyle(tpl, song) {
   if (st.fontWeight) t.fontWeight = st.fontWeight;
   if (st.lineHeight) t.lineHeight = st.lineHeight;
   if (st.align) t.align = st.align;
+  // označení zpěváka jen pro tuto píseň (přepíše šablonu)
+  const sg = st.singer || {};
+  for (const [k, f] of [['barL', 'singerBar'], ['barR', 'singerBarRight'], ['bg', 'singerBg'], ['text', 'singerText']]) if (typeof sg[k] === 'boolean') t[f] = sg[k];
   return t;
 }
 

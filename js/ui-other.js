@@ -19,12 +19,12 @@ const TPL_FIELDS = [
   { k: 'textBy', l: 'Barva textu podle', t: 'select', o: [['singer', 'zpěváka'], ['section', 'části písně (sloka / refrén / mezičást)']],
     help: 'Podle části písně: sekce s „refrén“ v názvu mají barvu refrénu, „mezičást / bridge / předrefrén“ barvu mezičásti, ostatní barvu sloky. Zpěváka pak ukazuje jen pruh.' },
   { k: 'verseColor', l: 'Sloka', t: 'color' }, { k: 'chorusColor', l: 'Refrén', t: 'color' }, { k: 'bridgeColor', l: 'Mezičást', t: 'color' },
-  { g: 'Označení zpěváků' },
-  { k: 'singerText', l: 'Obarvit text barvou zpěváka', t: 'check' },
-  { k: 'singerBar', l: 'Barevný pruh vlevo od řádku', t: 'check' },
-  { k: 'barWidth', l: 'Šířka pruhu (px)', t: 'range', min: 4, max: 40, step: 1 },
-  { k: 'singerBg', l: 'Podbarvit pozadí řádku', t: 'check' },
-  { k: 'singerBadge', l: 'Jmenovka zpěváka před řádkem', t: 'check' },
+  { g: 'Označení zpěváka', help: 'Jak se na stránce ukáže, kdo řádek zpívá – jde kombinovat. Platí pro všechny písně s touto šablonou; v editoru písně jde nastavit jinak jen pro jednu píseň.' },
+  { k: 'singerBar', l: 'Proužek vlevo', t: 'check' },
+  { k: 'singerBarRight', l: 'Proužek vpravo', t: 'check' },
+  { k: 'barWidth', l: 'Šířka proužku (px)', t: 'range', min: 4, max: 40, step: 1 },
+  { k: 'singerBg', l: 'Podbarvení řádku', t: 'check' },
+  { k: 'singerText', l: 'Barva písma', t: 'check' },
   { g: 'Rozvržení stránky' },
   { k: 'padX', l: 'Okraj vlevo/vpravo (px)', t: 'range', min: 0, max: 400, step: 2 },
   { k: 'padY', l: 'Okraj nahoře/dole (px)', t: 'range', min: 0, max: 300, step: 2 },
@@ -118,7 +118,7 @@ const TemplatesView = {
         t.id !== 'default' ? h('button', { class: 'btn danger nogrow', onclick: () => this.del(t) }, '🗑') : null));
     let fs = null;
     for (const f of TPL_FIELDS) {
-      if (f.g) { fs = h('fieldset', {}, h('legend', {}, f.g)); form.appendChild(fs); continue; }
+      if (f.g) { fs = h('fieldset', {}, h('legend', {}, f.g), f.help ? h('p', { class: 'help' }, f.help) : null); form.appendChild(fs); continue; }
       let ctl;
       const v = t[f.k];
       if (f.t === 'check') {

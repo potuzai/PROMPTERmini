@@ -147,7 +147,7 @@ code { font-family: var(--mono); font-size: 12.5px; background: var(--well); bor
 .ed-main { flex: 1; min-height: 0; display: flex; }
 .se-wrap { position: relative; flex: 1; min-width: 0; overflow: hidden; outline: none; }
 /* pravý panel pod lištou: stránka, náhled, uložení */
-.ed-side { flex: 0 0 196px; display: flex; flex-direction: column; gap: 18px; padding: 14px 12px 12px; background: var(--panel); border-left: 1px solid var(--line); overflow-y: auto; }
+.ed-side { flex: 0 0 264px; display: flex; flex-direction: column; gap: 18px; padding: 14px 12px 12px; background: var(--panel); border-left: 1px solid var(--line); overflow-y: auto; }
 .ed-side .grow { flex: 1; }
 .ed-side .f { display: flex; flex-direction: column; gap: 3px; margin: 0; }
 .ed-side .f > span { font-size: 12px; color: var(--faint); }
@@ -631,9 +631,11 @@ input[type=checkbox].switch:focus-visible { outline: 2px solid var(--acc-hi); ou
 .b-line { position: relative; overflow-wrap: break-word; border-radius: 0; }
 .with-bar .b-line { padding-left: calc(var(--bar) + .35em); }
 .with-bar .b-line.has-sg::before { content: ""; position: absolute; left: 0; top: .1em; bottom: .1em; width: var(--bar); background: var(--barbg); border-radius: 0; }
-.with-bg .b-line.has-sg { background: var(--tint); padding-right: .3em; }
+.with-bar-r .b-line { padding-right: calc(var(--bar) + .35em); }
+.with-bar-r .b-line.has-sg::after { content: ""; position: absolute; right: 0; top: .1em; bottom: .1em; width: var(--bar); background: var(--barbg); }
+.with-bg .b-line.has-sg { background: var(--tint); }
 .with-bg:not(.with-bar) .b-line { padding-left: .3em; }
-.b-line .badge { display: inline-block; font-size: .42em; vertical-align: .35em; color: #000; font-weight: 700; padding: .05em .45em; border-radius: 0; margin-right: .4em; text-transform: uppercase; letter-spacing: .03em; }
+.with-bg:not(.with-bar-r) .b-line { padding-right: .3em; }
 .b-sec { color: var(--sec-color); font-size: calc(1em * var(--sec-scale)); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; margin-top: .2em; }
 .with-bar .b-sec { padding-left: calc(var(--bar) / var(--sec-scale) + .6em); }
 .b-sec .sec-sg { font-weight: 400; text-transform: none; letter-spacing: 0; }

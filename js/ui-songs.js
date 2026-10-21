@@ -199,7 +199,8 @@ class SongEditor {
         ...this.musItems()].filter(Boolean);
     }, 'ed-mus');
     this.tools = h('div', { class: 'ed-tools' },
-      h('div', { class: 'tl-grp sw-row', title: 'Kdo zpívá vybraný řádek (všichni vypnutí = nikdo)' }, ...this.sgButtons),
+      h('div', { class: 'tl-grp sw-row', title: 'Kdo zpívá vybraný řádek (všichni vypnutí = nikdo)' }, ...this.sgButtons,
+        tool('Zobrazení ▾', 'Jak se zpěvák na stránce ukáže: proužek vlevo / vpravo, podbarvení, barva písma – jen pro tuto píseň', e => this.singerPopover(e.currentTarget))),
       sep(),
       h('div', { class: 'tl-grp seg-row' },
         tool(h('b', {}, 'B'), 'Tučně (Ctrl+B) – označená slova, nebo celý řádek', () => this.se.format('bold')),
@@ -637,6 +638,36 @@ class SongEditor {
       h('div', { class: 'row', style: { marginTop: '6px' } },
         h('button', { class: 'btn small nogrow', onclick: () => { for (const k of Object.keys(st)) delete st[k]; apply(); m.remove(); } }, 'Zpět na šablonu'),
         h('span', { class: 'help' }, 'Pro všechny písně najednou se písmo nastavuje v Šablonách.')));
+    placePopover(m, anchor);
+  }
+
+  /* Označení zpěváka jen pro tuto píseň (jinak platí šablona): proužek vlevo / vpravo, podbarvení, barva písma */
+  singerPopover(anchor) {
+    $$('.menu').forEach(m => m.remove());
+    const base = Store.template(this.inTpl.value || Settings.get('defaultTemplate'));
+    const own = () => Object.assign({}, (this.style && this.style.singer) || {});
+    const opts = [['barL', 'singerBar', 'Proužek vlevo'], ['barR', 'singerBarRight', 'Proužek vpravo'], ['bg', 'singerBg', 'Podbarvení řádku'], ['text', 'singerText', 'Barva písma']];
+    const apply = sg => {
+      const st = Object.assign({}, this.style || {});
+      if (Object.keys(sg).length) st.singer = sg; else delete st.singer;
+      this.style = Object.keys(st).length ? st : null;
+      this.markDirty(); this.se.render(); paint();
+    };
+    const rows = opts.map(([k, f, l]) => {
+      const inp = h('input', { type: 'checkbox', onchange: () => { const sg = own(); if (inp.checked === !!base[f]) delete sg[k]; else sg[k] = inp.checked; apply(sg); } });
+      return { k, f, inp, el: h('label', { class: 'chk menu-chk' }, inp, l) };
+    });
+    const note = h('div', { class: 'help' });
+    const reset = h('button', { class: 'btn small nogrow', onclick: () => apply({}) }, 'Podle šablony');
+    const paint = () => {
+      const sg = own();
+      for (const r of rows) r.inp.checked = typeof sg[r.k] === 'boolean' ? sg[r.k] : !!base[r.f];
+      const n = Object.keys(sg).length;
+      note.textContent = n ? 'Jen pro tuto píseň – šablona „' + base.name + '“ má jiné nastavení.' : 'Podle šablony „' + base.name + '“.';
+      reset.hidden = !n;
+    };
+    paint();
+    const m = h('div', { class: 'menu menu-form menu-singer' }, h('div', { class: 'menu-head' }, 'Zobrazení zpěváka v této písni'), ...rows.map(r => r.el), note, reset);
     placePopover(m, anchor);
   }
 
