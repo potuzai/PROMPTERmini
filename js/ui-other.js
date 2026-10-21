@@ -19,12 +19,9 @@ const TPL_FIELDS = [
   { k: 'textBy', l: 'Barva textu podle', t: 'select', o: [['singer', 'zpěváka'], ['section', 'části písně (sloka / refrén / mezičást)']],
     help: 'Podle části písně: sekce s „refrén“ v názvu mají barvu refrénu, „mezičást / bridge / předrefrén“ barvu mezičásti, ostatní barvu sloky. Zpěváka pak ukazuje jen pruh.' },
   { k: 'verseColor', l: 'Sloka', t: 'color' }, { k: 'chorusColor', l: 'Refrén', t: 'color' }, { k: 'bridgeColor', l: 'Mezičást', t: 'color' },
-  { g: 'Označení zpěváka', help: 'Jak se na stránce ukáže, kdo řádek zpívá – jde kombinovat. Platí pro všechny písně s touto šablonou; v editoru písně jde nastavit jinak jen pro jednu píseň.' },
-  { k: 'singerBar', l: 'Proužek vlevo', t: 'check' },
-  { k: 'singerBarRight', l: 'Proužek vpravo', t: 'check' },
+  { g: 'Označení zpěváků', help: 'Jak se který zpěvák na stránce označí – jde kombinovat. Platí pro všechny písně s touto šablonou; v editoru písně (Zobrazení ▾) jde nastavit jinak jen pro jednu píseň.' },
+  { k: 'singerShow', t: 'singers' },
   { k: 'barWidth', l: 'Šířka proužku (px)', t: 'range', min: 4, max: 40, step: 1 },
-  { k: 'singerBg', l: 'Podbarvení řádku', t: 'check' },
-  { k: 'singerText', l: 'Barva písma', t: 'check' },
   { g: 'Rozvržení stránky' },
   { k: 'padX', l: 'Okraj vlevo/vpravo (px)', t: 'range', min: 0, max: 400, step: 2 },
   { k: 'padY', l: 'Okraj nahoře/dole (px)', t: 'range', min: 0, max: 300, step: 2 },
@@ -121,7 +118,13 @@ const TemplatesView = {
       if (f.g) { fs = h('fieldset', {}, h('legend', {}, f.g), f.help ? h('p', { class: 'help' }, f.help) : null); form.appendChild(fs); continue; }
       let ctl;
       const v = t[f.k];
-      if (f.t === 'check') {
+      if (f.t === 'singers') {
+        ctl = singerShowTable((code, k) => singerShowOf(t, code)[k], (code, k, val) => {
+          t.singerShow = Object.assign({}, t.singerShow);
+          t.singerShow[code] = Object.assign(singerShowOf(t, code), { [k]: val });
+          upd();
+        });
+      } else if (f.t === 'check') {
         ctl = h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: !!v, onchange: e => { t[f.k] = e.target.checked; upd(); } }), f.l);
       } else if (f.t === 'select') {
         const sel = h('select', { class: 'inp' }, f.o.map(([val, lab]) => h('option', { value: val, selected: String(val) === String(v) }, lab)));

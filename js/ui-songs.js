@@ -201,7 +201,7 @@ class SongEditor {
     // lišta: nástroje uprostřed nad stránkou, Muzikanti vždy vpravo
     this.tools = h('div', { class: 'ed-tools' }, h('span'), h('div', { class: 'ed-tools-mid' },
       h('div', { class: 'tl-grp sw-row', title: 'Kdo zpívá vybraný řádek (všichni vypnutí = nikdo)' }, ...this.sgButtons,
-        tool('Zobrazení ▾', 'Jak se zpěvák na stránce ukáže: proužek vlevo / vpravo, podbarvení, barva písma – jen pro tuto píseň', e => this.singerPopover(e.currentTarget))),
+        tool('Zobrazení ▾', 'Jak se který zpěvák na stránce označí: proužek vlevo / vpravo, podklad, barva písma – jen pro tuto píseň', e => this.singerPopover(e.currentTarget))),
       sep(),
       h('div', { class: 'tl-grp seg-row' },
         tool(h('b', {}, 'B'), 'Tučně (Ctrl+B) – označená slova, nebo celý řádek', () => this.se.format('bold')),
@@ -645,33 +645,36 @@ class SongEditor {
     placePopover(m, anchor);
   }
 
-  /* Označení zpěváka jen pro tuto píseň (jinak platí šablona): proužek vlevo / vpravo, podbarvení, barva písma */
+  /* Označení zpěváků jen pro tuto píseň (jinak platí šablona): tabulka zpěváci × proužek vlevo / vpravo, podklad, písmo */
   singerPopover(anchor) {
     $$('.menu').forEach(m => m.remove());
     const base = Store.template(this.inTpl.value || Settings.get('defaultTemplate'));
-    const own = () => Object.assign({}, (this.style && this.style.singer) || {});
-    const opts = [['barL', 'singerBar', 'Proužek vlevo'], ['barR', 'singerBarRight', 'Proužek vpravo'], ['bg', 'singerBg', 'Podbarvení řádku'], ['text', 'singerText', 'Barva písma']];
+    const own = () => JSON.parse(JSON.stringify((this.style && this.style.singer) || {}));
+    const eff = (code, k) => { const o = own()[code]; return o && typeof o[k] === 'boolean' ? o[k] : singerShowOf(base, code)[k]; };
     const apply = sg => {
+      for (const c of Object.keys(sg)) if (!sg[c] || typeof sg[c] !== 'object' || !Object.keys(sg[c]).length) delete sg[c];
       const st = Object.assign({}, this.style || {});
       if (Object.keys(sg).length) st.singer = sg; else delete st.singer;
       this.style = Object.keys(st).length ? st : null;
       this.markDirty(); this.se.render(); paint();
     };
-    const rows = opts.map(([k, f, l]) => {
-      const inp = h('input', { type: 'checkbox', class: 'switch', onchange: () => { const sg = own(); if (inp.checked === !!base[f]) delete sg[k]; else sg[k] = inp.checked; apply(sg); } });
-      return { k, f, inp, el: h('label', { class: 'sw-opt' }, h('span', {}, l), inp) };
+    const tbl = singerShowTable(eff, (code, k, v) => {
+      const sg = own();
+      const o = sg[code] && typeof sg[code] === 'object' ? sg[code] : {};
+      if (v === singerShowOf(base, code)[k]) delete o[k]; else o[k] = v;   // stejné jako šablona = bez výjimky
+      sg[code] = o;
+      apply(sg);
     });
     const note = h('div', { class: 'help' });
     const reset = h('button', { class: 'btn small nogrow', onclick: () => apply({}) }, 'Podle šablony');
     const paint = () => {
-      const sg = own();
-      for (const r of rows) r.inp.checked = typeof sg[r.k] === 'boolean' ? sg[r.k] : !!base[r.f];
-      const n = Object.keys(sg).length;
+      tbl.repaint();
+      const n = Object.keys(own()).length;
       note.textContent = n ? 'Jen pro tuto píseň – šablona „' + base.name + '“ má jiné nastavení.' : 'Podle šablony „' + base.name + '“.';
       reset.style.display = n ? '' : 'none';
     };
     paint();
-    const m = h('div', { class: 'menu menu-form menu-singer' }, h('div', { class: 'menu-head' }, 'Zobrazení zpěváka v této písni'), ...rows.map(r => r.el), note, reset);
+    const m = h('div', { class: 'menu menu-form menu-singer' }, h('div', { class: 'menu-head' }, 'Označení zpěváků v této písni'), tbl, note, reset);
     placePopover(m, anchor);
   }
 

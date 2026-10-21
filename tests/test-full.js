@@ -353,15 +353,15 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   assert(fst.fs === want + 'px' && fst.ff.includes('Roboto Condensed'), 'náhled použije písmo písně (' + fst.fs + ')');
   assert(await p.evaluate(w => { Reader.plId = null; const t = Reader.tplFor(Store.songs.get('fnt')); return t.fontSize === w && t.fontFamily === 'Roboto Condensed'; }, want), 'čtečka použije písmo písně');
   assert(await p.evaluate(w => Reader.tplFor(Store.songs.get('long')).fontSize !== w, want), 'ostatní písně zůstanou podle šablony');
-  // zobrazení zpěváka jen pro tuto píseň: proužek vpravo, bez proužku vlevo
-  await p.evaluate(() => { location.hash = '#/songs/fnt'; }); await sleep(500);
+  // označení zpěváka jen pro tuto píseň: první zpěvák má proužek vpravo místo vlevo (tabulka zpěváci × volby)
+  const sg0 = await p.evaluate(async () => { const g = Store.singers()[0]; await Store.put('songs', { id: 'sgs', title: 'Označení', text: '@' + g.code + ' řádek se zpěvákem' }); location.hash = '#/songs/sgs'; return g; }); await sleep(600);
   await p.click('.ed-tools button:has-text("Zobrazení")');
-  await p.click('.menu-singer .sw-opt:has-text("Proužek vpravo") input.switch');
-  await p.click('.menu-singer .sw-opt:has-text("Proužek vlevo") input.switch'); await sleep(200);
-  assert(await p.evaluate(() => { const st = document.querySelector('.se-wrap .stage'); return st.classList.contains('with-bar-r') && !st.classList.contains('with-bar'); }), 'zobrazení zpěváka: proužek vpravo místo vlevo');
+  await p.click(`.menu-singer input[title="${sg0.name}: proužek vpravo"]`);
+  await p.click(`.menu-singer input[title="${sg0.name}: proužek vlevo"]`); await sleep(200);
+  assert(await p.evaluate(() => { const l = document.querySelector('.se-wrap .b-line.has-sg'); return l.classList.contains('br') && !l.classList.contains('bl'); }), 'označení zpěváka: proužek vpravo místo vlevo');
   await p.mouse.click(5, 5); await p.keyboard.press('Control+S'); await sleep(300);
-  assert(await p.evaluate(() => { const sg = Store.songs.get('fnt').style.singer; const t = Reader.tplFor(Store.songs.get('fnt')); return sg.barR === true && sg.barL === false && t.singerBarRight && !t.singerBar; }), 'zobrazení zpěváka se uloží jen do písně');
-  assert(await p.evaluate(() => { const t = Reader.tplFor(Store.songs.get('long')); return !t.singerBarRight; }), 'ostatní písně mají zobrazení zpěváka podle šablony');
+  assert(await p.evaluate(c => { const sg = Store.songs.get('sgs').style.singer[c]; const o = singerShowOf(Reader.tplFor(Store.songs.get('sgs')), c); return sg.barR === true && sg.barL === false && o.barR && !o.barL; }, sg0.code), 'označení zpěváka se uloží jen do písně');
+  assert(await p.evaluate(c => !singerShowOf(Reader.tplFor(Store.songs.get('long')), c).barR, sg0.code), 'ostatní písně mají označení zpěváka podle šablony');
 
   /* ---------- Vrstvy pro muzikanty ---------- */
   const musTxt = '%G Capo 2\n[D] [G]\n## Sloka @J\n[D]Zpívám [G]ptákům\n%%G Tab\ne|--0--|\nB|--1--|\n%%\n%B walking bass';

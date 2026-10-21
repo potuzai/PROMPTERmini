@@ -48,9 +48,11 @@ const Render = {
     s.setProperty('--hs', tpl.headerSize + 'px');
     s.setProperty('--hcolor', tpl.headerColor || tpl.sectionColor);
     st.classList.toggle('upper', !!tpl.uppercase);
-    st.classList.toggle('with-bar', !!tpl.singerBar);
-    st.classList.toggle('with-bar-r', !!tpl.singerBarRight);
-    st.classList.toggle('with-bg', !!tpl.singerBg);
+    // místo pro proužky (aby řádky lícovaly), když je má aspoň jeden zpěvák
+    const shows = Store.singers().map(sg => singerShowOf(tpl, sg.code));
+    st.classList.toggle('with-bar', shows.some(x => x.barL));
+    st.classList.toggle('with-bar-r', shows.some(x => x.barR));
+    st.classList.toggle('with-bg', shows.some(x => x.bg));
     st.classList.toggle('hide-sections', !tpl.showSections);
     st.classList.toggle('hide-notes', !tpl.showNotes);
   },
@@ -80,12 +82,17 @@ const Render = {
     const bySec = tpl.textBy === 'section';
     if (bySec) { const k = sectionKind(b.sec); if (k) el.style.color = tpl[k + 'Color'] || ''; }
     if (sgs.length) {
-      const first = sgs[0];
-      if (tpl.singerText && !bySec) el.style.color = first.color;
+      // každý zpěvák má své označení (proužek vlevo / vpravo, podklad, barva písma)
+      const sh = sgs.map(sg => [sg, singerShowOf(tpl, sg.code)]);
+      const pick = k => sh.filter(x => x[1][k]).map(x => x[0].color);
+      const txt = sh.find(x => x[1].text);
+      if (txt && !bySec) el.style.color = txt[0].color;
       if (sgs.some(s => s.bold)) el.style.fontWeight = 900;
       if (sgs.some(s => s.italic)) el.style.fontStyle = 'italic';
-      el.style.setProperty('--barbg', stripes(sgs.map(s => s.color)));
-      if (tpl.singerBg) el.style.setProperty('--tint', stripes(sgs.map(s => hexToRgba(s.color, 0.22)), true));
+      const L = pick('barL'), R = pick('barR'), B = pick('bg');
+      if (L.length) { el.style.setProperty('--barbg', stripes(L)); el.classList.add('bl'); }
+      if (R.length) { el.style.setProperty('--barbg-r', stripes(R)); el.classList.add('br'); }
+      if (B.length) { el.style.setProperty('--tint', stripes(B.map(c => hexToRgba(c, 0.22)), true)); el.classList.add('bgt'); }
       el.classList.add('has-sg');
     }
     let inner = b.showChords ? chordedHtml(b.text, singerMap) : (inlineHtml(b.chords ? stripChords(b.text) : b.text, singerMap) || '&nbsp;');
@@ -233,10 +240,34 @@ function applySongStyle(tpl, song) {
   if (st.fontWeight) t.fontWeight = st.fontWeight;
   if (st.lineHeight) t.lineHeight = st.lineHeight;
   if (st.align) t.align = st.align;
-  // označení zpěváka jen pro tuto píseň (přepíše šablonu)
-  const sg = st.singer || {};
-  for (const [k, f] of [['barL', 'singerBar'], ['barR', 'singerBarRight'], ['bg', 'singerBg'], ['text', 'singerText']]) if (typeof sg[k] === 'boolean') t[f] = sg[k];
+  // označení zpěváků jen pro tuto píseň (přepíše šablonu): { kód: { barL, barR, bg, text } }
+  if (st.singer) {
+    t.singerShow = Object.assign({}, tpl.singerShow);
+    for (const [code, o] of Object.entries(st.singer)) if (o && typeof o === 'object') t.singerShow[code] = Object.assign({}, singerShowOf(tpl, code), o);
+  }
   return t;
+}
+
+/* Jak se zpěvák na stránce označí: proužek vlevo / vpravo, podklad řádku, barva písma.
+   Šablona: singerShow[kód]; bez něj platí společné volby šablony (starší šablony). */
+const SINGER_SHOW = [['barL', 'Vlevo', 'Proužek vlevo'], ['barR', 'Vpravo', 'Proužek vpravo'], ['bg', 'Podklad', 'Podbarvení řádku'], ['text', 'Písmo', 'Barva písma']];
+function singerShowOf(tpl, code) {
+  return Object.assign({ barL: !!tpl.singerBar, barR: !!tpl.singerBarRight, bg: !!tpl.singerBg, text: !!tpl.singerText }, (tpl.singerShow || {})[code]);
+}
+/* Tabulka přepínačů: řádky = zpěváci, sloupce = druhy označení. get(kód, klíč) → bool, set(kód, klíč, bool) */
+function singerShowTable(get, set) {
+  const sgs = Store.singers();
+  const tbl = h('div', { class: 'sgs-tbl', style: { gridTemplateColumns: `minmax(90px, 1fr) repeat(${SINGER_SHOW.length}, auto)` } },
+    h('span'), SINGER_SHOW.map(([, short, long]) => h('span', { class: 'sgs-h', title: long }, short)));
+  for (const sg of sgs) {
+    tbl.append(h('span', { class: 'sgs-n' }, h('i', { style: { background: sg.color } }), sg.name));
+    for (const [k, , long] of SINGER_SHOW) {
+      const inp = h('input', { type: 'checkbox', class: 'switch', title: `${sg.name}: ${long.toLowerCase()}`, checked: !!get(sg.code, k), onchange: () => set(sg.code, k, inp.checked) });
+      tbl.append(h('label', { class: 'sgs-c' }, inp));
+    }
+  }
+  tbl.repaint = () => { let i = 0; const inps = tbl.querySelectorAll('input'); for (const sg of sgs) for (const [k] of SINGER_SHOW) inps[i++].checked = !!get(sg.code, k); };
+  return tbl;
 }
 
 function dimLabel(W, H) {
