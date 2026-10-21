@@ -79,7 +79,7 @@ V editoru je nahoře název a údaje písně (klikem je upravíš), **Uložit ja
 | psaní | upravuje vybraný řádek, Enter = nový řádek, Esc = hotovo |
 | PgUp / PgDn | předchozí / další stránka |
 
-Myší: klik do řádku rovnou začne psaní na tom místě, pravé tlačítko otevře nabídku řádku. Shift + klik nebo Shift + ↓ vybere víc řádků najednou.
+Myší jako v textovém editoru: klik do řádku = psaní na tom místě, tažením označíš slova v řádku nebo víc řádků najednou (pak zpěvák, písmo či smazání platí pro celé označení), pravé tlačítko otevře nabídku řádku. Jde to i Shift + klik nebo Shift + ↓.
 
 **Nahoře:** název písně, **💾 Uložit** a **⋯** (uložit jako, přidat do playlistu, písmo této písně, vyčistit text, zdrojový text, export .txt, nápověda, smazat píseň), vpravo **▶ Čtečka**.
 

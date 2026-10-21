@@ -252,7 +252,7 @@ class SongEditor {
       h('button', { class: 'ep-pg', title: 'Předchozí stránka (PgUp)', onclick: () => this.se.turnPage(-1) }, '‹'),
       h('span', {}, 'strana ', this.pageLbl),
       h('button', { class: 'ep-pg', title: 'Další stránka (PgDn)', onclick: () => this.se.turnPage(1) }, '›'),
-      h('span', { class: 'ep-hint', title: 'Klik do řádku = psaní · šipky ↑↓ = řádky · ← → = zpěvák · Enter = nabídka řádku · Shift+klik = více řádků' }, 'klik = psát · ↑↓ řádek · ←→ zpěvák · Enter nabídka'));
+      h('span', { class: 'ep-hint', title: 'Klik do řádku = psaní · tažení myší = označit slova nebo víc řádků · šipky ↑↓ = řádky · ← → = zpěvák · Enter = nabídka řádku' }, 'klik = psát · tažení = označit · ↑↓ řádek · ←→ zpěvák'));
     const ed = h('div', { class: 'song-editor' }, this.head,
       h('div', { class: 'ed-body' }, this.leftPanel, h('div', { class: 'ed-center' }, this.tools, this.stageWrap, this.pager)));
     this.root.innerHTML = '';
@@ -728,8 +728,8 @@ function showMarkupHelp() {
       [['Zkopíruj text (třeba z webu), klikni na stránku a vlož ho (', k('Ctrl'), '+', k('V'), '). Aplikace ho sama uklidí: odstraní zbytečné mezery, rozpozná sloky a refrény a akordy schová pro muzikanty.']]),
     step('2. Označ, kdo zpívá',
       [['Klikni do řádku a pak na zpěváka v liště nad stránkou (', b('Zpívá'), '), nebo vyber řádek šipkami a stiskni ', k('→'), '.'],
-       ['Víc řádků najednou: ', k('Shift'), '+', k('↓'), ' nebo ', k('Shift'), '+klik.'],
-       ['Jen pár slov: v řádku označ slova a klikni na zpěváka.']],
+       ['Víc řádků najednou: označ je tažením myší (nebo ', k('Shift'), '+', k('↓'), ', ', k('Shift'), '+klik).'],
+       ['Jen pár slov: označ je v řádku tažením myší a klikni na zpěváka.']],
       sample(`@${s0.code} Tenhle řádek zpívá ${s0.name.toLowerCase()}\n@${s1.code} tenhle ${s1.name.toLowerCase()}\n@${s0.code}+${s1.code} a tenhle oba spolu`)),
     step('3. Sloky a refrén',
       [[b('＋ Vložit'), ' › ', b('Sekce'), ' vloží nadpis (Sloka 1, Refrén…).'],

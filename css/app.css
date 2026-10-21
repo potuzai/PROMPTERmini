@@ -151,13 +151,14 @@ code { font-family: var(--mono); font-size: 12.5px; background: var(--well); bor
 .se-empty[hidden] { display: none; }
 kbd { font: 600 11px/1 var(--mono); padding: 3px 5px; border: 1px solid var(--line2); border-bottom-width: 2px; background: var(--panel2); color: var(--text); }
 /* výběr a psaní na stránce (stránka je zmenšená, proto silnější čáry) */
-.edit-stage .st-body { padding: 12px 14px; margin: -12px -14px; } /* místo pro rámeček výběru (velikost se nemění) */
-.edit-stage [data-bi]:not(.b-gap) { cursor: pointer; }
-.edit-stage [data-bi]:not(.b-gap):hover { background: rgba(255,255,255,.05); }
-.edit-stage .is-sel { background: rgba(239,82,69,.14); }
-.edit-stage .is-cur { outline: 4px solid var(--acc-hi) !important; outline-offset: 6px; }
-.se-wrap:not(:focus-within) .edit-stage .is-cur { outline-color: rgba(239,82,69,.4) !important; }
-.edit-stage .is-edit { outline: 4px solid #fff !important; outline-offset: 6px; background: rgba(255,255,255,.07); cursor: text; caret-color: var(--acc-hi); white-space: pre-wrap; }
+/* jako textový editor: psaný řádek ani vybraný řádek nemají rámeček, jen kurzor;
+   označené řádky (tažením nebo Shiftem) mají podklad jako označený text */
+.edit-stage .st-body, .edit-stage [data-bi] { cursor: text; }
+.edit-stage .is-sel { background: transparent; }
+.se-wrap.multi .edit-stage .is-sel { background: rgba(70,130,255,.38); }
+.se-wrap.kbd-nav:focus-within .edit-stage .is-cur:not(.is-edit) { box-shadow: -.35em 0 0 var(--acc-hi); }   /* ovládání šipkami: značka u řádku */
+.edit-stage .is-edit { outline: 0; cursor: text; caret-color: var(--acc-hi); white-space: pre-wrap; }
+.edit-stage .is-edit::selection, .edit-stage .is-edit *::selection { background: rgba(70,130,255,.55); }
 .edit-stage .is-edit:empty::before { content: "\200b"; }
 /* akordy při psaní: nad slovy jen v pohledu Pro muzikanty */
 .vchord { position: relative; display: inline-block; width: 0; height: 1em; vertical-align: baseline; user-select: none; cursor: pointer; }
@@ -469,7 +470,6 @@ details summary { color: var(--text); }
 .menu-sep { border: 0; border-top: 1px solid var(--line); margin: 4px 6px; }
 .line-menu { background: var(--panel); border-radius: var(--rc); box-shadow: var(--shadow); overflow: hidden; }
 .lm-head { font: 600 12.5px var(--font); }
-.edit-stage .is-cur { outline-color: var(--acc) !important; }
 
 /* ===== Nastavení: vlevo sekce, vpravo obsah ===== */
 .set-view > .set-nav { width: 250px; flex: 0 0 250px; padding: 18px 8px; gap: 2px; }

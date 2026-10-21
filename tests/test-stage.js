@@ -102,6 +102,16 @@ const SHOTS = process.env.SHOTS || '/tmp/claude-0/shots';
   await sleep(150);
   assert((await curText()).includes('refrén druhý') && await p.isVisible('.edit-stage .is-edit'), 'klik do řádku ho vybere a rovnou začne psaní');
   await key('Escape');
+  // tažení myší přes dva řádky = označení obou (bez psaní), tažení v řádku = označená slova
+  const lb = async t => p.locator(`.edit-stage .b-line:has-text("${t}")`).first().boundingBox();
+  const r1 = await lb('Refrén první'), r2 = await lb('refrén druhý');
+  await p.mouse.move(r1.x + 5, r1.y + r1.height / 2); await p.mouse.down();
+  await p.mouse.move(r2.x + 30, r2.y + r2.height / 2, { steps: 5 }); await p.mouse.up(); await sleep(150);
+  assert(await p.evaluate(() => SongsView.editor.se.selTargets().length === 2 && !document.querySelector('.is-edit')), 'tažení přes řádky je označí');
+  await p.mouse.move(r2.x + 2, r2.y + r2.height / 2); await p.mouse.down();
+  await p.mouse.move(r2.x + r2.width * 0.6, r2.y + r2.height / 2, { steps: 5 }); await p.mouse.up(); await sleep(200);
+  assert(await p.evaluate(() => !!document.querySelector('.is-edit') && getSelection().toString().length > 2), 'tažení v řádku označí slova');
+  await key('Escape');
 
   // zpěvák jen pro slova: jde měnit opakovaně a zrušit
   await p.click('.edit-stage .b-line:has-text("refrén druhý")'); await p.click('.edit-stage .b-line:has-text("refrén druhý")'); await sleep(150);

@@ -164,6 +164,7 @@ class StageEditor {
   paintSel() {
     for (const e of this.stage.querySelectorAll('.is-sel, .is-cur')) e.classList.remove('is-sel', 'is-cur');
     const sel = this.selTargets();
+    this.wrap.classList.toggle('multi', sel.length > 1);
     for (const t of sel) for (const e of this.elsOf(t)) e.classList.add('is-sel');
     for (const e of this.elsOf(this.cur())) e.classList.add('is-cur');
     this.curLine = this.cur() ? this.cur().line : this.curLine;
@@ -211,6 +212,7 @@ class StageEditor {
     if (e.altKey && /^Digit[0-9]$/.test(e.code)) { e.preventDefault(); return this.singerByNumber(+e.code.slice(5), e.shiftKey); }
     if (e.altKey && (k === 'ArrowUp' || k === 'ArrowDown')) { e.preventDefault(); return this.moveLines(k === 'ArrowUp' ? -1 : 1); }
     if (ctrl || e.altKey) return;
+    if (/^(Arrow|Page|Home|End)/.test(k)) this.wrap.classList.add('kbd-nav');   // značka řádku jen při ovládání šipkami (airmouse)
     switch (k) {
       case 'ArrowDown': e.preventDefault(); return this.select(idx < 0 ? 0 : idx + 1, e.shiftKey);
       case 'ArrowUp': e.preventDefault(); return this.select(idx < 0 ? 0 : idx - 1, e.shiftKey);
@@ -251,27 +253,60 @@ class StageEditor {
   }
 
   /* ---------- Myš ---------- */
+  /* Myš jako v textovém editoru: klik = kurzor v řádku, tažení v řádku = označení slov,
+     tažení přes více řádků = označení řádků (zpěvák, písmo, smazání se použije na všechny) */
   onMouseDown(e) {
     if (this.menu && !this.menu.contains(e.target)) this.closeMenu();
     if (e.button !== 0) return;
-    if (this.editing && this.editEl && this.editEl.contains(e.target)) return; // klik do psaného textu
+    this.wrap.classList.remove('kbd-nav');
     if (e.target.closest('.line-menu')) return;
     const bEl = e.target.closest('[data-bi]');
     const t = bEl && this.targets.find(x => x.bis.includes(+bEl.dataset.bi));
+    if (this.editing && this.editEl && this.editEl.contains(e.target)) { this.startDrag(e, t, null); return; }   // označování v psaném řádku nechá prohlížeč
     e.preventDefault();
     this.wrap.focus({ preventScroll: true });
     if (this.editing) this.finishEdit(true);
     if (!t) return;
-    // klik do řádku = rovnou psaní na tom místě (Shift+klik = výběr více řádků)
-    this.pendingClickEdit = !e.shiftKey && this.editable(t) ? { t, offset: this.offsetAtPoint(bEl, e.clientX, e.clientY) } : null;
+    const off = this.offsetAtPoint(bEl, e.clientX, e.clientY);
+    this.pendingClickEdit = !e.shiftKey && this.editable(t) ? { t, offset: off } : null;
     this.select(this.targets.indexOf(this.targets.find(x => x.key === t.key)), e.shiftKey);
+    if (!e.shiftKey) this.startDrag(e, t, { bEl, off });
+  }
+  startDrag(e, t, from) {
+    if (!t) return;
+    const d = { key: t.key, multi: false };
+    const lineAt = ev => {
+      const el = document.elementFromPoint(ev.clientX, ev.clientY);
+      const b = el && this.stage && this.stage.contains(el) && el.closest('[data-bi]');
+      return b && this.targets.find(x => x.bis.includes(+b.dataset.bi));
+    };
+    const move = ev => {
+      const t2 = lineAt(ev);
+      if (!t2) return;
+      if (t2.key !== d.key) {
+        ev.preventDefault();
+        if (!d.multi) { d.multi = true; this.pendingClickEdit = null; if (this.editing) this.finishEdit(true); window.getSelection().removeAllRanges(); }
+        this.anchorKey = d.key; this.curKey = t2.key; this.paintSel();
+      } else if (d.multi) { this.anchorKey = null; this.curKey = d.key; this.paintSel(); }
+    };
+    const up = ev => {
+      window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up);
+      if (d.multi) { this.wrap.focus({ preventScroll: true }); return; }
+      // tažení v jednom (ještě nepsaném) řádku: začne psaní s označenými slovy
+      const p = this.pendingClickEdit;
+      if (from && p && lineAt(ev) === t) {
+        const end = this.offsetAtPoint(from.bEl, ev.clientX, ev.clientY);
+        if (typeof end === 'number' && typeof p.offset === 'number' && end !== p.offset) p.end = end;
+      }
+    };
+    window.addEventListener('mousemove', move); window.addEventListener('mouseup', up);
   }
   onClick(e) {
     if (e.target.closest('.st-head')) { this.ed.focusMeta(); return; }
     if (e.target.closest('.st-foot .more')) { this.turnPage(1); return; }
     const p = this.pendingClickEdit;
     this.pendingClickEdit = null;
-    if (p && !this.editing) this.startEdit(this.targets.find(x => x.key === p.t.key), p.offset);
+    if (p && !this.editing) { this.startEdit(this.targets.find(x => x.key === p.t.key), p.offset); if (this.editing && p.end != null) { this.editing.selEnd = p.end; this.setCaret(p.offset, p.end); } }
     else if (!p && !this.targets.length && !this.editing && e.target.closest('.stage, .se-empty')) this.startEdit(null, 'end');
   }
   onContext(e) {
@@ -340,27 +375,33 @@ class StageEditor {
     this.editEl = el;
     this.editKind = t.kind;
     el.focus({ preventScroll: true });
-    this.setCaret(this.editing.caret);
+    this.setCaret(this.editing.caret, this.editing.selEnd);
+    this.editing.selEnd = null;
     const ch = this.editing.ch;
     this.editing.ch = null;
     if (ch) { document.execCommand('insertText', false, ch); }
   }
-  setCaret(caret) {
+  /* caret = 'start' | 'end' | číslo znaku; end = konec označení (tažením myší přes slova) */
+  setCaret(caret, end) {
     const el = this.editEl;
     const sel = window.getSelection();
-    const r = document.createRange();
-    if (typeof caret === 'number') {
-      let left = caret, done = false;
+    const at = off => {
+      let left = off;
       const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
       let n;
       while ((n = w.nextNode())) {
         const len = n.data.replace(/​/g, '').length;
-        if (left <= len) { r.setStart(n, Math.min(n.length, left)); done = true; break; }
+        if (left <= len) return [n, Math.min(n.length, left)];
         left -= len;
       }
-      if (!done) { r.selectNodeContents(el); r.collapse(false); }
-    } else { r.selectNodeContents(el); r.collapse(caret === 'start'); }
+      return null;
+    };
+    const r = document.createRange();
+    const a = typeof caret === 'number' && at(caret);
+    if (a) r.setStart(...a); else { r.selectNodeContents(el); r.collapse(caret === 'start'); }
     r.collapse(true);
+    const b = typeof end === 'number' && end !== caret && at(end);
+    if (b) { if (end < caret) r.setStart(...b); else r.setEnd(...b); }
     sel.removeAllRanges(); sel.addRange(r);
   }
   caretOffset() {
