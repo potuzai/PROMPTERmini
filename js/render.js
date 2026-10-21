@@ -250,6 +250,7 @@ function applySongStyle(tpl, song) {
   if (st.sizePct && st.sizePct !== 100) t.fontSize = Math.round(t.fontSize * st.sizePct / 100);
   if (st.fontWeight) t.fontWeight = st.fontWeight;
   if (st.lineHeight) t.lineHeight = st.lineHeight;
+  if (typeof st.stanzaGap === 'number') t.stanzaGap = st.stanzaGap;   // mezera mezi slokami (× výška písma)
   if (st.align) t.align = st.align;
   // označení zpěváků jen pro tuto píseň (přepíše šablonu): { kód: { barL, barR, bg, text } }
   if (st.singer) {

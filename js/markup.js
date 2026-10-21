@@ -7,6 +7,7 @@
   ---                     nová stránka
   {KÓD:slova}             zpěvák uvnitř řádku
   **tučně**  *kurzíva*  __podtržení__
+  {#ff0000:slova}         vlastní barva písma (třeba červené pokyny pro kapelu)
   {130%:slova}            velikost písma v procentech (starší zápis {+:…} 125 %, {++:…} 155 %, {-:…} 80 %, {--:…} 65 %)
   (prázdný řádek)         mezera mezi slokami
 
@@ -174,7 +175,7 @@ function filterForView(blocks, mus) {
 /* Velikost písma části textu: {130%:slova}; starší stupně +, ++, -, -- se čtou dál a pro tyto
    velikosti se i zapisují (starší verze programu je umí zobrazit) */
 const SZ_STEPS = { '+': 125, '++': 155, '-': 80, '--': 65 };
-const RE_SZ = /\{([+-]{1,2}|\d{2,3}%):([^}]*)\}/g;
+const RE_SZ_IN = /\{([+-]{1,2}|\d{2,3}%):([^{}]*)\}/g;   // jen nejvnitřnější (bez dalších závorek uvnitř)
 const SZ_MIN = 50, SZ_MAX = 250;
 const szPct = mark => SZ_STEPS[mark] || parseInt(mark, 10) || 100;
 const szMark = pct => Object.keys(SZ_STEPS).find(k => SZ_STEPS[k] === pct) || pct + '%';
@@ -183,14 +184,20 @@ const szClamp = pct => Math.max(SZ_MIN, Math.min(SZ_MAX, Math.round(pct)));
 /* Inline formátování → HTML */
 function inlineHtml(text, singerMap) {
   let s = esc(text);
-  s = s.replace(RE_SZ, (all, mark, inner) => { const p = szPct(mark); return `<span class="sz" data-p="${p}" style="font-size:${p / 100}em">${inner}</span>`; });
-  s = s.replace(/\{([A-Za-z0-9+]+):([^}]*)\}/g, (all, codes, inner) => {
+  // velikost {130%:…}, vlastní barva {#ff0000:…} a zpěvák slov {T:…} jdou do sebe vnořit – zpracují se od nejvnitřnější
+  const singer = (all, codes, inner) => {
     const list = parseCodes(codes);
     const sg = singerMap[list[0]];
     if (!sg) return inner;
     const st = `color:${sg.color};${sg.bold ? 'font-weight:900;' : ''}${sg.italic ? 'font-style:italic;' : ''}`;
     return `<span class="sg-in" data-c="${list.join('+')}" style="${st}">${inner}</span>`;
-  });
+  };
+  for (let prev = null; prev !== s;) {
+    prev = s;
+    s = s.replace(RE_SZ_IN, (all, mark, inner) => { const p = szPct(mark); return `<span class="sz" data-p="${p}" style="font-size:${p / 100}em">${inner}</span>`; });
+    s = s.replace(/\{(#[0-9a-fA-F]{6}):([^{}]*)\}/g, (all, c, inner) => `<span class="tc" data-tc="${c.toLowerCase()}" style="color:${c}">${inner}</span>`);
+    s = s.replace(/\{([A-Za-z0-9+]+):([^{}]*)\}/g, singer);
+  }
   s = s.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
   s = s.replace(/__(.+?)__/g, '<u>$1</u>');
   s = s.replace(/(^|[^*])\*(?!\s)(.+?)\*/g, '$1<i>$2</i>');

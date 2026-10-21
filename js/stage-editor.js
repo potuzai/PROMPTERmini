@@ -1052,6 +1052,7 @@ function serializeInline(node) {
     if (!inner) continue;
     if (n.classList.contains('sg-in') && n.dataset.c) out += '{' + n.dataset.c + ':' + inner + '}';
     else if (n.classList.contains('sz') && n.dataset.p) out += '{' + szMark(+n.dataset.p) + ':' + inner + '}';
+    else if (n.classList.contains('tc') && n.dataset.tc) out += '{' + n.dataset.tc + ':' + inner + '}';
     else if (tag === 'B' || tag === 'STRONG' || (n.style && (n.style.fontWeight === 'bold' || +n.style.fontWeight >= 600))) out += '**' + inner + '**';
     else if (tag === 'I' || tag === 'EM' || (n.style && n.style.fontStyle === 'italic')) out += '*' + inner + '*';
     else if (tag === 'U') out += '__' + inner + '__';

@@ -848,6 +848,7 @@ function showMarkupHelp() {
         ['// text', 'poznámka'],
         ['**tučně**  *kurzíva*', 'zvýraznění'],
         ['{130%:text}', 'velikost písma v procentech'],
+        ['{#ff0000:text}', 'vlastní barva písma'],
         ['---', 'nová stránka ve čtečce'],
         ['[Am]slovo', 'akord nad slovem (jen pro muzikanty)'],
         [`%${i0.code} text`, `poznámka pro nástroj ${i0.name} (jen pro muzikanty)`],

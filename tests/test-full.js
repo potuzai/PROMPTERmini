@@ -350,6 +350,7 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   await p.keyboard.press('Escape'); await sleep(200);
   assert(await p.isVisible('.se-wrap .sz[data-p="155"]'), 'stránka ukáže větší text');
   assert(await p.evaluate(() => /font-size:1\.55em/.test(inlineHtml('{++:a} {130%:b}', {})) && inlineHtml('{130%:b}', {}).includes('1.3em')), 'starší i nový zápis velikosti');
+  assert(await p.evaluate(() => { const x = inlineHtml('{90%:a {96%:b}} {#ff0000:{80%:c}}', {}); return !x.includes('{') && x.includes('font-size:0.96em') && x.includes('color:#ff0000'); }), 'vnořená velikost a vlastní barva písma');
   await more('Písmo této písně'); await sleep(200);
   await p.locator('.menu-form input[type=range]').fill('150'); await sleep(300);
   await p.locator('.menu-form select >> nth=0').selectOption('Roboto Condensed'); await sleep(400);
