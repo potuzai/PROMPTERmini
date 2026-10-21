@@ -1,5 +1,6 @@
 // Mobilní zobrazení (iPhone 13): žádné vodorovné přetékání, seznam ↔ detail, dotykové ovládání čtečky
 const { chromium, devices } = require('playwright');
+const klasickaSablona = require('./klasicka-sablona');
 const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode = 1; } else console.log('ok: ' + m); };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const URL = process.env.APP_URL || 'http://localhost:8123/index.html';
@@ -10,6 +11,7 @@ const URL = process.env.APP_URL || 'http://localhost:8123/index.html';
   const p = await ctx.newPage();
   const errors = []; p.on('pageerror', e => errors.push(e.message));
   await p.goto(URL + '#/songs'); await p.waitForFunction(() => typeof Store !== 'undefined' && Store.ready);
+  await klasickaSablona(p);
   await p.evaluate(async () => {
     const t = Array.from({ length: 40 }, (_, i) => '@J řádek ' + (i + 1)).join('\n');
     await Store.put('songs', { id: 'm1', title: 'Dlouhá', text: t });

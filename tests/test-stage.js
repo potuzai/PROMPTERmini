@@ -1,5 +1,6 @@
 // Editor přímo ve stránce čtečky: ovládání šipkami (airmouse), psaní, nabídka OK, stránky, playlist
 const { chromium } = require('playwright');
+const klasickaSablona = require('./klasicka-sablona');
 const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode = 1; } else console.log('ok: ' + m); };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const URL = process.env.APP_URL || 'http://localhost:8123/index.html';
@@ -12,6 +13,7 @@ const SHOTS = process.env.SHOTS || '/tmp/claude-0/shots';
   const p = await ctx.newPage();
   const errors = []; p.on('pageerror', e => errors.push(e.message));
   await p.goto(URL + '#/songs'); await p.waitForFunction(() => typeof Store !== 'undefined' && Store.ready);
+  await klasickaSablona(p);
   const src = () => p.evaluate(() => SongsView.editor.src);
   const key = async (k, n = 1) => { for (let i = 0; i < n; i++) { await p.keyboard.press(k); await sleep(60); } };
   // nabídky v editoru: ⋯ (volby písně), lišta nad stránkou (＋ Vložit, Řádek, Pro muzikanty)

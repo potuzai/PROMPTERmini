@@ -1,5 +1,6 @@
 // Kompletní test funkcí, které nepokrývají ostatní testy
 const { chromium } = require('playwright');
+const klasickaSablona = require('./klasicka-sablona');
 const fs = require('fs'); const path = require('path'); const os = require('os');
 const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode = 1; } else console.log('ok: ' + m); };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -16,6 +17,12 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   p.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
   await p.goto(URL + '#/songs');
   await p.waitForFunction(() => typeof Store !== 'undefined' && Store.ready);
+  await klasickaSablona(p);
+  assert(await p.evaluate(async () => {
+    const one = Store.templates.size === 1 && Store.templates.get('default').name === 'Hlavní čtečka';
+    await Store.put('templates', { id: 'dva-sloupce', name: 'Dva sloupce' }); await Store.dropOldTemplates();
+    return one && !Store.templates.has('dva-sloupce');
+  }), 'jediná vestavěná šablona Hlavní čtečka, zrušené vestavěné šablony se smažou');
 
   /* ---------- Parser ---------- */
   const parsed = await p.evaluate(() => {
@@ -212,8 +219,8 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
     await Store.put('songs', { id: 'long', title: 'Dlouhá', text: t });
     await Store.put('songs', { id: 's3', title: 'Třetí', text: '@T konec' });
     const pl = Store.playlists.get('pl1'); pl.items = [Store.sortedSongs().find(s => s.title === 'Holubí dům').id, 'long', 's3']; await Store.put('playlists', pl);
-    for (const id of pl.items) { const s = Store.songs.get(id); if (s) { s.templateId = 'velke-stred'; await Store.put('songs', s); } }
-    const tpl = Store.templates.get('velke-stred'); tpl.fit = 'paginate'; await Store.put('templates', tpl);
+    await Store.put('templates', Object.assign(Store.template('default'), { id: 'velke', name: 'Velké na střed', fontSize: 80, align: 'center', fit: 'paginate', showFooter: true, uppercase: false }));
+    for (const id of pl.items) { const s = Store.songs.get(id); if (s) { s.templateId = 'velke'; await Store.put('songs', s); } }
   }, long);
   await p.evaluate(() => { location.hash = '#/reader/pl1'; });
   await sleep(600);
@@ -274,7 +281,7 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   await p.click('.set-row:has-text("Stáhnout zálohu") button');
   const bpath = path.join(tmp, 'zaloha.json'); await (await dl2).saveAs(bpath);
   const backup = JSON.parse(fs.readFileSync(bpath, 'utf8'));
-  assert(backup.songs.length >= 4 && backup.playlists.length === 1 && backup.templates.length >= 4, 'záloha obsahuje vše');
+  assert(backup.songs.length >= 4 && backup.playlists.length === 1 && backup.templates.length >= 1, 'záloha obsahuje vše');
   const countBefore = await p.evaluate(() => Store.songs.size);
   await p.evaluate(async () => { for (const id of [...Store.songs.keys()]) await Store.remove('songs', id); });
   assert(await p.evaluate(() => Store.songs.size) === 0, '(smazáno vše)');

@@ -179,6 +179,7 @@ const App = {
     if (Reader.isOpen()) return;
     const [view, param] = this.parseHash();
     if (type === 'sync') {
+      Store.dropOldTemplates();   // zrušené vestavěné šablony mohly přijít ze sdílených dat
       // změny od ostatních – překreslit, ale neztratit rozpracované úpravy
       if (this.isDirty()) { if (SongsView.paintList) SongsView.paintList(); if (PlaylistsView.paintSide) PlaylistsView.paintSide(); if (TemplatesView.paintSide) TemplatesView.paintSide(); return; }
       return this.go(true);

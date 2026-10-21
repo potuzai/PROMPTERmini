@@ -20,41 +20,25 @@ const DEFAULT_INSTRUMENTS = [
 ];
 const CHORD_COLOR = '#ff5a4f';
 
+/* Výchozí šablona = „Hlavní čtečka“ kapely (platí i bez přihlášení ke kapele) */
 const DEFAULT_TEMPLATE = {
-  id: 'default', name: 'Výchozí – černé pozadí',
-  fontFamily: 'Arial', fontSize: 64, fontWeight: 700, lineHeight: 1.22, letterSpacing: 0,
-  align: 'left', uppercase: false,
+  id: 'default', name: 'Hlavní čtečka',
+  fontFamily: 'Roboto', fontSize: 43, fontWeight: 600, lineHeight: 1, letterSpacing: 0,
+  align: 'center', uppercase: true,
   textColor: '#ffffff', bgColor: '#000000',
-  sectionColor: '#8a8a8a', sectionScale: 0.55, showSections: true,
+  sectionColor: '#8a8a8a', sectionScale: 0.5, showSections: false,
   noteColor: '#b0b0b0', showNotes: true,
-  padX: 70, padY: 36, columns: 1, colGap: 70, stanzaGap: 0.55,
+  padX: 0, padY: 0, columns: 1, colGap: 30, stanzaGap: 0.1,
   // označení zpěváka: proužek vlevo / vpravo, podbarvení řádku, barva písma (libovolná kombinace; píseň může přepsat)
-  singerText: true, singerBar: true, singerBarRight: false, singerBg: false, barWidth: 14,
+  singerText: false, singerBar: true, singerBarRight: false, singerBg: false, barWidth: 15,
   // barva textu: 'singer' = podle zpěváka, 'section' = podle části písně (zpěvák jen pruhem)
-  textBy: 'singer', verseColor: '#ffffff', chorusColor: '#ffff00', bridgeColor: '#33ff33',
-  fit: 'shrink', minScale: 0.7,
-  showHeader: true, showFooter: true, headerSize: 30, headerColor: '#9e9e9e',
+  textBy: 'section', verseColor: '#ffffff', chorusColor: '#ffff00', bridgeColor: '#33ff33',
+  fit: 'shrink', minScale: 0.6,
+  showHeader: true, showFooter: false, headerSize: 25, headerColor: '#9e9e9e',
   mirror: 'none',
 };
-
-const EXTRA_TEMPLATES = [
-  Object.assign({}, DEFAULT_TEMPLATE, {
-    id: 'casti-pisne', name: 'Barvy podle částí písně (sloka / refrén / mezičást)',
-    textBy: 'section', singerText: false, singerBar: true, barWidth: 16,
-  }),
-  Object.assign({}, DEFAULT_TEMPLATE, {
-    id: 'velke-stred', name: 'Velké písmo – na střed', fontSize: 80, align: 'center',
-    singerBar: false, singerText: true, fit: 'paginate',
-  }),
-  Object.assign({}, DEFAULT_TEMPLATE, {
-    id: 'svetla', name: 'Světlá (bílé pozadí)', bgColor: '#ffffff', textColor: '#111111',
-    sectionColor: '#777777', noteColor: '#555555', headerColor: '#666666', fontWeight: 600,
-    singerText: false, singerBg: true, singerBar: true,
-  }),
-  Object.assign({}, DEFAULT_TEMPLATE, {
-    id: 'dva-sloupce', name: 'Dva sloupce – dlouhé texty', fontSize: 50, columns: 2, fit: 'shrink', minScale: 0.75,
-  }),
-];
+// zrušené vestavěné šablony starších verzí – smažou se všude (i ze sdílených dat kapely)
+const DROPPED_TEMPLATES = ['casti-pisne', 'velke-stred', 'svetla', 'dva-sloupce'];
 
 const DEFAULT_SETTINGS = {
   screenW: 1080, screenH: 1920, diagonal: 24, distance: 2.5,   // výchozí: 24" monitor na výšku
@@ -202,8 +186,9 @@ const Store = {
     if (!this.config.has('singers')) await this.put('config', { id: 'singers', list: clone(DEFAULT_SINGERS) }, { silent: true, noStamp: true });
     if (!this.config.has('instruments')) await this.put('config', { id: 'instruments', list: clone(DEFAULT_INSTRUMENTS) }, { silent: true, noStamp: true });
     if (this.templates.size === 0) {
-      for (const t of [DEFAULT_TEMPLATE, ...EXTRA_TEMPLATES]) await this.put('templates', clone(t), { silent: true, noStamp: true });
+      await this.put('templates', clone(DEFAULT_TEMPLATE), { silent: true, noStamp: true });
     }
+    await this.dropOldTemplates();
     // ukázková píseň jen bez kapely – do sdíleného úložiště nepatří
     if (this.songs.size === 0 && !['mega', 'github', 'folder'].includes(Settings.get('syncMode')) && !Settings.get('gh').repo) await this.put('songs', sampleSong(), { silent: true });
     // Starší verze měly výchozí monitor na šířku – čtečka kapely je na výšku
@@ -216,6 +201,12 @@ const Store = {
     const ls = Settings.data;
     if (!ls.portraitMigrated) { if (ls.screenW > ls.screenH) { const w = ls.screenW; ls.screenW = ls.screenH; ls.screenH = w; } ls.portraitMigrated = true; Settings.save(); }
     this.ready = true;
+  },
+
+  /* zrušené vestavěné šablony smazat (i po stažení ze sdílených dat); písně a playlisty s nimi přejdou na výchozí */
+  async dropOldTemplates() {
+    for (const id of DROPPED_TEMPLATES) if (this.templates.has(id)) await this.remove('templates', id, { silent: true });
+    if (DROPPED_TEMPLATES.includes(Settings.get('defaultTemplate'))) Settings.set('defaultTemplate', 'default');
   },
 
   on(fn) { this.listeners.add(fn); return () => this.listeners.delete(fn); },

@@ -1,5 +1,6 @@
 // Nový vzhled 1.16: průvodce prvním spuštěním, světlý/tmavý motiv, seznam písní s náhledem, čtečka (lišta, nabídka)
 const { chromium } = require('playwright');
+const klasickaSablona = require('./klasicka-sablona');
 const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode = 1; } else console.log('ok: ' + m); };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const URL = 'http://localhost:8123/index.html';
@@ -16,6 +17,7 @@ const URL = 'http://localhost:8123/index.html';
     assert(await p.evaluate(() => Screens.myId() === 'auto'), 'web: stránka čtečky podle okna (responzivní)');
     // čtečka v prohlížeči: tvar stránky = tvar okna, při změně okna se přestránkuje
     await p.click('.modal button:has-text("Jen vyzkoušet")');
+    await klasickaSablona(p);
     await p.evaluate(async () => { await Store.put('songs', { id: 'rs', title: 'Resp', text: Array.from({ length: 30 }, (_, i) => '@J řádek ' + i).join('\n') }); location.hash = '#/reader/song:rs'; }); await sleep(700);
     const r1 = await p.evaluate(() => { const r = document.querySelector('#reader .stage').getBoundingClientRect(); return { w: r.width, h: r.height, pages: Reader.current().lay.pages.length }; });
     assert(Math.abs(r1.w - 1280) < 3 && Math.abs(r1.h - 800) < 3, 'čtečka v prohlížeči vyplní celé okno');
@@ -81,6 +83,7 @@ const URL = 'http://localhost:8123/index.html';
       const r = await c3.newPage();
       r.on('pageerror', e => console.log('PAGEERR', e.message));
       await r.goto(URL + '#/settings/screens'); await r.waitForFunction(() => typeof Store !== 'undefined' && Store.ready); await sleep(400);
+      await klasickaSablona(r);
       await r.evaluate(async () => { await Store.put('songs', { id: 'tb', title: 'Tablet', text: '@J jedna\n[Am]dvě\n---\n@T tři\n%G capo 2\n@V čtyři' }); });
       r.once('dialog', () => {});
       await r.click('.scr-tabs .chip.add'); await r.fill('.modal input', 'Tablet kytara'); await r.keyboard.press('Enter'); await sleep(400);
@@ -127,6 +130,7 @@ const URL = 'http://localhost:8123/index.html';
       await c4.addInitScript(() => { if (!localStorage.getItem('prompter-settings')) localStorage.setItem('prompter-settings', JSON.stringify({ welcomed: true })); });
       const t = await c4.newPage();
       await t.goto(URL + '#/songs'); await t.waitForFunction(() => typeof Store !== 'undefined' && Store.ready);
+      await klasickaSablona(t);
       const cols = await t.evaluate(() => {
         const tpl = Object.assign(clone(DEFAULT_TEMPLATE), { textBy: 'section', singerText: false });
         const lay = Render.layout({ text: '## Sloka 1\n@J a\n## Refrén @V\nb\n## Mezičást\n@T c\n>> Refrén' }, tpl, 1080, 1920);
@@ -143,6 +147,7 @@ const URL = 'http://localhost:8123/index.html';
     const q = await c2.newPage();
     q.on('pageerror', e => console.log('PAGEERR', e.message));
     await q.goto(URL + '#/songs'); await q.waitForFunction(() => typeof Store !== 'undefined' && Store.ready);
+    await klasickaSablona(q);
     await q.evaluate(async () => {
       await Store.put('songs', { id: 'a1', title: 'Holubí dům', artist: 'Jarek Nohavica', key: 'G', tempo: '96', text: '## Sloka 1 @J\nZpívám ptákům\n## Refrén @V\nHolubí dům\n---\n>> Refrén' });
       await Store.put('songs', { id: 'a2', title: 'Kometa', artist: 'Jarek Nohavica', text: '@T Kometa' });

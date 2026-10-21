@@ -22,7 +22,7 @@ const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode
   console.log('A sync1', JSON.stringify(r1));
   let st = await (await fetch('http://localhost:8124/__state')).json();
   assert(st.files['data/songs/song1.json'] && st.files['data/songs/song1.json'].includes('Píseň Jedna'), 'píseň nahrána na GitHub (UTF-8)');
-  assert(Object.keys(st.files).filter(f => f.startsWith('data/templates/')).length === 5, 'šablony nahrány');
+  assert(Object.keys(st.files).filter(f => f.startsWith('data/templates/')).length === 1, 'šablona nahrána');
 
   const B = await mk();
   await B.evaluate(() => Sync.run());

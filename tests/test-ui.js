@@ -1,4 +1,5 @@
 const { chromium } = require('playwright');
+const klasickaSablona = require('./klasicka-sablona');
 const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode = 1; } else console.log('ok: ' + m); };
 (async () => {
   const b = await chromium.launch();
@@ -10,6 +11,7 @@ const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode
   // úvodní stránka: playlisty, adresa bez #
   await p.goto('http://localhost:8123/');
   await p.waitForFunction(() => typeof Store !== 'undefined' && Store.ready); await p.waitForTimeout(300);
+  await klasickaSablona(p);
   assert(!(new URL(p.url())).hash && await p.isVisible('#topbar .tab.active:has-text("Playlisty")') && (await p.textContent('#topbar .tabs .tab')).includes('Playlisty'), 'úvodní stránka: playlisty jako první, čistá adresa');
   await p.click('#topbar .tab:has-text("Písně")'); await p.waitForTimeout(200);
   await p.click('#topbar .tab:has-text("Playlisty")'); await p.waitForTimeout(200);
@@ -26,6 +28,7 @@ const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode
   assert(!(await p.isVisible('.modal')), 'přihlášení jde zavřít Esc');
   await p.goto('http://localhost:8123/index.html#/songs');
   await p.waitForFunction(() => typeof Store !== 'undefined' && Store.ready);
+  await klasickaSablona(p);
   // nová píseň
   await p.click('button:has-text("Nová píseň")');
   await p.fill('.modal input', 'Testovací');
