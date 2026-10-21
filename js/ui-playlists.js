@@ -470,10 +470,10 @@ const PlaylistsView = {
       const menuBtn = h('button', { class: 'btn', title: 'Uložit (Ctrl+S) nebo uložit jako nový playlist', onclick: e => popupMenu(e.currentTarget, [
         { label: 'Uložit (Ctrl+S)', action: () => save(true) },
         { label: 'Uložit jako…', action: () => saveAs() }]) }, '💾 ▾');
-      const moreBtn = h('button', { class: 'btn', title: 'Další možnosti: čára pro přídavky, tisk, celá stránka úprav', onclick: e => popupMenu(e.currentTarget, [
+      const moreBtn = h('button', { class: 'btn', title: 'Další možnosti: čára pro přídavky, celá stránka úprav, tisk', onclick: e => popupMenu(e.currentTarget, [
         rows.includes(LINE) ? null : { label: 'Čára pro přídavky', action: () => { rows.push(LINE); commit(); } },
-        { label: 'Tisk…', action: () => this.print(pl) },
-        { label: 'Celá stránka úprav', action: () => { location.hash = '#/playlists/' + pl.id; } }].filter(Boolean)) }, '⋯');
+        { label: 'Celá stránka úprav', action: () => { location.hash = '#/playlists/' + pl.id; } },
+        { label: 'Tisk…', action: () => this.print(pl) }].filter(Boolean)) }, '⋯');
       savedBtns.push(menuBtn);
       root.append(
         h('div', { class: 'pl-prev-head' }, h('div', { class: 'pl-prev-title' }, titleEl,
