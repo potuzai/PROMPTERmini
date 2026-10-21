@@ -70,6 +70,10 @@ const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode
   await p.click('button:has-text("Nový playlist")');
   await p.keyboard.press('Enter');
   await p.waitForTimeout(400);
+  assert(await p.evaluate(() => !App.parseHash()[1] && !!document.querySelector('.pl-list .item.active') && document.querySelector('.pl-list .item.active').dataset.id === PlaylistsView.selected),
+    'po vytvoření playlistu zůstane seznam a nový playlist je vybraný');
+  await p.evaluate(() => location.hash = '#/playlists/' + PlaylistsView.selected);
+  await p.waitForTimeout(300);
   // přidání psaním (Enter přidá shodu) a výběrem z knihovny (zaškrtnout, Přidat vybrané)
   await p.fill('.pl-add .qa input', 'Testovací');
   await p.keyboard.press('Enter');

@@ -165,8 +165,12 @@ const PlaylistsView = {
     const p = newPlaylist(r.name || playlistNameHint(), r.from ? [...r.from.items] : []);
     p.date = r.date; p.note = r.note;
     if (r.from && typeof r.from.encore === 'number') p.encore = r.from.encore;
+    if (!await App.leaveOk()) return;   // rozpracovaný náhled jiného playlistu
+    // zůstat v seznamu playlistů, nový playlist vybrat do náhledu (na mobilu náhled není → rovnou úprava)
+    this.selected = p.id;
     await Store.put('playlists', p);
-    location.hash = '#/playlists/' + p.id;
+    if (isMobile()) location.hash = '#/playlists/' + p.id;
+    else if (App.parseHash()[1]) App.home();   // z celé stránky úprav zpět do seznamu
   },
 
   /* Úprava playlistu: pracuje se na kopii, uloží se až tlačítkem Uložit (Ctrl+S); při odchodu se App zeptá */
