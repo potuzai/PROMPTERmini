@@ -102,7 +102,7 @@ const URL = 'http://localhost:8123/index.html';
       await r.evaluate(() => { location.hash = '#/songs/tb'; }); await sleep(800);
       assert(await r.evaluate(id => SongsView.editor.screenId === id, tab.id), 'editor ukazuje náhled pro obrazovku zařízení');
       await r.evaluate(() => SongsView.editor.se.select(1)); await sleep(100);
-      await r.click('.ed-panel button:has-text("Nová stránka")'); await sleep(300);
+      await r.click('.ed-tools button:has-text("Vložit")'); await r.click('.menu > div:has-text("Nová stránka")'); await sleep(300);
       const src = await r.evaluate(() => SongsView.editor.src);
       assert(src.includes('--- ' + tab.id) && src.split('\n').filter(l => l.trim() === '---').length === 1, 'nová stránka se vloží jen pro tuto obrazovku');
       assert(await r.evaluate(() => SongsView.editor.se.lay.pages.length) === 2, 'náhled tabletu má teď 2 stránky');
@@ -163,12 +163,13 @@ const URL = 'http://localhost:8123/index.html';
     assert(await q.evaluate(() => location.hash) === '#/songs/a1', 'dvojklik otevře editor');
 
     /* ----- Editor: struktura písně ----- */
-    assert(await q.isVisible('.ed-top .ep-title') && await q.isVisible('.ed-meta:has-text("Jarek Nohavica · G · 96 BPM")'), 'editor: název a údaje nahoře');
+    assert(await q.isVisible('.ed-top .ep-title') && await q.evaluate(() => { const e = SongsView.editor; return e.inArtist.value === 'Jarek Nohavica' && e.inKey.value === 'G' && String(e.inTempo.value) === '96'; })
+      && await q.isVisible('.ed-left-panel .ep-meta'), 'editor: název nahoře, údaje v levém panelu');
     assert(await q.locator('.ep-struct .st-item').count() === 3 && await q.isVisible('.ep-struct .st-brk:has-text("Stránka 2")'), 'struktura: sekce, opakování a konec stránky');
     await q.click('.ep-struct .st-item:has-text("Refrén") >> nth=0'); await sleep(200);
     assert(await q.evaluate(() => SongsView.editor.se.cur().line) === 2 && await q.isVisible('.ep-struct .st-item.on:has-text("Refrén")'), 'klik na sekci ji vybere na stránce');
-    await q.click('.ep-legend .ep-leg:has-text("Ty")'); await sleep(300);
-    assert((await q.evaluate(() => SongsView.editor.src)).includes('## Refrén @T'), 'klik na zpěváka v legendě přiřadí sekci');
+    await q.click('.ed-tools .sw:has-text("Ty")'); await sleep(300);
+    assert((await q.evaluate(() => SongsView.editor.src)).includes('## Refrén @T'), 'klik na zpěváka v liště přiřadí sekci');
 
     /* ----- Čtečka: lišta, seznam, nabídka ----- */
     await q.keyboard.press('Control+S'); await sleep(200);

@@ -262,8 +262,8 @@ class StageEditor {
     this.wrap.focus({ preventScroll: true });
     if (this.editing) this.finishEdit(true);
     if (!t) return;
-    const was = this.curKey === t.key && this.anchorKey == null;
-    this.pendingClickEdit = was && this.editable(t) ? { t, offset: this.offsetAtPoint(bEl, e.clientX, e.clientY) } : null;
+    // klik do řádku = rovnou psaní na tom místě (Shift+klik = výběr více řádků)
+    this.pendingClickEdit = !e.shiftKey && this.editable(t) ? { t, offset: this.offsetAtPoint(bEl, e.clientX, e.clientY) } : null;
     this.select(this.targets.indexOf(this.targets.find(x => x.key === t.key)), e.shiftKey);
   }
   onClick(e) {
@@ -271,7 +271,6 @@ class StageEditor {
     if (e.target.closest('.st-foot .more')) { this.turnPage(1); return; }
     const p = this.pendingClickEdit;
     this.pendingClickEdit = null;
-    // klik na už vybraný řádek = psaní na tom místě
     if (p && !this.editing) this.startEdit(this.targets.find(x => x.key === p.t.key), p.offset);
     else if (!p && !this.targets.length && !this.editing && e.target.closest('.stage, .se-empty')) this.startEdit(null, 'end');
   }
@@ -404,12 +403,13 @@ class StageEditor {
     clearTimeout(this.relayT);
     this.syncEdit();
     const line = this.editing.line;
+    const had = this.wrap.contains(document.activeElement);   // psaný řádek měl fokus (akce z lišty nebo nabídky)
     this.editing = null;
     this.editEl = null;
     this.pushHist();
     this.curLine = line;
     this.render();
-    if (!silent) this.wrap.focus({ preventScroll: true });
+    if (!silent || (had && !this.wrap.contains(document.activeElement))) this.wrap.focus({ preventScroll: true });
   }
   splitLine() {
     const el = this.editEl, i = this.editing.line, kind = this.editKind;
@@ -648,6 +648,7 @@ class StageEditor {
     this.assignSinger(j < 0 ? null : codes[j], j < 0 ? 'clear' : 'force');
   }
   deleteLines() {
+    this.finishEdit(true);   // smazání z lišty uprostřed psaní: nejdřív dopsat
     const targets = this.selTargets();
     if (!targets.length) return;
     const ls = this.lines();

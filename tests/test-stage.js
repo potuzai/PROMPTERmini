@@ -14,10 +14,11 @@ const SHOTS = process.env.SHOTS || '/tmp/claude-0/shots';
   await p.goto(URL + '#/songs'); await p.waitForFunction(() => typeof Store !== 'undefined' && Store.ready);
   const src = () => p.evaluate(() => SongsView.editor.src);
   const key = async (k, n = 1) => { for (let i = 0; i < n; i++) { await p.keyboard.press(k); await sleep(60); } };
+  // nabídky v editoru: ⋯ (volby písně), lišta nad stránkou (＋ Vložit, Řádek, Pro muzikanty)
+  const pick = async (btn, label) => { await p.click(btn); await p.click(`.menu > div:has-text("${label}")`); };
   const songMenu = async label => {
-    if (label === 'Ukázat akordy') return p.click('.ed-left-panel button[title^="Ukázat na stránce"]');
-    if (label === 'Údaje o písni') return p.click('.ed-panel button:has-text("Údaje…")');
-    if (label === 'Zdrojový text') return p.click('.ed-panel button:has-text("Zdrojový text")');
+    if (label === 'Ukázat akordy') return pick('.ed-tools .ed-mus', 'akordy a poznámky');
+    if (label === 'Zdrojový text') return pick('.ed-top button[title^="Další volby písně"]', 'Zdrojový text');
   };
   const curText = () => p.evaluate(() => { const e = document.querySelector('.edit-stage .is-cur'); return e ? e.textContent : ''; });
 
@@ -98,28 +99,26 @@ const SHOTS = process.env.SHOTS || '/tmp/claude-0/shots';
 
   // klik: vybrat, druhý klik = psaní
   await p.click('.edit-stage .b-line:has-text("refrén druhý")');
-  assert((await curText()).includes('refrén druhý'), 'klik vybere řádek');
-  await p.click('.edit-stage .b-line:has-text("refrén druhý")');
   await sleep(150);
-  assert(await p.isVisible('.edit-stage .is-edit'), 'klik na vybraný řádek = psaní');
+  assert((await curText()).includes('refrén druhý') && await p.isVisible('.edit-stage .is-edit'), 'klik do řádku ho vybere a rovnou začne psaní');
   await key('Escape');
 
   // zpěvák jen pro slova: jde měnit opakovaně a zrušit
   await p.click('.edit-stage .b-line:has-text("refrén druhý")'); await p.click('.edit-stage .b-line:has-text("refrén druhý")'); await sleep(150);
   await p.evaluate(() => { const el = document.querySelector('.is-edit'); const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); let n; while ((n = w.nextNode())) { const i = n.data.indexOf('druhý'); if (i >= 0) { const r = document.createRange(); r.setStart(n, i); r.setEnd(n, i + 5); getSelection().removeAllRanges(); getSelection().addRange(r); return; } } });
-  await p.click('.ed-panel .sw >> nth=0'); await sleep(150);
+  await p.click('.ed-tools .sw >> nth=0'); await sleep(150);
   assert(/refrén \{J:druhý\}/.test(await src()), 'zpěvák pro označené slovo');
-  await p.click('.ed-panel .sw >> nth=1'); await sleep(150);
+  await p.click('.ed-tools .sw >> nth=1'); await sleep(150);
   assert(/refrén \{T:druhý\}/.test(await src()) && !/\{J:/.test(await src()), 'barvu slova jde změnit znovu (bez vnoření)');
-  await p.click('.ed-panel .sw.none'); await sleep(150);
+  await p.click('.ed-tools .sw.none'); await sleep(150);
   assert(/^refrén druhý$/m.test(await src()), '„Nikdo“ barvu slova zruší');
   await key('Escape');
 
-  // pravý panel: zpěvák, sekce, poznámka, nová stránka
-  await p.click('.ed-panel .sw >> nth=2');
-  assert(/^@V refrén druhý/m.test(await src()), 'tlačítko zpěváka v panelu');
-  assert(await p.isVisible('.ed-panel .sw.on'), 'panel ukazuje zpěváka vybraného řádku');
-  await p.click('.ed-panel button:has-text("Nová stránka")');
+  // lišta nad stránkou: zpěvák, nová stránka
+  await p.click('.ed-tools .sw >> nth=2');
+  assert(/^@V refrén druhý/m.test(await src()), 'tlačítko zpěváka v liště');
+  assert(await p.isVisible('.ed-tools .sw.on'), 'lišta ukazuje zpěváka vybraného řádku');
+  await pick('.ed-tools button:has-text("Vložit")', 'Nová stránka');
   await sleep(200);
   assert(/---\n@V refrén druhý/.test(await src()), 'nová stránka před vybraný řádek');
   assert(/2/.test(await p.textContent('.page-lbl')) && (await p.textContent('.page-lbl')).includes('/2'), 'stránky: počet v panelu');
@@ -131,7 +130,7 @@ const SHOTS = process.env.SHOTS || '/tmp/claude-0/shots';
   // posun řádků
   const before2 = await src();
   await p.click('.edit-stage .b-line:has-text("Refrén první")');
-  await p.click('.ed-panel button:has-text("↓ Dolů")'); await sleep(150);
+  await pick('.ed-tools button:has-text("Řádek")', 'Posunout dolů'); await sleep(150);
   assert(/@V refrén druhý\nRefrén první/.test(await src()), 'řádek jde posunout dolů');
   assert((await curText()).includes('Refrén první'), 'posunutý řádek zůstane vybraný');
   await key('Alt+ArrowUp');
@@ -154,9 +153,7 @@ const SHOTS = process.env.SHOTS || '/tmp/claude-0/shots';
   }).then(async id => { await sleep(300); await p.evaluate(i => { location.hash = '#/songs/' + i; }, id); });
   await sleep(600);
   assert(await p.isVisible('.edit-stage .st-head:has-text("2/2")'), 'v záhlaví je pořadí v playlistu');
-  await songMenu('Údaje o písni');
-  await p.selectOption('.modal select >> nth=1', '');
-  await p.click('.modal button:has-text("Hotovo")');
+  await p.selectOption('.ed-pager select >> nth=1', '');
   await sleep(200);
   assert(!(await p.isVisible('.edit-stage .st-head:has-text("2/2")')), 'samostatně = bez pořadí');
 

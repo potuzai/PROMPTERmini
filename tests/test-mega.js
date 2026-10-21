@@ -129,7 +129,7 @@ async function browserMember(browser) {
   await D.p.evaluate(() => { location.hash = '#/songs/zluty'; });
   await D.p.waitForSelector('.se-wrap .edit-stage');
   await D.p.focus('.se-wrap'); await D.p.keyboard.press('End');
-  await D.p.click('.ed-panel button:has-text("Řádek")'); await D.p.keyboard.type('z prohlížeče'); await D.p.keyboard.press('Escape');
+  await D.p.click('.ed-tools button:has-text("Vložit")'); await D.p.click('.menu > div:has-text("Řádek") >> nth=0'); await D.p.keyboard.type('z prohlížeče'); await D.p.keyboard.press('Escape');
   await D.p.keyboard.press('Control+S');
   await D.p.waitForFunction(() => Store.pendingCount() === 0 && Sync.state === 'idle', null, { timeout: 20000 });
   await A.w.evaluate(() => Sync.run());
