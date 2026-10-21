@@ -113,6 +113,18 @@ const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode
   assert(await p.isVisible('.pl-songs'), 'Zůstat nechá úpravu otevřenou');
   await p.click('.bottom-actions button:has-text("Uložit")'); await p.waitForTimeout(300);
   assert(await plStored() === 2, 'tlačítko Uložit playlist uloží');
+  // nový playlist jako kopie existujícího (okno s názvem, datem, poznámkou a „Kopie z playlistu…“)
+  const origPl = await p.evaluate(() => location.hash);
+  await p.evaluate(() => location.hash = '#/playlists');
+  await p.waitForTimeout(200);
+  await p.click('button:has-text("Nový playlist")');
+  assert(await p.isVisible('.modal-title:has-text("Nový playlist")'), 'nový playlist: okno s údaji');
+  await p.click('.pl-from button:has-text("Kopie z playlistu")');
+  await p.click('.menu div >> nth=0');
+  assert((await p.inputValue('.pl-info-dlg input >> nth=0')).endsWith('(kopie)'), 'kopie: název podle vzoru');
+  await p.click('.modal-buttons button:has-text("Vytvořit")'); await p.waitForTimeout(300);
+  assert(await p.evaluate(() => [...Store.playlists.values()].filter(x => x.items.length === 2).length) === 2, 'nový playlist převzal písně');
+  await p.evaluate(h => location.hash = h, origPl); await p.waitForTimeout(300);
   await p.screenshot({ path: '/tmp/claude-0/shots/6-playlist.png' });
   // čtečka
   await p.click('button:has-text("Spustit ve čtečce")');

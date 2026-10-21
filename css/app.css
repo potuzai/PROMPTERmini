@@ -252,6 +252,8 @@ kbd { font: 600 11px/1 var(--mono); padding: 3px 5px; border: 1px solid var(--li
 .pi-meta > span { display: flex; align-items: center; gap: 6px; }
 .pl-compact .pi-meta .pi-key, .pl-compact .pi-meta .pi-bpm, .pl-compact .pi-meta .pi-dur, .pl-compact .pi-meta .pi-sing { width: auto; padding: 0; text-align: right; }
 .pl-info-dlg .f { display: block; margin-bottom: 10px; }
+.pl-from { display: flex; align-items: center; gap: 10px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.pl-from-lbl { flex: 1; display: flex; align-items: center; gap: 8px; color: var(--dim); font-size: 13px; }
 .big-list .list .item.sl-row.active { background: var(--sel); box-shadow: inset 3px 0 0 var(--acc); }
 .btn.pl-back { margin-bottom: 12px; }
 .sl-artist { color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

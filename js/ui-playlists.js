@@ -134,10 +134,38 @@ const PlaylistsView = {
     if (this.paintSide) this.paintSide();
   },
 
+  /* Okno s názvem, datem a poznámkou (tužka u playlistu i nový playlist).
+     copy = nový playlist: tlačítko pro převzetí písní z existujícího playlistu.
+     Vrací { name, date, note, from } nebo null. */
+  async infoDlg(title, pl, { okLabel = 'Použít', copy = false } = {}) {
+    const f = (label, el) => h('label', { class: 'f' }, h('span', {}, label), el);
+    const n = h('input', { class: 'inp', value: pl.name || '' }), d = h('input', { class: 'inp', type: 'date', value: pl.date || '' });
+    const o = h('input', { class: 'inp', value: pl.note || '', placeholder: 'místo, čas, poznámka…' });
+    let from = null;
+    const fromLbl = h('span', { class: 'pl-from-lbl' });
+    const paintFrom = () => fromLbl.replaceChildren(...(from
+      ? [`Písně z „${from.name}“ (${plural(from.items.length, 'píseň', 'písně', 'písní')})`,
+        h('button', { class: 'btn small nogrow', title: 'Začít s prázdným playlistem', onclick: () => { from = null; paintFrom(); } }, '✕')]
+      : ['Prázdný playlist']));
+    const pick = e => popupMenu(e.currentTarget, Store.sortedPlaylists().map(p => ({ label: `${p.name}${p.date ? ' · ' + new Date(p.date).toLocaleDateString('cs-CZ') : ''} (${p.items.length})`, action: () => {
+      if (!n.value.trim() || n.value === pl.name) n.value = p.name + ' (kopie)';
+      from = p; paintFrom();
+    } })));
+    paintFrom();
+    const body = h('div', { class: 'pl-info-dlg' }, f('Název playlistu', n), f('Datum', d), f('Poznámka', o),
+      copy && Store.playlists.size ? h('div', { class: 'pl-from' }, fromLbl,
+        h('button', { class: 'btn', title: 'Nový playlist začne písněmi (a čárou pro přídavky) z vybraného playlistu', onclick: pick }, '⧉ Kopie z playlistu…')) : null);
+    const ok = await modal({ title, body, buttons: [{ label: 'Zrušit', value: false }, { label: okLabel, value: true, primary: true }] });
+    return ok ? { name: n.value.trim(), date: d.value, note: o.value.trim(), from } : null;
+  },
+
   async create() {
-    const name = await promptDlg('Název playlistu', playlistNameHint());
-    if (!name) return;
-    const p = await Store.put('playlists', newPlaylist(name));
+    const r = await this.infoDlg('Nový playlist', newPlaylist(playlistNameHint()), { okLabel: 'Vytvořit', copy: true });
+    if (!r) return;
+    const p = newPlaylist(r.name || playlistNameHint(), r.from ? [...r.from.items] : []);
+    p.date = r.date; p.note = r.note;
+    if (r.from && typeof r.from.encore === 'number') p.encore = r.from.encore;
+    await Store.put('playlists', p);
     location.hash = '#/playlists/' + p.id;
   },
 
@@ -419,13 +447,10 @@ const PlaylistsView = {
         metaEl.textContent = [pl.date ? new Date(pl.date).toLocaleDateString('cs-CZ') : '', pl.note].filter(Boolean).join(' · ') || ' ';
       };
       const editInfo = async () => {
-        const n = h('input', { class: 'inp', value: pl.name || '' }), d = h('input', { class: 'inp', type: 'date', value: pl.date || '' });
-        const o = h('input', { class: 'inp', value: pl.note || '', placeholder: 'místo, čas, poznámka…' });
-        const ok = await modal({ title: 'Název, datum a poznámka', body: h('div', { class: 'pl-info-dlg' }, f('Název playlistu', n), f('Datum', d), f('Poznámka', o)),
-          buttons: [{ label: 'Zrušit', value: false }, { label: 'Použít', value: true, primary: true }] });
-        if (!ok) return;
-        if (n.value !== (pl.name || '') || d.value !== (pl.date || '') || o.value !== (pl.note || '')) {
-          pl.name = n.value; pl.date = d.value; pl.note = o.value;
+        const r = await this.infoDlg('Název, datum a poznámka', pl);
+        if (!r) return;
+        if (r.name !== (pl.name || '') || r.date !== (pl.date || '') || r.note !== (pl.note || '')) {
+          pl.name = r.name; pl.date = r.date; pl.note = r.note;
           paintHead(); markDirty();
         }
       };
