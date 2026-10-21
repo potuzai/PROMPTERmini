@@ -432,15 +432,21 @@ const PlaylistsView = {
       rows.splice(p > 0 ? (i === undefined ? rows.length : i) : (at >= 0 ? at : rows.length), 0, ...ids);
       commit();
     };
-    const readyLbl = () => isReadyPl(pl) ? '★ Oblíbený' : '☆ Oblíbený';
-    const readyBtn = h('button', { class: 'btn pl-pin' + (isReadyPl(pl) ? ' on' : ''), title: 'Oblíbený playlist: je v seznamu nahoře v Oblíbených, dokud ho nevrátíš',
+    // oblíbený: v náhledu jen hvězdička vedle tužky, na celé stránce tlačítko s popisem
+    const readyLbl = () => compact ? '' : isReadyPl(pl) ? '★ Oblíbený' : '☆ Oblíbený';
+    const paintReady = () => {
+      readyBtn.classList.toggle('on', isReadyPl(pl));
+      readyBtn.replaceChildren(...(compact ? [ic('star')] : glyphToIcon(readyLbl())));
+      if (compact) readyBtn.title = isReadyPl(pl) ? 'Oblíbený – kliknutím vrátit mezi ostatní playlisty' : 'Přidat do Oblíbených (nahoře v seznamu playlistů)';
+    };
+    const readyBtn = h('button', { class: compact ? 'btn small icon pl-pin' : 'btn pl-pin', title: 'Oblíbený playlist: je v seznamu nahoře v Oblíbených, dokud ho nevrátíš',
       onclick: async () => {
         await this.setReady(pl.id, isReadyPl(pl) ? false : null);
         const st = Store.playlists.get(pl.id);   // „oblíbený“ se ukládá hned (pořadí sekce), kopie ho jen převezme
         if (st && isReadyPl(st)) pl.ready = st.ready; else delete pl.ready;
-        readyBtn.classList.toggle('on', isReadyPl(pl));
-        readyBtn.replaceChildren(...glyphToIcon(readyLbl()));
-      } }, readyLbl());
+        paintReady();
+      } });
+    paintReady();
     const saveAsBtn = h('button', { class: 'btn', title: 'Uložit jako nový playlist (původní zůstane beze změny)', onclick: () => saveAs() }, 'Uložit jako…');
 
     if (compact) {
@@ -470,10 +476,10 @@ const PlaylistsView = {
       savedBtns.push(menuBtn);
       root.append(
         h('div', { class: 'pl-prev-head' }, h('div', { class: 'pl-prev-title' }, titleEl,
-          h('button', { class: 'btn small icon', title: 'Upravit název, datum a poznámku', onclick: editInfo }, '✎')), metaEl),
+          h('button', { class: 'btn small icon', title: 'Upravit název, datum a poznámku', onclick: editInfo }, '✎'), readyBtn), metaEl),
         h('div', { class: 'pl-prev-btns' },
           h('button', { class: 'btn primary', title: 'Přidat písně z knihovny (hledání, výběr více písní, pořadí)', onclick: pickDialog }, '＋ Přidat'),
-          readyBtn, menuBtn, savedInd, h('span', { class: 'grow', style: { flex: 1 } }),
+          menuBtn, savedInd, h('span', { class: 'grow', style: { flex: 1 } }),
           h('button', { class: 'btn play', onclick: () => { location.hash = '#/reader/' + pl.id; } }, '▶ Čtečka')),
         h('div', { class: 'pl-prev-tools' }, countLbl),
         itemsBox);
