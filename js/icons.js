@@ -18,6 +18,7 @@ const ICONS = {
   warn: '<path d="M12 3 2 20.5h20z"/><path d="M12 10v4.5M12 17.5h.01"/>',
   edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/>',
   users: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18.5 14.4a6.5 6.5 0 0 1 3 5.6"/>',
+  more: '<circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/>',
   star: '<path d="m12 3 2.8 5.8 6.2.9-4.5 4.4 1.1 6.2L12 17.4l-5.6 2.9 1.1-6.2L3 9.7l6.2-.9z"/>',
   left: '<path d="m15 5-7 7 7 7"/>',
   right: '<path d="m9 5 7 7-7 7"/>',
@@ -63,7 +64,7 @@ const GLYPH_ICONS = {
   '⇩': 'download', '⧉': 'copy', '🗑': 'trash', '🔑': 'key', '⚠': 'warn', '✎': 'edit', '👥': 'users',
   '★': 'star', '◀': 'left', '🔒': 'lock', '🔓': 'unlock', '💾': 'save', '⟳': 'sync', '🔗': 'link', '🧹': 'clean',
   '🖨': 'print', '⏻': 'power', '🖥': 'monitor', '⌖': 'target', '☁': 'cloud',
-  '📁': 'folder', 'ⓘ': 'info', '▤': 'list', '▥': 'cols', '📱': 'phone', '✕': 'x', '✓': 'check',
+  '📁': 'folder', 'ⓘ': 'info', '▤': 'list', '▥': 'cols', '📱': 'phone', '✕': 'x', '✓': 'check', '⋯': 'more',
 };
 const GLYPH_RE = new RegExp('^(' + Object.keys(GLYPH_ICONS).map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')\\uFE0F?\\s*');
 function glyphToIcon(text) {

@@ -466,20 +466,21 @@ const PlaylistsView = {
       };
       paintHead();
       itemsBox.classList.add('pl-compact');
-      // uložení, tisk a celá stránka pod jedním tlačítkem (v náhledu je málo místa)
-      const menuBtn = h('button', { class: 'btn', title: 'Uložit, uložit jako, čára pro přídavky, tisk, celá stránka', onclick: e => popupMenu(e.currentTarget, [
+      // v náhledu je málo místa: disketa (uložit, uložit jako) a ⋯ (čára pro přídavky, tisk, celá stránka)
+      const menuBtn = h('button', { class: 'btn', title: 'Uložit (Ctrl+S) nebo uložit jako nový playlist', onclick: e => popupMenu(e.currentTarget, [
         { label: 'Uložit (Ctrl+S)', action: () => save(true) },
-        { label: 'Uložit jako…', action: () => saveAs() },
+        { label: 'Uložit jako…', action: () => saveAs() }]) }, '💾 ▾');
+      const moreBtn = h('button', { class: 'btn', title: 'Další možnosti: čára pro přídavky, tisk, celá stránka úprav', onclick: e => popupMenu(e.currentTarget, [
         rows.includes(LINE) ? null : { label: 'Čára pro přídavky', action: () => { rows.push(LINE); commit(); } },
         { label: 'Tisk…', action: () => this.print(pl) },
-        { label: 'Celá stránka úprav', action: () => { location.hash = '#/playlists/' + pl.id; } }].filter(Boolean)) }, '💾 Uložit ▾');
+        { label: 'Celá stránka úprav', action: () => { location.hash = '#/playlists/' + pl.id; } }].filter(Boolean)) }, '⋯');
       savedBtns.push(menuBtn);
       root.append(
         h('div', { class: 'pl-prev-head' }, h('div', { class: 'pl-prev-title' }, titleEl,
           h('button', { class: 'btn small icon', title: 'Upravit název, datum a poznámku', onclick: editInfo }, '✎'), readyBtn), metaEl),
         h('div', { class: 'pl-prev-btns' },
           h('button', { class: 'btn primary', title: 'Přidat písně z knihovny (hledání, výběr více písní, pořadí)', onclick: pickDialog }, '＋ Přidat'),
-          menuBtn, savedInd, h('span', { class: 'grow', style: { flex: 1 } }),
+          menuBtn, moreBtn, savedInd, h('span', { class: 'grow', style: { flex: 1 } }),
           h('button', { class: 'btn play', onclick: () => { location.hash = '#/reader/' + pl.id; } }, '▶ Čtečka')),
         h('div', { class: 'pl-prev-tools' }, countLbl),
         itemsBox);
