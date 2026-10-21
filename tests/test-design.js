@@ -169,7 +169,9 @@ const URL = 'http://localhost:8123/index.html';
     await q.click('.ep-struct .st-item:has-text("Refrén") >> nth=0'); await sleep(200);
     assert(await q.evaluate(() => SongsView.editor.se.cur().line) === 2 && await q.isVisible('.ep-struct .st-item.on:has-text("Refrén")'), 'klik na sekci ji vybere na stránce');
     await q.click('.ed-tools .sw:has-text("Ty")'); await sleep(300);
-    assert((await q.evaluate(() => SongsView.editor.src)).includes('## Refrén @T'), 'klik na zpěváka v liště přiřadí sekci');
+    assert((await q.evaluate(() => SongsView.editor.src)).includes('## Refrén @V+T'), 'klik na zpěváka v liště ho přidá k sekci');
+    await q.click('.ed-tools .sw:has-text("Všichni")'); await sleep(300);
+    assert((await q.evaluate(() => SongsView.editor.src)).includes('## Refrén @T'), 'opětovný klik zpěváka ze sekce odebere');
 
     /* ----- Čtečka: lišta, seznam, nabídka ----- */
     await q.keyboard.press('Control+S'); await sleep(200);

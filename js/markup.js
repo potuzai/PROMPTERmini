@@ -216,6 +216,8 @@ function nextCodes(codes, code, mode) {
   code = (code || '').toUpperCase();
   if (mode === 'clear' || !code) return [];
   if (mode === 'toggle') return codes.includes(code) ? codes.filter(c => c !== code) : [...codes, code];
+  if (mode === 'add') return codes.includes(code) ? codes : [...codes, code];
+  if (mode === 'remove') return codes.filter(c => c !== code);
   if (mode === 'force') return [code];
   return codes.length === 1 && codes[0] === code ? [] : [code]; // 'set' – opakované kliknutí zruší
 }

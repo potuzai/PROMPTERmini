@@ -155,14 +155,9 @@ class SongEditor {
     this.savedInd = h('span', { class: 'saved-ind' }, 'Uloženo');
     this.pageLbl = h('span', { class: 'page-lbl' }, '1/1');
 
-    this.sgButtons = Store.singers().map((s, i) => {
-      const b = h('button', { class: 'sw', style: { '--c': s.color }, title: `${s.name} (Alt+${i + 1}, na stránce ← →; Shift = přidat ke zpěvákům)` },
-        h('span', { class: 'sw-c' }), h('span', { class: 'sw-n' }, s.name));
-      b.addEventListener('click', e => this.se.assignSinger(s.code, e.shiftKey ? 'toggle' : 'force'));
-      return b;
-    });
-    const noneBtn = h('button', { class: 'sw none', title: 'Nikdo (Alt+0)', onclick: () => this.se.assignSinger(null, 'clear') },
-      h('span', { class: 'sw-c' }), h('span', { class: 'sw-n' }, 'nikdo'));
+    // zpěváci jako přepínače: klik přidá / odebere; všichni vypnutí = nikdo
+    this.sgButtons = Store.singers().map((s, i) => h('button', { class: 'sw', style: { '--c': s.color }, title: `${s.name} – zapnout / vypnout (Alt+${i + 1}, na stránce ← →)`,
+      onclick: () => this.se.toggleSinger(s.code) }, h('span', { class: 'sw-c' }), h('span', { class: 'sw-n' }, s.name)));
 
     // Uložení, další volby písně a čtečka: vpravo dole pod stránkou
     this.saveBtn = h('button', { class: 'btn', title: 'Uložit změny (Ctrl+S)', onclick: () => this.save(true) }, '💾 Uložit');
@@ -204,7 +199,7 @@ class SongEditor {
         ...this.musItems()].filter(Boolean);
     }, 'ed-mus');
     this.tools = h('div', { class: 'ed-tools' },
-      h('div', { class: 'tl-grp sw-row', title: 'Kdo zpívá vybraný řádek' }, ...this.sgButtons, noneBtn),
+      h('div', { class: 'tl-grp sw-row', title: 'Kdo zpívá vybraný řádek (všichni vypnutí = nikdo)' }, ...this.sgButtons),
       sep(),
       h('div', { class: 'tl-grp seg-row' },
         tool(h('b', {}, 'B'), 'Tučně (Ctrl+B) – označená slova, nebo celý řádek', () => this.se.format('bold')),
@@ -293,7 +288,7 @@ class SongEditor {
       else if (e.key === 'Escape') { e.preventDefault(); keepRange = null; this.paintSize(); this.stageWrap.focus({ preventScroll: true }); }
       e.stopPropagation();
     });
-    this.onDocSel = () => { if (this.se && this.se.editEl && document.activeElement !== this.sizeInp) this.paintSize(); };
+    this.onDocSel = () => { if (this.se && this.se.editEl && document.activeElement !== this.sizeInp) { this.paintSize(); this.paintSingers(); } };
     document.addEventListener('selectionchange', this.onDocSel);
 
     this.se = new StageEditor(this.stageWrap, this);
@@ -357,11 +352,9 @@ class SongEditor {
   }
   onSelChange() {
     if (!this.se) return;
-    const t = this.se.cur();
     if (this.se.lay) this.onStageRender(this.se.lay);
-    const own = t ? this.se.singersOf(t).own : [];
-    this.sgButtons.forEach((b, i) => b.classList.toggle('on', own.includes((Store.singers()[i] || {}).code)));
     this.paintStruct();
+    this.paintSingers();
     this.paintSize();
   }
   /* Velikost písma v px na zvolené obrazovce. Ukládá se poměrem k písmu řádku ze šablony
@@ -373,6 +366,14 @@ class SongEditor {
     this.sizeInp.value = base ? String(Math.round(base * p / 100)) : '';
     this.sizeBox.classList.toggle('on', p !== 100);
     this.sizeBox.title = 'Velikost písma v px na obrazovce „' + this.screen().name + '“' + (p !== 100 ? ` (${p} % písma řádku)` : ' (podle šablony)') + ' – napiš a potvrď Enterem';
+  }
+  /* zapnutí zpěváci: u slov v barvě zpěváka ten zpěvák, jinak zpěváci řádku */
+  paintSingers() {
+    const se = this.se, t = se.cur();
+    let own = t ? se.singersOf(t).own : [];
+    const host = se.editEl && selSingerHost(window.getSelection(), se.editEl);
+    if (host) own = parseCodes(host.dataset.c);
+    this.sgButtons.forEach((b, i) => b.classList.toggle('on', own.includes((Store.singers()[i] || {}).code)));
   }
   setSizePx(px) {
     const base = this.se.linePx();

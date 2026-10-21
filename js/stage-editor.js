@@ -286,12 +286,17 @@ class StageEditor {
     if (e.button !== 0) return;
     this.wrap.classList.remove('kbd-nav');
     if (e.target.closest('.line-menu')) return;
-    const bEl = e.target.closest('[data-bi]');
-    const t = bEl && this.targets.find(x => x.bis.includes(+bEl.dataset.bi));
-    if (this.editing && this.editEl && this.editEl.contains(e.target)) { this.startDrag(e, t, null); return; }   // označování v psaném řádku nechá prohlížeč
+    const lineAt = () => { const el = document.elementFromPoint(e.clientX, e.clientY); return el && this.stage && this.stage.contains(el) ? el.closest('[data-bi]') : null; };
+    if (this.editing && this.editEl && this.editEl.contains(e.target)) {   // označování v psaném řádku nechá prohlížeč
+      const b = e.target.closest('[data-bi]');
+      this.startDrag(e, b && this.targets.find(x => x.bis.includes(+b.dataset.bi)), null);
+      return;
+    }
     e.preventDefault();
     this.wrap.focus({ preventScroll: true });
-    if (this.editing) this.finishEdit(true);
+    if (this.editing) this.finishEdit(true);   // stránka se překreslí – řádek pod myší se hledá až potom
+    const bEl = lineAt();
+    const t = bEl && this.targets.find(x => x.bis.includes(+bEl.dataset.bi));
     if (!t) return;
     const off = this.offsetAtPoint(bEl, e.clientX, e.clientY);
     this.pendingClickEdit = !e.shiftKey && this.editable(t) ? { t, offset: off } : null;
@@ -318,22 +323,24 @@ class StageEditor {
     const up = ev => {
       window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up);
       if (d.multi) { this.wrap.focus({ preventScroll: true }); return; }
-      // tažení v jednom (ještě nepsaném) řádku: začne psaní s označenými slovy
+      // puštění myši = psaní na místě kliknutí (tažením v řádku s označenými slovy);
+      // nečeká se na „click“ – po překreslení stránky by ho prohlížeč nemusel poslat
       const p = this.pendingClickEdit;
-      if (from && p && lineAt(ev) === t) {
+      this.pendingClickEdit = null;
+      if (!from || !p || this.editing) return;
+      if (lineAt(ev) === t) {
         const end = this.offsetAtPoint(from.bEl, ev.clientX, ev.clientY);
         if (typeof end === 'number' && typeof p.offset === 'number' && end !== p.offset) p.end = end;
       }
+      this.startEdit(this.targets.find(x => x.key === p.t.key), p.offset);
+      if (this.editing && p.end != null) { this.editing.selEnd = p.end; this.setCaret(p.offset, p.end); }
     };
     window.addEventListener('mousemove', move); window.addEventListener('mouseup', up);
   }
   onClick(e) {
     if (e.target.closest('.st-head')) { this.ed.focusMeta(); return; }
     if (e.target.closest('.st-foot .more')) { this.turnPage(1); return; }
-    const p = this.pendingClickEdit;
-    this.pendingClickEdit = null;
-    if (p && !this.editing) { this.startEdit(this.targets.find(x => x.key === p.t.key), p.offset); if (this.editing && p.end != null) { this.editing.selEnd = p.end; this.setCaret(p.offset, p.end); } }
-    else if (!p && !this.targets.length && !this.editing && e.target.closest('.stage, .se-empty')) this.startEdit(null, 'end');
+    if (!this.targets.length && !this.editing && e.target.closest('.stage, .se-empty')) this.startEdit(null, 'end');
   }
   onContext(e) {
     if (e.target.closest('.line-menu')) return;
@@ -662,6 +669,22 @@ class StageEditor {
     for (const i of this.srcLinesOf(targets)) ls[i] = applySingerToLine(ls[i], code, code ? mode : 'clear');
     this.commit(ls.join('\n'));
   }
+  /* Tlačítko zpěváka v liště: přepínač. Označená slova s tímto zpěvákem → barvu zrušit, jinak nastavit;
+     řádky: když ho mají všechny vybrané, odebere se, jinak se přidá (nikdo = všichni vypnutí) */
+  toggleSinger(code) {
+    if (this.editing && this.editEl) {
+      const sel = window.getSelection();
+      if (sel.rangeCount && !sel.isCollapsed && this.editEl.contains(sel.anchorNode) && sel.toString().trim()
+        && sel.toString().trim() !== this.editEl.textContent.replace(/\u200b/g, '').trim()) {
+        const host = selSingerHost(sel, this.editEl);
+        const same = host && host.dataset.c === code && host.textContent.trim() === sel.toString().trim();
+        return this.assignSinger(same ? null : code, 'force');
+      }
+    }
+    const ts = this.editing ? [this.cur()].filter(Boolean) : this.selTargets();
+    const all = ts.length && ts.every(t => this.singersOf(t).own.includes(code));
+    this.assignSinger(code, all ? 'remove' : 'add');
+  }
   /* Zpěvák pro označená slova: stávající barvu nahradí (nevnořuje), code = null barvu zruší */
   wordSinger(r, code) {
     const el = this.editEl;
@@ -970,6 +993,15 @@ function visibleLength(body) {
   const d = document.createElement('div');
   d.innerHTML = veInline(body, Store.singerMap());
   return d.textContent.replace(/​/g, '').length;
+}
+/* úsek s barvou zpěváka, ve kterém je kurzor / označení (i když je označený celý úsek) */
+function selSingerHost(sel, root) {
+  if (!sel.rangeCount || !root.contains(sel.anchorNode)) return null;
+  const r = sel.getRangeAt(0);
+  const one = r.startContainer === r.endContainer && r.endOffset - r.startOffset === 1 && r.startContainer.childNodes[r.startOffset];
+  const n = one && one.nodeType === 1 ? one : r.commonAncestorContainer.nodeType === 1 ? r.commonAncestorContainer : r.commonAncestorContainer.parentNode;
+  const host = n.closest('.sg-in');
+  return host && root.contains(host) ? host : null;
 }
 /* A+ / A− mění velikost po 10 % (ze starších stupňů na nejbližší desítku), size = zadaná procenta */
 function sizeStep(p, kind, val) {

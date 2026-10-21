@@ -171,7 +171,10 @@ kbd { font: 600 11px/1 var(--mono); padding: 3px 5px; border: 1px solid var(--li
 .se-wrap.multi .edit-stage .is-sel { background: rgba(70,130,255,.38); }
 .se-wrap.kbd-nav:focus-within .edit-stage .is-cur:not(.is-edit) { box-shadow: -.35em 0 0 var(--acc-hi); }   /* ovládání šipkami: značka u řádku */
 .edit-stage .is-edit { outline: 0; cursor: text; caret-color: transparent; white-space: pre-wrap; }
-.se-caret { display: none; position: absolute; z-index: 5; width: 3px; min-height: 14px; border-radius: 2px; background: #ff3b30; box-shadow: 0 0 0 1px rgba(255,255,255,.55), 0 0 10px rgba(255,59,48,.9); pointer-events: none; }
+/* kurzor: silná tyrkysová svislice s příčkami nahoře a dole (tvar I), černý obrys – vidět na každém pozadí i barvě písma */
+.se-caret { display: none; position: absolute; z-index: 5; width: 5px; min-height: 16px; margin-left: -1px; background: #00f0ff; box-shadow: 0 0 0 1.5px #000, 0 0 12px 2px rgba(0,240,255,.85); pointer-events: none; }
+.se-caret::before, .se-caret::after { content: ""; position: absolute; left: -5px; width: 15px; height: 4px; background: #00f0ff; box-shadow: 0 0 0 1.5px #000; }
+.se-caret::before { top: -3px; } .se-caret::after { bottom: -3px; }
 .se-caret.blink { animation: se-blink 1.05s steps(1) .5s infinite; }
 @keyframes se-blink { 50% { opacity: 0; } }
 .edit-stage .is-edit::selection, .edit-stage .is-edit *::selection { background: rgba(70,130,255,.55); }

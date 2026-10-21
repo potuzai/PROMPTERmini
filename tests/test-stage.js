@@ -120,14 +120,19 @@ const SHOTS = process.env.SHOTS || '/tmp/claude-0/shots';
   assert(/refrén \{J:druhý\}/.test(await src()), 'zpěvák pro označené slovo');
   await p.click('.ed-tools .sw >> nth=1'); await sleep(150);
   assert(/refrén \{T:druhý\}/.test(await src()) && !/\{J:/.test(await src()), 'barvu slova jde změnit znovu (bez vnoření)');
-  await p.click('.ed-tools .sw.none'); await sleep(150);
-  assert(/^refrén druhý$/m.test(await src()), '„Nikdo“ barvu slova zruší');
+  assert(!(await p.isVisible('.ed-tools .sw.none')), 'tlačítko „nikdo“ v liště není');
+  await p.click('.ed-tools .sw >> nth=1'); await sleep(150);
+  assert(/^refrén druhý$/m.test(await src()), 'opětovný klik na stejného zpěváka barvu slova zruší');
   await key('Escape');
 
   // lišta nad stránkou: zpěvák, nová stránka
   await p.click('.ed-tools .sw >> nth=2');
   assert(/^@V refrén druhý/m.test(await src()), 'tlačítko zpěváka v liště');
   assert(await p.isVisible('.ed-tools .sw.on'), 'lišta ukazuje zpěváka vybraného řádku');
+  await p.click('.ed-tools .sw >> nth=0'); await sleep(150);
+  assert(/^@V\+J refrén druhý/m.test(await src()), 'další zpěvák se přidá (přepínače)');
+  await p.click('.ed-tools .sw >> nth=0'); await sleep(150);
+  assert(/^@V refrén druhý/m.test(await src()), 'opětovný klik zpěváka odebere');
   await pick('.ed-tools button:has-text("Vložit")', 'Nová stránka');
   await sleep(200);
   assert(/---\n@V refrén druhý/.test(await src()), 'nová stránka před vybraný řádek');
