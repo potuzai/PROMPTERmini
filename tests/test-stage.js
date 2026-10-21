@@ -18,7 +18,7 @@ const SHOTS = process.env.SHOTS || '/tmp/claude-0/shots';
   const pick = async (btn, label) => { await p.click(btn); await p.click(`.menu > div:has-text("${label}")`); };
   const songMenu = async label => {
     if (label === 'Ukázat akordy') return pick('.ed-tools .ed-mus', 'akordy a poznámky');
-    if (label === 'Zdrojový text') return pick('.ed-pager button[title^="Další volby písně"]', 'Zdrojový text');
+    if (label === 'Zdrojový text') return pick('.ed-side button[title^="Další volby písně"]', 'Zdrojový text');
   };
   const curText = () => p.evaluate(() => { const e = document.querySelector('.edit-stage .is-cur'); return e ? e.textContent : ''; });
 
@@ -163,7 +163,7 @@ const SHOTS = process.env.SHOTS || '/tmp/claude-0/shots';
   }).then(async id => { await sleep(300); await p.evaluate(i => { location.hash = '#/songs/' + i; }, id); });
   await sleep(600);
   assert(await p.isVisible('.edit-stage .st-head:has-text("2/2")'), 'v záhlaví je pořadí v playlistu');
-  await p.selectOption('.ed-pager select >> nth=1', '');
+  await p.selectOption('.ed-side select >> nth=1', '');
   await sleep(200);
   assert(!(await p.isVisible('.edit-stage .st-head:has-text("2/2")')), 'samostatně = bez pořadí');
 

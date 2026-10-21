@@ -244,16 +244,22 @@ class SongEditor {
       this.screenId = this.scrSel.value; Settings.set('editScreen', this.screenId);
       this.structKey = null; this.se.followCur = true; this.se.render(); this.stageWrap.focus({ preventScroll: true });
     };
-    this.pager = h('div', { class: 'ed-pager' },
-      h('label', { class: 'ed-scr' }, h('span', {}, 'Náhled pro'), this.scrSel),
-      h('label', { class: 'ed-scr' }, h('span', {}, 'Jako v playlistu'), this.inPl),
-      h('button', { class: 'ep-pg', title: 'Předchozí stránka (PgUp)', onclick: () => this.se.turnPage(-1) }, '‹'),
-      h('span', {}, 'strana ', this.pageLbl),
-      h('button', { class: 'ep-pg', title: 'Další stránka (PgDn)', onclick: () => this.se.turnPage(1) }, '›'),
-      h('span', { class: 'grow' }),
-      this.savedInd, this.saveBtn, moreBtn, readerBtn);
+    // Pravý panel pod lištou: stránkování, náhled (obrazovka, playlist), dole uložení a čtečka
+    const sgrp = (label, ...kids) => h('div', { class: 'ep-group' }, h('div', { class: 'ep-lbl' }, label), ...kids);
+    this.pager = h('div', { class: 'ed-side' },
+      sgrp('Stránka',
+        h('div', { class: 'ed-pages' },
+          h('button', { class: 'tl', title: 'Předchozí stránka (PgUp)', onclick: () => this.se.turnPage(-1) }, '‹'),
+          this.pageLbl,
+          h('button', { class: 'tl', title: 'Další stránka (PgDn)', onclick: () => this.se.turnPage(1) }, '›'))),
+      sgrp('Náhled',
+        h('label', { class: 'f' }, h('span', {}, 'Obrazovka'), this.scrSel),
+        h('label', { class: 'f' }, h('span', {}, 'Jako v playlistu'), this.inPl)),
+      h('div', { class: 'grow' }),
+      h('div', { class: 'ed-save' }, this.savedInd, h('div', { class: 'ed-save-row' }, this.saveBtn, moreBtn), readerBtn));
     const ed = h('div', { class: 'song-editor' },
-      h('div', { class: 'ed-body' }, this.leftPanel, h('div', { class: 'ed-center' }, this.tools, this.stageWrap, this.pager)));
+      h('div', { class: 'ed-body' }, this.leftPanel,
+        h('div', { class: 'ed-center' }, this.tools, h('div', { class: 'ed-main' }, this.stageWrap, this.pager))));
     this.root.innerHTML = '';
     this.root.appendChild(ed);
 

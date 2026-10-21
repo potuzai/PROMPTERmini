@@ -85,7 +85,7 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   const more = async label => {
     if (label === 'Ukázat akordy') return pick('.ed-tools .ed-mus', 'akordy a poznámky');
     if (label === 'Které vrstvy') return pick('.ed-tools .ed-mus', 'Které vrstvy');
-    return pick('.ed-pager button[title^="Další volby písně"]', label);
+    return pick('.ed-side button[title^="Další volby písně"]', label);
   };
   const insert = label => pick('.ed-tools button:has-text("Vložit")', label);
   const dl = p.waitForEvent('download');

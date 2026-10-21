@@ -144,7 +144,20 @@ code { font-family: var(--mono); font-size: 12.5px; background: var(--well); bor
 .empty .empty-ic .ic { width: 30px; height: 30px; stroke-width: 1.4; }
 
 /* ===== Editor písně: stránka čtečky (upravuje se přímo v ní) ===== */
-.se-wrap { position: relative; flex: 1; min-height: 0; overflow: hidden; outline: none; }
+.ed-main { flex: 1; min-height: 0; display: flex; }
+.se-wrap { position: relative; flex: 1; min-width: 0; overflow: hidden; outline: none; }
+/* pravý panel pod lištou: stránka, náhled, uložení */
+.ed-side { flex: 0 0 196px; display: flex; flex-direction: column; gap: 18px; padding: 14px 12px 12px; background: var(--panel); border-left: 1px solid var(--line); overflow-y: auto; }
+.ed-side .grow { flex: 1; }
+.ed-side .f { display: flex; flex-direction: column; gap: 3px; margin: 0; }
+.ed-side .f > span { font-size: 12px; color: var(--faint); }
+.ed-side select.inp { width: 100%; min-height: 32px; padding: 4px 8px; font-size: 13px; }
+.ed-pages { display: flex; align-items: center; gap: 6px; }
+.ed-pages .page-lbl { flex: 1; text-align: center; color: var(--text); font-size: 14px; }
+.ed-pages .tl { font-size: 18px; }
+.ed-save { display: flex; flex-direction: column; gap: 8px; }
+.ed-save-row { display: flex; gap: 6px; }
+.ed-save-row .btn:first-child, .ed-save > .btn { flex: 1; justify-content: center; }
 .se-wrap .stage { box-shadow: 0 0 0 1px rgba(0,0,0,.6), 0 14px 40px rgba(0,0,0,.45); }
 .se-empty { position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%); width: min(80%, 420px); display: flex; flex-direction: column; gap: 6px; text-align: center; color: var(--dim); pointer-events: none; }
 .se-empty b { color: var(--text); font-size: 18px; font-weight: 500; }
@@ -414,8 +427,8 @@ details summary { color: var(--text); }
 .song-editor { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
 .ep-back { align-self: flex-start; margin: -4px 0 -6px; background: none; border: 0; padding: 0; color: var(--dim); font: 14px var(--font); cursor: pointer; }
 .ep-back:hover { color: var(--text); }
-.ed-pager .saved-ind { font: 12.5px var(--font); color: var(--dim); }
-.saved-ind.dirty, .ed-pager .saved-ind.dirty { color: var(--warn); font-weight: 600; }
+.ed-save .saved-ind { font: 12.5px var(--font); color: var(--dim); text-align: center; }
+.saved-ind.dirty, .ed-save .saved-ind.dirty { color: var(--warn); font-weight: 600; }
 .ep-meta .ep-title { font-weight: 600; }
 .ed-body { flex: 1; min-height: 0; display: flex; gap: 8px; }
 /* levý panel */
@@ -458,13 +471,6 @@ details summary { color: var(--text); }
 .sw.none { color: var(--dim); }
 .sw.none .sw-c { background: none; border: 1px solid var(--faint); }
 .sw.on { border: 2px solid var(--c, var(--acc)); padding: 0 7px; font-weight: 600; }
-.ed-pager { flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 8px 10px; background: var(--panel); border-top: 1px solid var(--line); color: var(--dim); font-size: 13px; }
-.ed-pager .grow { flex: 1; }
-.ed-pager .page-lbl { color: var(--text); }
-.ed-scr { display: flex; align-items: center; gap: 6px; }
-.ed-scr select.inp { width: auto; max-width: 260px; min-height: 28px; padding: 2px 8px; }
-.ep-pg { background: none; border: 0; color: var(--dim); font-size: 17px; line-height: 1; padding: 0 3px; cursor: pointer; }
-.ep-pg:hover { color: var(--text); }
 /* položky nabídky: klávesa vpravo, nebezpečné červeně, oddělovač */
 .menu > div { display: flex; align-items: center; gap: 16px; }
 .menu > div kbd { margin-left: auto; font: 11.5px var(--font); color: var(--faint); background: none; border: 0; padding: 0; }
@@ -830,10 +836,11 @@ input[type=checkbox].switch:focus-visible { outline: 2px solid var(--acc-hi); ou
   .ed-panel > * { margin: 0 14px; }
   .ed-left-panel > * { order: 1; }
   .ed-left-panel > .ep-back { order: -1; margin: 10px 14px 6px; }
-  .ed-center { flex: 0 0 auto; height: 80vh; order: 0; }
-  .ed-scr > span { display: none; }   /* v telefonu jen výběry, bez popisků */
-  .ed-scr select.inp { max-width: 150px; }
-  .ed-pager { gap: 6px; padding: 6px 8px; }
+  .ed-center { flex: 0 0 auto; order: 0; }
+  .ed-main { flex-direction: column; }
+  .se-wrap { flex: 0 0 auto; height: 68vh; }
+  .ed-side { flex: 0 0 auto; border-left: 0; border-top: 1px solid var(--line); }
+  .ed-side .grow { display: none; }
   .ed-tools { flex-wrap: nowrap; overflow-x: auto; padding: 6px 8px; }   /* lišta v jednom řádku, posouvá se prstem */
   .ed-tools .grow { display: none; }
   .ed-tools > *, .ed-tools .tl, .ed-tools .sw { flex-shrink: 0; }
