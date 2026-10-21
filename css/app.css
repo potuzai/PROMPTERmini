@@ -643,6 +643,7 @@ input[type=checkbox].switch:focus-visible { outline: 2px solid var(--acc-hi); ou
 .with-bar-r .b-line { padding-right: calc(var(--bar) + .35em); }
 .b-line.br::after { content: ""; position: absolute; right: 0; top: .1em; bottom: .1em; width: var(--bar); background: var(--barbg-r); }
 .b-line.bgt { background: var(--tint); }
+.sg-in.sg-bg { border-radius: .12em; padding: 0 .06em; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
 .with-bg:not(.with-bar) .b-line { padding-left: .3em; }
 .with-bg:not(.with-bar-r) .b-line { padding-right: .3em; }
 .b-sec { color: var(--sec-color); font-size: calc(1em * var(--sec-scale)); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; margin-top: .2em; }

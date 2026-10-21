@@ -89,15 +89,26 @@ const Render = {
       if (txt && !bySec) el.style.color = txt[0].color;
       if (sgs.some(s => s.bold)) el.style.fontWeight = 900;
       if (sgs.some(s => s.italic)) el.style.fontStyle = 'italic';
-      const L = pick('barL'), R = pick('barR'), B = pick('bg');
+      const L = pick('barL'), R = pick('barR');
       if (L.length) { el.style.setProperty('--barbg', stripes(L)); el.classList.add('bl'); }
       if (R.length) { el.style.setProperty('--barbg-r', stripes(R)); el.classList.add('br'); }
-      if (B.length) { el.style.setProperty('--tint', stripes(B.map(c => hexToRgba(c, 0.22)), true)); el.classList.add('bgt'); }
+      // podklad: zpěvák s proužkem vlevo začíná vlevo, s proužkem vpravo končí vpravo, barvy se uprostřed slijí přechodem
+      const side = x => (x[1].barL ? 0 : 1) + (x[1].barR ? 1 : 0);
+      const B = sh.filter(x => x[1].bg).sort((a, b) => side(a) - side(b)).map(x => hexToRgba(x[0].color, 0.22));
+      if (B.length) { el.style.setProperty('--tint', blend(B)); el.classList.add('bgt'); }
       el.classList.add('has-sg');
     }
     let inner = b.showChords ? chordedHtml(b.text, singerMap) : (inlineHtml(b.chords ? stripChords(b.text) : b.text, singerMap) || '&nbsp;');
     if (b.showChords) el.classList.add('has-chords');
     el.innerHTML = inner;
+    // označená slova jiného zpěváka: stejné označení jako celé řádky (barva písma / podklad), proužky jen u řádků
+    for (const w of el.querySelectorAll('.sg-in')) {
+      const sg = singerMap[parseCodes(w.dataset.c)[0]];
+      if (!sg) continue;
+      const o = singerShowOf(tpl, sg.code);
+      w.style.color = o.text || !o.bg ? sg.color : '';
+      if (o.bg) { w.style.background = hexToRgba(sg.color, 0.35); w.classList.add('sg-bg'); }
+    }
     return el;
   },
 
@@ -274,6 +285,12 @@ function dimLabel(W, H) {
   return h('div', { class: 'preview-dim' }, `monitor ${W}×${H} · ${H >= W ? 'na výšku' : 'na šířku'}`);
 }
 
+/* plynulý vodorovný přechod barev (podklad řádku pro více zpěváků) */
+function blend(colors) {
+  if (colors.length === 1) return colors[0];
+  const n = colors.length - 1;
+  return `linear-gradient(90deg, ${colors.map((c, i) => `${c} ${Math.round((i / n) * 50 + 25)}%`).join(', ')})`;
+}
 function stripes(colors, soft) {
   if (colors.length === 1) return colors[0];
   const step = 100 / colors.length;
