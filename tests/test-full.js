@@ -356,8 +356,8 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   // zobrazení zpěváka jen pro tuto píseň: proužek vpravo, bez proužku vlevo
   await p.evaluate(() => { location.hash = '#/songs/fnt'; }); await sleep(500);
   await p.click('.ed-tools button:has-text("Zobrazení")');
-  await p.click('.menu-singer label:has-text("Proužek vpravo") input');
-  await p.click('.menu-singer label:has-text("Proužek vlevo") input'); await sleep(200);
+  await p.click('.menu-singer .sw-opt:has-text("Proužek vpravo") input.switch');
+  await p.click('.menu-singer .sw-opt:has-text("Proužek vlevo") input.switch'); await sleep(200);
   assert(await p.evaluate(() => { const st = document.querySelector('.se-wrap .stage'); return st.classList.contains('with-bar-r') && !st.classList.contains('with-bar'); }), 'zobrazení zpěváka: proužek vpravo místo vlevo');
   await p.mouse.click(5, 5); await p.keyboard.press('Control+S'); await sleep(300);
   assert(await p.evaluate(() => { const sg = Store.songs.get('fnt').style.singer; const t = Reader.tplFor(Store.songs.get('fnt')); return sg.barR === true && sg.barL === false && t.singerBarRight && !t.singerBar; }), 'zobrazení zpěváka se uloží jen do písně');

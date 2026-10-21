@@ -145,7 +145,8 @@ const SHOTS = process.env.SHOTS || '/tmp/claude-0/shots';
   // posun řádků
   const before2 = await src();
   await p.click('.edit-stage .b-line:has-text("Refrén první")');
-  await pick('.ed-tools button:has-text("Řádek")', 'Posunout dolů'); await sleep(150);
+  assert(!(await p.isVisible('.ed-tools button:has-text("Řádek")')), 'v liště není nabídka Řádek');
+  await key('Alt+ArrowDown'); await sleep(150);
   assert(/@V refrén druhý\nRefrén první/.test(await src()), 'řádek jde posunout dolů');
   assert((await curText()).includes('Refrén první'), 'posunutý řádek zůstane vybraný');
   await key('Alt+ArrowUp');

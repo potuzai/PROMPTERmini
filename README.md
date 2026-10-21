@@ -85,7 +85,7 @@ Myší jako v textovém editoru: klik do řádku = psaní na tom místě, tažen
 
 **Levý panel:** údaje o písni (interpret, ladění, BPM, délka, štítky, šablona), struktura písně (sekce, opakování a konce stránek – klik na sekci ji vybere) a moje poznámky (jen na tomto zařízení).
 
-**Lišta nad stránkou** patří vybranému řádku: kdo zpívá, písmo (B, I, A−, A+, Aa – VELKÁ / malá), **＋ Vložit** (řádek, sekci, opakování, poznámku, mezeru, novou stránku, text ze schránky), **Řádek** (upravit, nahoru / dolů, smazat), zpět / znovu a vpravo **Pro muzikanty**. Pod stránkou se volí obrazovka náhledu, playlist (pořadí a další píseň jako ve čtečce) a listuje se stránkami.
+**Lišta nad stránkou** patří vybranému řádku: kdo zpívá, písmo (B, I, A−, A+, Aa – VELKÁ / malá), **＋ Vložit** (řádek, sekci, opakování, poznámku, mezeru, novou stránku, text ze schránky), zpět / znovu a vpravo **Pro muzikanty**. Pod stránkou se volí obrazovka náhledu, playlist (pořadí a další píseň jako ve čtečce) a listuje se stránkami.
 
 **Vzhled aplikace** (tmavý, světlý, podle systému), volitelně **PIN** a připojení ke kapele.
 4. Vše jde později změnit v **Nastavení › Toto zařízení** (tam je i **Průvodce nastavením → Spustit**). V **Nastavení › Čtečka a ovládání**:

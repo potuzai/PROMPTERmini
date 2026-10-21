@@ -264,6 +264,7 @@ class StageEditor {
 
   editKey(e) {
     const k = e.key, ctrl = e.ctrlKey || e.metaKey;
+    if (e.altKey && (k === 'ArrowUp' || k === 'ArrowDown')) { e.preventDefault(); return this.moveLines(k === 'ArrowUp' ? -1 : 1); }   // posun řádku i při psaní
     if (ctrl && (k === 'z' || k === 'Z')) { e.preventDefault(); return this.undo(e.shiftKey ? 1 : -1); }
     if (ctrl && (k === 'y' || k === 'Y')) { e.preventDefault(); return this.undo(1); }
     if (ctrl && (k === 'b' || k === 'B')) { e.preventDefault(); return this.format('bold'); }

@@ -222,11 +222,6 @@ class SongEditor {
         { label: 'Mezera mezi slokami', action: () => this.se.insertLines(['', '']) },
         { label: 'Nová stránka', action: () => this.se.insertLines([this.breakLine()], { before: true }) },
         { label: 'Text ze schránky…', hint: 'Ctrl+V', action: () => this.pasteDialog() }]),
-      menuTool('Řádek ▾', 'Upravit, posunout nebo smazat vybrané řádky', () => [
-        { label: 'Upravit text', hint: 'F2', action: () => this.se.startEdit(this.se.cur(), 'end') },
-        { label: 'Posunout nahoru', hint: 'Alt+↑', action: () => this.se.moveLines(-1) },
-        { label: 'Posunout dolů', hint: 'Alt+↓', action: () => this.se.moveLines(1) },
-        { label: 'Smazat', hint: 'Del', danger: true, action: () => this.se.deleteLines() }]),
       sep(),
       h('div', { class: 'tl-grp' },
         tool('↶', 'Zpět (Ctrl+Z)', () => this.se.undo(-1)),
@@ -663,8 +658,8 @@ class SongEditor {
       this.markDirty(); this.se.render(); paint();
     };
     const rows = opts.map(([k, f, l]) => {
-      const inp = h('input', { type: 'checkbox', onchange: () => { const sg = own(); if (inp.checked === !!base[f]) delete sg[k]; else sg[k] = inp.checked; apply(sg); } });
-      return { k, f, inp, el: h('label', { class: 'chk menu-chk' }, inp, l) };
+      const inp = h('input', { type: 'checkbox', class: 'switch', onchange: () => { const sg = own(); if (inp.checked === !!base[f]) delete sg[k]; else sg[k] = inp.checked; apply(sg); } });
+      return { k, f, inp, el: h('label', { class: 'sw-opt' }, h('span', {}, l), inp) };
     });
     const note = h('div', { class: 'help' });
     const reset = h('button', { class: 'btn small nogrow', onclick: () => apply({}) }, 'Podle šablony');
@@ -673,7 +668,7 @@ class SongEditor {
       for (const r of rows) r.inp.checked = typeof sg[r.k] === 'boolean' ? sg[r.k] : !!base[r.f];
       const n = Object.keys(sg).length;
       note.textContent = n ? 'Jen pro tuto píseň – šablona „' + base.name + '“ má jiné nastavení.' : 'Podle šablony „' + base.name + '“.';
-      reset.hidden = !n;
+      reset.style.display = n ? '' : 'none';
     };
     paint();
     const m = h('div', { class: 'menu menu-form menu-singer' }, h('div', { class: 'menu-head' }, 'Zobrazení zpěváka v této písni'), ...rows.map(r => r.el), note, reset);
