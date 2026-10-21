@@ -209,10 +209,10 @@ class SongEditor {
       h('div', { class: 'tl-grp seg-row' },
         tool(h('b', {}, 'B'), 'Tučně (Ctrl+B) – označená slova, nebo celý řádek', () => this.se.format('bold')),
         tool(h('i', {}, 'I'), 'Kurzíva (Ctrl+I)', () => this.se.format('italic')),
-        tool('A−', 'Menší písmo o 10 %', () => this.se.format('smaller')),
-        this.sizeBox = h('label', { class: 'tl tl-size', title: 'Velikost písma označených slov nebo řádku v procentech – napiš a potvrď Enterem' },
-          this.sizeInp = h('input', { type: 'text', inputmode: 'numeric', maxlength: 3, value: '100' }), '%'),
-        tool('A+', 'Větší písmo o 10 %', () => this.se.format('bigger')),
+        tool('A−', 'Menší písmo (o 2 px)', () => this.stepSize(-2)),
+        this.sizeBox = h('label', { class: 'tl tl-size', title: 'Velikost písma označených slov nebo řádku v px na zvolené obrazovce – napiš a potvrď Enterem' },
+          this.sizeInp = h('input', { type: 'text', inputmode: 'numeric', maxlength: 3, value: '' }), 'px'),
+        tool('A+', 'Větší písmo (o 2 px)', () => this.stepSize(2)),
         menuTool('Aa ▾', 'Velká / malá písmena', () => [
           { label: 'VELKÁ PÍSMENA', action: () => this.se.format('upper') },
           { label: 'malá písmena', action: () => this.se.format('lower') }])),
@@ -278,7 +278,7 @@ class SongEditor {
       const v = parseInt(this.sizeInp.value, 10);
       if (!v) { this.paintSize(); return; }
       if (keepRange && this.se.editEl) { const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(keepRange); }
-      this.se.format('size', szClamp(v));
+      this.setSizePx(v);
       keepRange = null;
       this.paintSize();
     };
@@ -358,13 +358,25 @@ class SongEditor {
     this.paintStruct();
     this.paintSize();
   }
-  /* velikost písma v místě kurzoru / vybraného řádku */
+  /* Velikost písma v px na zvolené obrazovce. Ukládá se poměrem k písmu řádku ze šablony
+     ({130%:…}), takže na jiné obrazovce i po změně šablony zůstane ve stejném poměru. */
   paintSize() {
     if (!this.sizeInp || !this.se || document.activeElement === this.sizeInp) return;
     if (!this.sizeInp.isConnected) { document.removeEventListener('selectionchange', this.onDocSel); return; }
-    const p = this.se.sizeAt();
-    this.sizeInp.value = String(p);
+    const p = this.se.sizeAt(), base = this.se.linePx();
+    this.sizeInp.value = base ? String(Math.round(base * p / 100)) : '';
     this.sizeBox.classList.toggle('on', p !== 100);
+    this.sizeBox.title = 'Velikost písma v px na obrazovce „' + this.screen().name + '“' + (p !== 100 ? ` (${p} % písma řádku)` : ' (podle šablony)') + ' – napiš a potvrď Enterem';
+  }
+  setSizePx(px) {
+    const base = this.se.linePx();
+    if (base) this.se.format('size', szClamp(px / base * 100));
+  }
+  stepSize(d) {
+    const base = this.se.linePx();
+    if (!base) return this.se.format(d > 0 ? 'bigger' : 'smaller');
+    this.setSizePx(Math.round(base * this.se.sizeAt() / 100) + d);
+    this.paintSize();
   }
   screen() { return Screens.get(this.screenId); }
   breakLine() { return this.screenId === 'main' ? '---' : '--- ' + this.screenId; }
@@ -767,7 +779,7 @@ function showMarkupHelp() {
        ['Refrén napiš jen jednou. Na další místa ho vložíš přes ', b('＋ Vložit'), ' › ', b('Opakování sekce'), ' – ve čtečce se vypíše celý.']],
       sample(`## Refrén @${s2.code}\nRefrén zpívají všichni\n\n## Sloka 2\n@${s1.code} Druhá sloka`)),
     step('4. Zvýraznění',
-      [['V liště nad stránkou: ', b('B'), ' tučně, ', b('I'), ' kurzíva, ', b('A−'), ' ', b('A+'), ' menší a větší o 10 %, mezi nimi jde velikost v procentech napsat – pro označená slova, nebo celý vybraný řádek.'],
+      [['V liště nad stránkou: ', b('B'), ' tučně, ', b('I'), ' kurzíva, ', b('A−'), ' ', b('A+'), ' menší a větší o 2 px, mezi nimi jde velikost v px napsat – pro označená slova, nebo celý vybraný řádek.'],
        [b('＋ Vložit'), ' › ', b('Poznámka'), ' přidá malou poznámku (např. „2× a konec“).']],
       sample(`Normální, **tučně**, *kurzívou* a {130%:větší}\n// 2× a konec`)),
     step('5. Pro muzikanty',

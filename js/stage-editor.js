@@ -785,6 +785,11 @@ class StageEditor {
     for (const i of this.srcLinesOf(targets)) ls[i] = formatLine(ls[i], kind, val);
     this.commit(ls.join('\n'));
   }
+  /* základní velikost písma řádku (px na obrazovce čtečky, bez vlastní velikosti slov) */
+  linePx() {
+    const el = this.editEl || this.elsOf(this.cur())[0];
+    return el ? parseFloat(getComputedStyle(el).fontSize) || 0 : 0;
+  }
   /* velikost písma v místě kurzoru / vybraného řádku (v procentech) */
   sizeAt() {
     if (this.editing && this.editEl) {
