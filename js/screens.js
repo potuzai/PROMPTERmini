@@ -33,6 +33,8 @@ const Screens = {
   mine() { return this.get(this.myId()); },
   /* obrazovka, kterou upravuji / ukazuji v náhledu („podle okna“ nemá pevný rozměr → hlavní čtečka) */
   editId() { const id = this.myId(); return id === 'auto' ? 'main' : id; },
+  /* obrazovka zvolená v editoru písně („Náhled pro“) – podle ní se ukazují i náhledy stránek */
+  edit() { return this.get(Settings.get('editScreen') || this.editId()); },
 
   async save(scr) {
     if (scr.id === 'main') {

@@ -250,7 +250,7 @@ function stripes(colors, soft) {
 
 /* Malý náhled první stránky písně (seznam písní, průvodce) – přesně jako ve čtečce, jen zmenšený */
 function miniPage(box, song, info) {
-  const scr = Screens.mine();
+  const scr = Screens.edit();
   const W = scr.w, H = scr.h;
   const tpl = applySongStyle(Store.template((song && song.templateId) || Settings.get('defaultTemplate')), song);
   tpl.fontSize = Math.round(tpl.fontSize * Screens.fontScale(scr, false));

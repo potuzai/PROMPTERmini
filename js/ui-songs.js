@@ -55,7 +55,7 @@ const SongsView = {
         pls.length ? h('div', { class: 'chips' }, pls.map(p => h('button', { class: 'chip', onclick: () => { location.hash = '#/playlists/' + p.id; } }, `${p.name} · ${p.items.indexOf(s.id) + 1}.`)))
           : h('div', { class: 'help' }, 'Zatím v žádném playlistu.'));
       miniPage(box, s);
-      const scr = Screens.mine(), ratio = scr.w / scr.h;
+      const scr = Screens.edit(), ratio = scr.w / scr.h;
       const size = () => { const r = wrap.getBoundingClientRect(); if (r.width && r.height) box.style.width = Math.floor(Math.min(r.width, r.height * ratio)) + 'px'; };
       new ResizeObserver(size).observe(wrap);
     };
@@ -123,7 +123,7 @@ class SongEditor {
     this.src = song.text || '';
     this.style = song.style || null;
     // náhled pro obrazovku: naposledy zvolená v tomto zařízení, jinak vlastní obrazovka zařízení
-    this.screenId = Screens.get(Settings.get('editScreen') || Screens.editId()).id;
+    this.screenId = Screens.edit().id;
     this.build(song);
     this.base = this.snap();
     const ed = this;
