@@ -73,7 +73,7 @@ class StageEditor {
     this.render();
   }
   /* historie (zpět / znovu): text písně i její vlastní nastavení (style – barva, písmo, stránka…) */
-  snap() { return this.ed.src + '\u0000' + JSON.stringify(this.ed.style || null); }
+  snap() { return JSON.stringify(this.ed.histState ? this.ed.histState() : { src: this.ed.src }); }
   pushHist() {
     const s = this.snap();
     if (this.hist[this.hpos] === s) return;
@@ -84,13 +84,13 @@ class StageEditor {
   }
   undo(dir) {
     this.finishEdit(true);
+    this.pushHist();   // rozepsané údaje písně (pole ještě nepotvrzené) se uloží jako krok
     const np = this.hpos + dir;
     if (np < 0 || np >= this.hist.length) { toast(dir < 0 ? 'Není co vrátit.' : 'Není co opakovat.', 'warn', 1500); return; }
     this.hpos = np;
-    const i = this.hist[np].indexOf('\u0000');
-    this.ed.src = this.hist[np].slice(0, i);
-    const st = JSON.parse(this.hist[np].slice(i + 1));
-    if (JSON.stringify(this.ed.style || null) !== JSON.stringify(st)) { this.ed.style = st; this.ed.styleRestored(); }
+    const st = JSON.parse(this.hist[np]);
+    this.ed.src = st.src;
+    if (this.ed.restoreHist) this.ed.restoreHist(st);
     this.ed.changed();
     this.render();
   }

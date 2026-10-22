@@ -269,7 +269,8 @@ class SongEditor {
 
     const onMeta = () => { this.markDirty(); this.schedulePreview(); };
     this.privNote.addEventListener('input', () => { PrivateNotes.set(this.id, this.privNote.value); this.schedulePreview(); });
-    [this.inTitle, this.inArtist, this.inKey, this.inTempo, this.inDur].forEach(i => i.addEventListener('input', onMeta));
+    [this.inTitle, this.inArtist, this.inKey, this.inTempo, this.inDur].forEach(i => { i.addEventListener('input', onMeta); i.addEventListener('change', () => this.se.pushHist()); });
+    this.inTpl.addEventListener('change', () => { this.se.pushHist(); this.makeSingerBtns(); });
     this.inTpl.addEventListener('change', onMeta);
     this.inTpl.addEventListener('change', () => this.paintFont());
     this.paintFont();
@@ -704,8 +705,18 @@ class SongEditor {
     this.markDirty(); this.se.pushHist(); this.makeSingerBtns(); this.paintFont(); this.se.render(); this.onSelChange();
     toast('Uloženo jako šablona „' + t.name + '“ – píseň ji teď používá', 'ok');
   }
-  /* zpět / znovu vrátilo i nastavení písně */
-  styleRestored() { this.makeSingerBtns(); this.paintFont(); }
+  /* historie zpět / znovu: text, vlastní nastavení i údaje písně (interpret, název, ladění, BPM, délka, šablona) */
+  histState() {
+    return { src: this.src, style: this.style || null,
+      meta: [this.inArtist.value, this.inTitle.value, this.inKey.value, this.inTempo.value, this.inDur.value, this.inTpl.value] };
+  }
+  restoreHist(st) {
+    const styleChanged = JSON.stringify(this.style || null) !== JSON.stringify(st.style);
+    this.style = st.style;
+    if (st.meta) [this.inArtist, this.inTitle, this.inKey, this.inTempo, this.inDur, this.inTpl].forEach((el, i) => { el.value = st.meta[i]; });
+    if (styleChanged) this.makeSingerBtns();
+    this.paintFont();
+  }
   fmt(kind) {
     if (!this.songScope()) return this.se.format(kind);
     const st = this.style || {};
