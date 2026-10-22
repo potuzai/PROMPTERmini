@@ -491,9 +491,9 @@ details summary { color: var(--text); }
 .tl-size.on input { color: var(--acc-hi); }
 .tl-lh-grp .tl-step { min-width: 24px; padding: 0 5px; font-size: 15px; color: var(--dim); }
 .tl-lh-grp .tl-step:hover { color: var(--text); }
-.tl.tl-lh { gap: 3px; padding: 0 5px; }
+.tl.tl-lh { gap: 2px; padding: 0 4px; }
 .tl-lh .ic.tl-lh-ic { width: 14px; height: 14px; color: var(--dim); }
-.tl-lh input { width: 3ch; text-align: left; }   /* např. 1,2 */
+.tl-lh input { width: 2.4ch; text-align: left; letter-spacing: -.3px; }   /* dvě číslice, např. 1,2 */
 .tl-lh.on .ic.tl-lh-ic { color: var(--acc-hi); }
 /* zpěváci: tlačítka s barevnou tečkou */
 .sw { display: inline-flex; align-items: center; gap: 5px; height: 32px; padding: 0 8px; border: 1px solid var(--line2); border-radius: var(--r); background: var(--well); color: var(--text); font: 13.5px var(--font); cursor: pointer; }
