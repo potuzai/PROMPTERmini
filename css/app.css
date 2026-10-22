@@ -499,6 +499,11 @@ details summary { color: var(--text); }
 .tl-lh input { width: 2.4ch; text-align: left; letter-spacing: -.3px; }   /* dvě číslice, např. 1,2 */
 .tl-lh.on .ic.tl-lh-ic { color: var(--acc-hi); }
 .tl-color .tl-col { font-weight: 700; border-bottom: 3px solid var(--tc, var(--acc)); line-height: 1.1; padding: 0 1px; }   /* barva písma – podtržení = poslední použitá */
+.menu-page { max-height: 78vh; overflow-y: auto; }   /* stránka písně */
+.menu-page .pg-set { display: flex; flex-direction: column; gap: 8px; text-align: left; }
+.menu-page .f { display: flex; flex-direction: column; align-items: stretch; gap: 3px; margin: 0; }
+.menu-page .pg-row.own > * > span, .menu-page .pg-row.own .chk { color: var(--acc-hi); }
+.menu-page input[type=range] { width: 100%; }
 .col-sw { display: grid; grid-template-columns: repeat(5, 26px); gap: 6px; }
 .col-dot { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--line2); cursor: pointer; padding: 0; }
 .col-dot:hover { outline: 2px solid var(--acc); outline-offset: 1px; }

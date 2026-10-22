@@ -6,6 +6,8 @@ function songSingers(s) {
   for (const m of String(s.text || '').matchAll(/(?:^|\n)\s*(?:##[^\n@]*)?@([A-Za-z0-9+]+)|\{(?!aa:)([A-Za-z0-9+]+):/g)) parseCodes(m[1] || m[2]).forEach(c => codes.add(c));
   return [...codes].filter(c => sm[c]).map(c => sm[c]);
 }
+// volby stránky, které jde u písně nastavit jinak než v šabloně (Stránka písně v pravém panelu)
+const PAGE_KEYS = ['barWidth', 'padX', 'padY', 'columns', 'colGap', 'stanzaGap', 'fit', 'minScale', 'showHeader', 'showFooter', 'headerSize', 'showSections', 'sectionScale', 'showNotes', 'mirror'];
 const SongsView = {
   search: '',
   editor: null,
@@ -245,6 +247,9 @@ class SongEditor {
     const sgrp = (label, ...kids) => h('div', { class: 'ep-group' }, h('div', { class: 'ep-lbl' }, label), ...kids);
     this.pager = h('div', { class: 'ed-side' },
       h('div', { class: 'ep-group' }, h('div', { class: 'ep-lbl ep-lbl-row' }, h('span', {}, 'Zpěváci'), sgShowBtn), this.sgRow),
+      h('div', { class: 'ep-group' }, h('div', { class: 'ep-lbl ep-lbl-row' }, h('span', {}, 'Stránka písně'),
+        this.pageSetBtn = tool(ic('sliders'), 'Rozvržení a zobrazení stránky jen pro tuto píseň: okraje, sloupce, mezery, dlouhá píseň, záhlaví a zápatí, nadpisy sekcí, poznámky, zrcadlení, proužek zpěváka', e => this.pagePopover(e.currentTarget), 'tl-sgshow')),
+        this.pageSetInfo = h('div', { class: 'help' })),
       h('div', { class: 'grow' }),
       sgrp('Náhled',
         h('label', { class: 'f' }, h('span', {}, 'Obrazovka'), this.scrSel),
@@ -391,6 +396,10 @@ class SongEditor {
     this.paintSp();
     this.paintAl();
     this.paintLs();
+    if (this.pageSetInfo) {
+      const n = PAGE_KEYS.filter(k => this.style && this.style[k] !== undefined).length;
+      this.pageSetInfo.textContent = n ? `Vlastní nastavení (${n}), ostatní podle šablony` : 'Podle šablony';
+    }
   }
   /* písmo písně v liště: „podle šablony“ nebo vlastní (ukládá se do písně jako u Písmo této písně…) */
   paintFont() {
@@ -505,6 +514,42 @@ class SongEditor {
       h('div', { class: 'col-sw' }, sw.map(c => h('button', { class: 'col-dot', title: c, style: { background: c }, onmousedown: e => e.preventDefault(), onclick: () => apply(c) }))),
       h('label', { class: 'chk' }, custom, 'Vlastní barva…'),
       h('button', { class: 'btn small nogrow', onmousedown: e => e.preventDefault(), onclick: () => apply('') }, song ? 'Podle šablony' : 'Bez vlastní barvy'));
+    placePopover(m, anchor);
+  }
+  /* Nastavení stránky jen pro tuto píseň – stejné volby jako v šabloně (výchozí hodnoty = šablona) */
+  pagePopover(anchor) {
+    $$('.menu').forEach(m => m.remove());
+    const keys = PAGE_KEYS;
+    const box = h('div', { class: 'pg-set' });
+    const paint = () => {
+      box.innerHTML = '';
+      const tpl = this.lookTpl(), base = this.baseTpl(), st = this.style || {};
+      for (const f of TPL_FIELDS.filter(f => keys.includes(f.k))) {
+        const v = tpl[f.k], own = st[f.k] !== undefined && st[f.k] !== base[f.k];
+        let ctl;
+        if (f.t === 'check') ctl = h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: !!v, onchange: e => { this.setSong(f.k, e.target.checked); paint(); } }), f.l);
+        else if (f.t === 'select') {
+          const sel = h('select', { class: 'inp' }, f.o.map(([val, lab]) => h('option', { value: val, selected: String(val) === String(v) }, lab)));
+          sel.onchange = () => { this.setSong(f.k, typeof f.o[0][0] === 'number' ? +sel.value : sel.value); paint(); };
+          ctl = h('label', { class: 'f' }, h('span', {}, f.l), sel);
+        } else {
+          const fmt = f.fmt || (x => f.pct ? Math.round(x * 100) + ' %' : String(+(+x).toFixed(3)));
+          const lab = h('b', {}, fmt(v));
+          const r = h('input', { type: 'range', min: f.min, max: f.max, step: f.step, value: v });
+          r.oninput = () => { lab.textContent = fmt(r.value); };
+          r.onchange = () => { this.setSong(f.k, +r.value); paint(); };
+          ctl = h('label', { class: 'f' }, h('span', {}, f.l, ': ', lab), r);
+        }
+        box.appendChild(h('div', { class: 'pg-row' + (own ? ' own' : '') }, ctl));
+      }
+      reset.style.display = keys.some(k => st[k] !== undefined) ? '' : 'none';
+    };
+    const reset = h('button', { class: 'btn small nogrow', style: { alignSelf: 'flex-start' }, onclick: () => {
+      const st = Object.assign({}, this.style || {}); keys.forEach(k => delete st[k]);
+      this.style = Object.keys(st).length ? st : null; this.markDirty(); this.se.render(); this.onSelChange(); paint();
+    } }, 'Vše podle šablony');
+    const m = h('div', { class: 'menu menu-form menu-page' }, h('div', { class: 'menu-head' }, 'Stránka této písně'), h('div', { class: 'help' }, 'Výchozí hodnoty jsou ze šablony; změněné jsou zvýrazněné.'), box, reset);
+    paint();
     placePopover(m, anchor);
   }
   /* barva celé písně: smaže ostatní barvy (slov, řádků, sekcí, části písně) a vypne barvu písma zpěváků */
