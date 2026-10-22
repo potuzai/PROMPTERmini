@@ -155,6 +155,7 @@ code { font-family: var(--mono); font-size: 12.5px; background: var(--well); bor
 .ed-pages { display: flex; align-items: center; gap: 6px; }
 .ed-pages .page-lbl { flex: 1; text-align: center; color: var(--text); font-size: 14px; }
 .ed-pages .tl { font-size: 18px; }
+.ed-side .ed-break { align-self: stretch; justify-content: center; }
 .ed-save { display: flex; flex-direction: column; gap: 8px; }
 .ed-save-row { display: flex; gap: 6px; }
 .ed-save-row .btn:first-child, .ed-save > .btn { flex: 1; justify-content: center; }
@@ -486,7 +487,7 @@ details summary { color: var(--text); }
 .tl-size input { width: 30px; border: 0; background: none; color: var(--text); font: 600 13.5px var(--font); text-align: right; outline: none; padding: 0; }
 .tl-size:focus-within { background: var(--sel); box-shadow: inset 0 0 0 1px var(--acc); }
 .tl-size.on input { color: var(--acc-hi); }
-.tl-lh { margin-left: 4px; border-radius: var(--r); }
+.tl-lh { border-radius: 0; }
 .tl-lh .tl-lh-ic { font-size: 14px; color: var(--dim); margin-right: 2px; }
 .tl-lh input { width: 34px; text-align: left; }
 .tl-lh.on .tl-lh-ic { color: var(--acc-hi); }

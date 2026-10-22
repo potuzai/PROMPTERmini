@@ -20,7 +20,7 @@ const TPL_FIELDS = [
     help: 'Podle části písně: sekce s „refrén“ v názvu mají barvu refrénu, „mezičást / bridge / předrefrén“ barvu mezičásti, ostatní barvu sloky. Zpěváka pak ukazuje jen pruh.' },
   { k: 'verseColor', l: 'Sloka', t: 'color' }, { k: 'chorusColor', l: 'Refrén', t: 'color' }, { k: 'bridgeColor', l: 'Mezičást', t: 'color' },
   { k: 'instrColor', l: 'Předehra, mezihra, sólo a počet opakování', t: 'color' },
-  { g: 'Označení zpěváků', help: 'Jak se který zpěvák na stránce označí – jde kombinovat. Platí pro všechny písně s touto šablonou; v editoru písně (Zobrazení ▾) jde nastavit jinak jen pro jednu píseň.' },
+  { g: 'Označení zpěváků', help: 'Jak se který zpěvák na stránce označí – jde kombinovat. Platí pro všechny písně s touto šablonou; v editoru písně (ikona nastavení vedle zpěváků) jde nastavit jinak jen pro jednu píseň.' },
   { k: 'singerShow', t: 'singers' },
   { k: 'barWidth', l: 'Šířka proužku (px)', t: 'range', min: 4, max: 40, step: 1 },
   { g: 'Rozvržení stránky' },

@@ -105,7 +105,7 @@ const URL = 'http://localhost:8123/index.html';
       await r.evaluate(() => { location.hash = '#/songs/tb'; }); await sleep(800);
       assert(await r.evaluate(id => SongsView.editor.screenId === id, tab.id), 'editor ukazuje náhled pro obrazovku zařízení');
       await r.evaluate(() => SongsView.editor.se.select(1)); await sleep(100);
-      await r.click('.ed-tools button:has-text("Vložit")'); await r.click('.menu > div:has-text("Nová stránka")'); await sleep(300);
+      await r.click('.ed-side button:has-text("Nová stránka")'); await sleep(300);
       const src = await r.evaluate(() => SongsView.editor.src);
       assert(src.includes('--- ' + tab.id) && src.split('\n').filter(l => l.trim() === '---').length === 1, 'nová stránka se vloží jen pro tuto obrazovku');
       assert(await r.evaluate(() => SongsView.editor.se.lay.pages.length) === 2, 'náhled tabletu má teď 2 stránky');

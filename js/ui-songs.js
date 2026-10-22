@@ -204,7 +204,7 @@ class SongEditor {
     // lišta: nástroje uprostřed nad stránkou, Muzikanti vždy vpravo
     this.tools = h('div', { class: 'ed-tools' }, h('span'), h('div', { class: 'ed-tools-mid' },
       h('div', { class: 'tl-grp sw-row', title: 'Kdo zpívá vybraný řádek (všichni vypnutí = nikdo)' }, ...this.sgButtons,
-        tool('Zobrazení ▾', 'Jak se který zpěvák na stránce označí: proužek vlevo / vpravo, podklad, barva písma – jen pro tuto píseň', e => this.singerPopover(e.currentTarget))),
+        tool([ic('sliders'), ic('down', 'caret')], 'Označení zpěváků: proužek vlevo / vpravo, podklad, barva písma – jen pro tuto píseň', e => this.singerPopover(e.currentTarget), 'tl-sgshow')),
       sep(),
       this.fontSel = h('select', { class: 'tl tl-font', title: 'Písmo této písně (bez výběru platí písmo šablony; další volby v ⋯ › Písmo této písně…)', onchange: () => this.setFont(this.fontSel.value) }),
       h('div', { class: 'tl-grp seg-row' },
@@ -217,14 +217,12 @@ class SongEditor {
         menuTool('Aa ▾', 'Velká / malá písmena', () => [
           { label: 'VELKÁ PÍSMENA', action: () => this.se.format('upper') },
           { label: 'malá písmena', action: () => this.se.format('lower') }])),
-      this.lhBox = h('label', { class: 'tl tl-size tl-lh', title: 'Řádkování řádku s kurzorem (nebo označených řádků) – výška řádku × písmo; napiš a potvrď Enterem, prázdné = podle písně' },
-        h('span', { class: 'tl-lh-ic' }, '↕'), this.lhInp = h('input', { type: 'text', inputmode: 'decimal', maxlength: 4, value: '' })),
+      h('div', { class: 'tl-grp seg-row' },
+        tool('↕−', 'Menší řádkování (o 0,05)', () => this.stepLh(-0.05)),
+        this.lhBox = h('label', { class: 'tl tl-size tl-lh', title: 'Řádkování řádku s kurzorem (nebo označených řádků) – výška řádku × písmo; napiš a potvrď Enterem, prázdné = podle písně' },
+          h('span', { class: 'tl-lh-ic' }, '↕'), this.lhInp = h('input', { type: 'text', inputmode: 'decimal', maxlength: 4, value: '' })),
+        tool('↕+', 'Větší řádkování (o 0,05)', () => this.stepLh(0.05))),
       sep(),
-      menuTool('＋ Vložit ▾', 'Vložit u vybraného řádku: poznámku, mezeru, novou stránku, text (nový řádek = Enter při psaní, sekce v panelu Struktura)', btn => [
-        { label: 'Poznámka', action: () => this.se.insertLines(['// '], { edit: true }) },
-        { label: 'Mezera mezi slokami', action: () => this.se.insertLines(['', '']) },
-        { label: 'Nová stránka', action: () => this.se.insertLines([this.breakLine()], { before: true }) },
-        { label: 'Text ze schránky…', hint: 'Ctrl+V', action: () => this.pasteDialog() }]),
       sep(),
       h('div', { class: 'tl-grp' },
         tool('↶', 'Zpět (Ctrl+Z)', () => this.se.undo(-1)),
@@ -246,7 +244,8 @@ class SongEditor {
         h('div', { class: 'ed-pages' },
           h('button', { class: 'tl', title: 'Předchozí stránka (PgUp)', onclick: () => this.se.turnPage(-1) }, '‹'),
           this.pageLbl,
-          h('button', { class: 'tl', title: 'Další stránka (PgDn)', onclick: () => this.se.turnPage(1) }, '›'))),
+          h('button', { class: 'tl', title: 'Další stránka (PgDn)', onclick: () => this.se.turnPage(1) }, '›')),
+        h('button', { class: 'btn small ed-break', title: 'Na zvolené obrazovce začít od vybraného řádku novou stránku (ostatní obrazovky stránkují samy)', onclick: () => this.se.insertLines([this.breakLine()], { before: true }) }, '＋ Nová stránka od řádku')),
       sgrp('Náhled',
         h('label', { class: 'f' }, h('span', {}, 'Obrazovka'), this.scrSel),
         h('label', { class: 'f' }, h('span', {}, 'Jako v playlistu'), this.inPl)),
@@ -296,10 +295,7 @@ class SongEditor {
       if (e.key === 'Escape') { e.preventDefault(); this.paintLh(); this.stageWrap.focus({ preventScroll: true }); return; }
       if (e.key !== 'Enter') return;
       e.preventDefault();
-      const v = parseFloat(this.lhInp.value.replace(',', '.'));
-      const def = this.lookTpl().lineHeight;
-      this.se.format('lh', !v || Math.abs(v - def) < 0.005 ? '' : String(Math.round(Math.max(0.8, Math.min(3, v)) * 100) / 100));
-      this.paintLh();
+      this.setLh(parseFloat(this.lhInp.value.replace(',', '.')));
       (this.se.editEl || this.stageWrap).focus({ preventScroll: true });
     });
     this.onDocSel = () => { if (this.se && this.se.editEl && document.activeElement !== this.sizeInp) { this.paintSize(); this.paintSingers(); } };
@@ -336,17 +332,7 @@ class SongEditor {
     if (!stay) location.hash = '#/songs/' + s.id;
     return true;
   }
-  /* Vložit text ze schránky (pro airmouse bez Ctrl+V: okno s polem) */
-  async pasteDialog() {
-    let t = '';
-    try { t = await navigator.clipboard.readText(); } catch (e) { /* bez přístupu ke schránce */ }
-    const ta = h('textarea', { class: 'inp src-ta', style: { height: '40vh' }, placeholder: 'Sem vlož text písně (Ctrl+V)…' }, t || '');
-    const ok = await modal({ title: 'Vložit text', body: h('div', {}, h('p', { class: 'help' }, 'Text se vloží pod vybraný řádek (do prázdné písně celý). Akordy, mezery a sloky se automaticky uklidí.'), ta),
-      buttons: [{ label: 'Zrušit', value: false }, { label: 'Vložit', primary: true, value: true }] });
-    if (!ok || !ta.value.trim()) return;
-    const clean = cleanText(ta.value);
-    this.se.insertText(clean);
-  }
+
 
   /* ----- Šablona a údaje pro stránku ----- */
   playlist() { return this.inPl && this.inPl.value ? Store.playlists.get(this.inPl.value) : null; }
@@ -421,6 +407,15 @@ class SongEditor {
     const own = this.se.lineLh(), def = this.lookTpl().lineHeight;
     this.lhInp.value = String(own != null ? own : Math.round(def * 100) / 100);
     this.lhBox.classList.toggle('on', own != null);
+  }
+  setLh(v) {
+    const def = this.lookTpl().lineHeight;
+    this.se.format('lh', !v || Math.abs(v - def) < 0.005 ? '' : String(Math.round(Math.max(0.8, Math.min(3, v)) * 100) / 100));
+    this.paintLh();
+  }
+  stepLh(d) {
+    const own = this.se.lineLh();
+    this.setLh((own != null ? own : this.lookTpl().lineHeight) + d);
   }
   setSizePx(px) {
     const base = this.se.linePx();
@@ -508,7 +503,7 @@ class SongEditor {
     c.onchange = () => setHeader(o => Object.assign(o, { color: c.value.toLowerCase() }));
     const m = h('div', { class: 'menu menu-form' }, h('div', { class: 'menu-head' }, 'Barva písma sekce „' + sec.name + '“'),
       h('label', { class: 'chk' }, c, 'Vlastní barva'),
-      h('div', { class: 'help' }, 'Zpěvák, který má v Zobrazení zapnuté „Písmo“, má přednost.'),
+      h('div', { class: 'help' }, 'Zpěvák, který má v označení zpěváků zapnuté „Písmo“, má přednost.'),
       h('button', { class: 'btn small nogrow', onclick: () => { setHeader(o => Object.assign(o, { color: '' })); m.remove(); } }, 'Podle šablony'));
     placePopover(m, anchor);
   }
@@ -935,12 +930,12 @@ function showMarkupHelp() {
        ['Jen pár slov: označ je v řádku tažením myší a klikni na zpěváka.']],
       sample(`@${s0.code} Tenhle řádek zpívá ${s0.name.toLowerCase()}\n@${s1.code} tenhle ${s1.name.toLowerCase()}\n@${s0.code}+${s1.code} a tenhle oba spolu`)),
     step('3. Sloky a refrén',
-      [[b('＋ Vložit'), ' › ', b('Sekce'), ' vloží nadpis (Sloka 1, Refrén…).'],
-       ['Refrén napiš jen jednou. Na další místa ho vložíš přes ', b('＋ Vložit'), ' › ', b('Opakování sekce'), ' – ve čtečce se vypíše celý.']],
+      [['V levém panelu ', b('Struktura'), ' › ', b('＋ Sekce'), ' vloží nadpis (Sloka 1, Refrén, Předehra…) – u vybraného řádku, nebo přesně pro řádky označené tažením.'],
+       ['Refrén napiš jen jednou. Na další místa ho vložíš tlačítkem ', b('↻'), ' ve Struktuře – ve čtečce se vypíše celý.']],
       sample(`## Refrén @${s2.code}\nRefrén zpívají všichni\n\n## Sloka 2\n@${s1.code} Druhá sloka`)),
     step('4. Zvýraznění',
       [['V liště nad stránkou: ', b('B'), ' tučně, ', b('I'), ' kurzíva, ', b('A−'), ' ', b('A+'), ' menší a větší o 2 px, mezi nimi jde velikost v px napsat – pro označená slova, nebo celý vybraný řádek.'],
-       [b('＋ Vložit'), ' › ', b('Poznámka'), ' přidá malou poznámku (např. „2× a konec“).']],
+       ['Pravé tlačítko na řádku › ', b('Vložit'), ' › ', b('Poznámku pod'), ' přidá malou poznámku (např. „2× a konec“).']],
       sample(`Normální, **tučně**, *kurzívou* a {130%:větší}\n// 2× a konec`)),
     step('5. Pro muzikanty',
       [['Akordy, ladění nebo tabulatury přidáš tlačítkem ', b('Pro muzikanty'), '. ', b('Ve čtečce se nikdy nezobrazí'), ' – uvidíš je jen po přepnutí na „Pro muzikanty“ a v tisku.']],

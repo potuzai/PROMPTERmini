@@ -94,7 +94,6 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
     if (label === 'Které vrstvy') return pick('.ed-tools .ed-mus', 'Které vrstvy');
     return pick('.ed-side button[title^="Další volby písně"]', label);
   };
-  const insert = label => pick('.ed-tools button:has-text("Vložit")', label);
   const dl = p.waitForEvent('download');
   await more('Export .txt');
   const d = await dl; const dpath = path.join(tmp, 'exp.txt'); await d.saveAs(dpath);
@@ -392,7 +391,7 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   assert(await p.evaluate(w => Reader.tplFor(Store.songs.get('long')).fontSize !== w, want), 'ostatní písně zůstanou podle šablony');
   // označení zpěváka jen pro tuto píseň: první zpěvák má proužek vpravo místo vlevo (tabulka zpěváci × volby)
   const sg0 = await p.evaluate(async () => { const g = Store.singers()[0]; await Store.put('songs', { id: 'sgs', title: 'Označení', text: '@' + g.code + ' řádek se zpěvákem' }); location.hash = '#/songs/sgs'; return g; }); await sleep(600);
-  await p.click('.ed-tools button:has-text("Zobrazení")');
+  await p.click('.ed-tools .tl-sgshow');
   await p.click(`.menu-singer input[title="${sg0.name}: proužek vpravo"]`);
   await p.click(`.menu-singer input[title="${sg0.name}: proužek vlevo"]`); await sleep(200);
   assert(await p.evaluate(() => { const l = document.querySelector('.se-wrap .b-line.has-sg'); return l.classList.contains('br') && !l.classList.contains('bl'); }), 'označení zpěváka: proužek vpravo místo vlevo');
