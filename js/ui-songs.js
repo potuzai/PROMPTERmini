@@ -205,6 +205,15 @@ class SongEditor {
         this.lhBox = h('label', { class: 'tl tl-size tl-lh', title: 'Řádkování řádku s kurzorem (nebo označených řádků) – výška řádku × písmo; napiš a potvrď Enterem, prázdné = podle písně' },
           ic('lineh', 'tl-lh-ic'), this.lhInp = h('input', { type: 'text', inputmode: 'decimal', maxlength: 4, value: '' })),
         tool('+', 'Větší řádkování (o 0,1)', () => this.stepLh(0.1), 'tl-step')),
+      h('div', { class: 'tl-grp seg-row tl-lh-grp' },
+        tool('−', 'Menší mezera pod řádkem (o 0,1)', () => this.stepSp(-0.1), 'tl-step'),
+        this.spBox = h('label', { class: 'tl tl-size tl-lh', title: 'Mezera pod řádkem s kurzorem (nebo pod označenými řádky) – × výška písma; napiš a potvrď Enterem, 0 = bez mezery' },
+          ic('spb', 'tl-lh-ic'), this.spInp = h('input', { type: 'text', inputmode: 'decimal', maxlength: 4, value: '' })),
+        tool('+', 'Větší mezera pod řádkem (o 0,1)', () => this.stepSp(0.1), 'tl-step')),
+      this.alBtns = h('div', { class: 'tl-grp seg-row tl-al-grp' },
+        tool(ic('alignl'), 'Zarovnat řádek vlevo', () => this.setAl('⇤')),
+        tool(ic('alignc'), 'Zarovnat řádek na střed', () => this.setAl('↔')),
+        tool(ic('alignr'), 'Zarovnat řádek vpravo', () => this.setAl('⇥'))),
       ),
       h('div', { class: 'tl-grp ed-undo' },   // zpět / znovu úplně vpravo
         tool('↶', 'Zpět (Ctrl+Z)', () => this.se.undo(-1)),
@@ -272,6 +281,15 @@ class SongEditor {
       if (e.key === 'Enter') { e.preventDefault(); applySize(); (this.se.editEl || this.stageWrap).focus({ preventScroll: true }); }
       else if (e.key === 'Escape') { e.preventDefault(); keepRange = null; this.paintSize(); this.stageWrap.focus({ preventScroll: true }); }
       e.stopPropagation();
+    });
+    this.spInp.addEventListener('focus', () => this.spInp.select());
+    this.spInp.addEventListener('keydown', e => {
+      e.stopPropagation();
+      if (e.key === 'Escape') { e.preventDefault(); this.paintSp(); this.stageWrap.focus({ preventScroll: true }); return; }
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      this.setSp(parseFloat(this.spInp.value.replace(',', '.')));
+      (this.se.editEl || this.stageWrap).focus({ preventScroll: true });
     });
     this.lhInp.addEventListener('focus', () => this.lhInp.select());
     this.lhInp.addEventListener('keydown', e => {
@@ -349,6 +367,8 @@ class SongEditor {
     this.paintSingers();
     this.paintSize();
     this.paintLh();
+    this.paintSp();
+    this.paintAl();
   }
   /* písmo písně v liště: „podle šablony“ nebo vlastní (ukládá se do písně jako u Písmo této písně…) */
   paintFont() {
@@ -431,6 +451,28 @@ class SongEditor {
   stepLh(d) {
     const own = this.se.lineLh();
     this.setLh(Math.round(((own != null ? own : this.lookTpl().lineHeight) + d) * 10) / 10);
+  }
+  /* mezera pod řádkem s kurzorem ({⤓0.5:…}, × výška písma) */
+  paintSp() {
+    if (!this.spInp || !this.se || document.activeElement === this.spInp) return;
+    const own = this.se.lineOuter().sp;
+    this.spInp.value = String(own || 0).replace('.', ',');
+    this.spBox.classList.toggle('on', !!own);
+  }
+  setSp(v) {
+    this.se.format('sp', !(v > 0) ? '' : String(Math.round(Math.min(5, v) * 100) / 100));
+    this.paintSp();
+  }
+  stepSp(d) { this.setSp(Math.round((+(this.se.lineOuter().sp || 0) + d) * 10) / 10); }
+  /* zarovnání řádku: vlastní, jinak podle šablony; klik na zarovnání šablony vlastní zruší */
+  paintAl() {
+    if (!this.alBtns || !this.se) return;
+    const own = this.se.lineOuter().al, eff = own || AL_MARK[this.lookTpl().align] || '↔';
+    [...this.alBtns.children].forEach((b, i) => { b.classList.toggle('on', '⇤↔⇥'[i] === eff); b.classList.toggle('own', !!own && '⇤↔⇥'[i] === own); });
+  }
+  setAl(a) {
+    this.se.format('al', a === AL_MARK[this.lookTpl().align] ? '' : a);
+    this.paintAl();
   }
   setSizePx(px) {
     const base = this.se.linePx();

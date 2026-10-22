@@ -168,6 +168,8 @@ Pokročilí můžou přes **⋯ › Zdrojový text…** upravit text tak, jak se
 | `{#ff0000:slova}` | vlastní barva písma části textu |
 | `{↕1.4:řádek}` | řádkování jednoho řádku (v liště pole ↕) |
 | `{aa:slova}` | malá písmena i v šabloně, která píše VELKÝMI (v liště Aa) |
+| `{⇤:řádek}` `{↔:…}` `{⇥:…}` | zarovnání řádku vlevo / na střed / vpravo (v liště) |
+| `{⤓0.5:řádek}` | mezera pod řádkem (× výška písma, v liště) |
 | `@J text` | řádek zpívám já |
 | `@J+T text` | řádek zpíváme oba |
 | `{T:slovo}` | jiný zpěvák jen pro část řádku |

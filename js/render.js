@@ -98,6 +98,10 @@ const Render = {
     el.innerHTML = inner;
     const lh = el.querySelector('.lh');   // vlastní řádkování řádku
     if (lh) el.style.lineHeight = lh.dataset.lh;
+    const al = el.querySelector('.al');   // vlastní zarovnání řádku
+    if (al) el.style.textAlign = AL_CSS[al.dataset.al] || '';
+    const spb = el.querySelector('.spb');   // mezera pod řádkem
+    if (spb) el.style.marginBottom = spb.dataset.sp + 'em';
     // označená slova jiného zpěváka: stejné označení jako celé řádky (barva písma / podklad), proužky jen u řádků
     for (const w of el.querySelectorAll('.sg-in')) {
       const sg = singerMap[parseCodes(w.dataset.c)[0]];
@@ -257,6 +261,9 @@ function applySongStyle(tpl, song) {
   }
   return t;
 }
+
+/* zarovnání řádku ve značce {⇤:…} / {↔:…} / {⇥:…} */
+const AL_CSS = { '⇤': 'left', '↔': 'center', '⇥': 'right' }, AL_MARK = { left: '⇤', center: '↔', right: '⇥' };
 
 /* Jak se zpěvák na stránce označí: proužek vlevo / vpravo, podklad řádku, barva písma.
    Šablona: singerShow[kód]; bez něj platí společné volby šablony (starší šablony). */

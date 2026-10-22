@@ -792,7 +792,7 @@ class StageEditor {
   format(kind, val) {
     if (this.editing && this.editEl) {
       const sel = window.getSelection();
-      const has = kind !== 'lh' && sel.rangeCount && !sel.isCollapsed && this.editEl.contains(sel.anchorNode);
+      const has = !['lh', 'al', 'sp'].includes(kind) && sel.rangeCount && !sel.isCollapsed && this.editEl.contains(sel.anchorNode);
       if (has) {
         if (kind === 'bold' || kind === 'italic') this.toggleTag(kind === 'bold' ? 'B' : 'I');
         else if (kind === 'bigger' || kind === 'smaller' || kind === 'size') this.sizeSel(p => sizeStep(p, kind, val));
@@ -833,7 +833,7 @@ class StageEditor {
     if (!t) return 100;
     const src = this.lines()[t.line] || '';
     const info = parseSong(src).lines[0] || {};
-    let b = splitLine(src, info.kind || 'line').body;
+    let b = peelOuter(splitLine(src, info.kind || 'line').body).b;
     const lh = outerMark(b, RE_LH_START); if (lh) b = lh.inner;
     const m = outerMark(b, /^\{([+-]{1,2}|\d{2,3}%):/);
     return m ? szPct(m.mark) : 100;
@@ -844,8 +844,16 @@ class StageEditor {
     if (!t) return null;
     const src = this.lines()[t.line] || '';
     const info = parseSong(src).lines[0] || {};
-    const lh = outerMark(splitLine(src, info.kind || 'line').body, RE_LH_START);
+    const lh = outerMark(peelOuter(splitLine(src, info.kind || 'line').body).b, RE_LH_START);
     return lh ? +lh.mark : null;
+  }
+  /* zarovnání ({⇤:…}) a mezera pod řádkem ({⤓0.5:…}) řádku s kurzorem: vlastní, jinak null */
+  lineOuter() {
+    const t = this.cur();
+    if (!t) return {};
+    const src = this.lines()[t.line] || '';
+    const info = parseSong(src).lines[0] || {};
+    return peelOuter(splitLine(src, info.kind || 'line').body).w;
   }
   /* součin velikostí všech značek {N%:…} od uzlu až k psanému řádku (v %) */
   szChain(node) {
@@ -1036,11 +1044,30 @@ function outerMark(b, re) {
   for (let i = 0; i < b.length; i++) { if (b[i] === '{') d++; else if (b[i] === '}') { d--; if (d === 0 && i < b.length - 1) return null; } }
   return { mark: m[1], inner: b.slice(m[0].length, -1) };
 }
+/* zarovnání {⇤:…} a mezera pod řádkem {⤓0.5:…} obalují celý řádek jako nejvnější značky */
+const RE_AL_START = /^\{([⇤↔⇥]):/, RE_SP_START = /^\{⤓(\d(?:\.\d{1,2})?):/;
+function peelOuter(b) {
+  const w = {};
+  for (let m, more = true; more;) {
+    more = false;
+    if (!w.al && (m = outerMark(b, RE_AL_START))) { w.al = m.mark; b = m.inner; more = true; }
+    else if (!w.sp && (m = outerMark(b, RE_SP_START))) { w.sp = m.mark; b = m.inner; more = true; }
+  }
+  return { w, b };
+}
+function wrapOuter(b, w) {
+  if (w.sp) b = `{⤓${w.sp}:${b}}`;
+  if (w.al) b = `{${w.al}:${b}}`;
+  return b;
+}
 function formatLine(src, kind, val) {
   const info = parseSong(src).lines[0] || {};
   if (!['line', 'note', 'section'].includes(info.kind)) return src;
   const sp = splitLine(src, info.kind);
-  let b = sp.body;
+  const pe = peelOuter(sp.body);
+  let b = pe.b;
+  if (kind === 'al') pe.w.al = val || '';   // '' = podle šablony
+  else if (kind === 'sp') pe.w.sp = val || '';
   if (kind === 'bold') b = /^\*\*[\s\S]*\*\*$/.test(b) ? b.slice(2, -2) : '**' + b + '**';
   else if (kind === 'italic') b = /^\*(?!\*)[\s\S]*\*$/.test(b) && !/^\*\*/.test(b) ? b.slice(1, -1) : '*' + b + '*';
   else if (kind === 'bigger' || kind === 'smaller' || kind === 'size') {
@@ -1067,7 +1094,7 @@ function formatLine(src, kind, val) {
   } else if (kind === 'upper' || kind === 'lower') {
     b = caseText(b, kind === 'upper');
   }
-  return sp.prefix + b + sp.suffix;
+  return sp.prefix + wrapOuter(b, pe.w) + sp.suffix;
 }
 
 /* Řádek se značkami → HTML pro psaní (starší akordy [Am] zůstanou jako neviditelné značky, aby se psaním neztratily) */
@@ -1096,6 +1123,8 @@ function serializeInline(node) {
     else if (n.classList.contains('tc') && n.dataset.tc) out += '{' + n.dataset.tc + ':' + inner + '}';
     else if (n.classList.contains('lh') && n.dataset.lh) out += '{↕' + n.dataset.lh + ':' + inner + '}';
     else if (n.classList.contains('kc')) out += '{aa:' + inner + '}';
+    else if (n.classList.contains('al') && n.dataset.al) out += '{' + n.dataset.al + ':' + inner + '}';
+    else if (n.classList.contains('spb') && n.dataset.sp) out += '{⤓' + n.dataset.sp + ':' + inner + '}';
     else if (tag === 'B' || tag === 'STRONG' || (n.style && (n.style.fontWeight === 'bold' || +n.style.fontWeight >= 600))) out += '**' + inner + '**';
     else if (tag === 'I' || tag === 'EM' || (n.style && n.style.fontStyle === 'italic')) out += '*' + inner + '*';
     else if (tag === 'U') out += '__' + inner + '__';
