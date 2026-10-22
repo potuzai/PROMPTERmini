@@ -21,6 +21,7 @@ const ICONS = {
   alignl: '<path d="M3 6h18M3 12h12M3 18h16"/>',
   alignc: '<path d="M3 6h18M6 12h12M4 18h16"/>',
   alignr: '<path d="M3 6h18M9 12h12M5 18h16"/>',
+  lsp: '<path d="M5 15 8 5l3 10M6.2 11.5h3.6M14 5v10h4"/><path d="M3 20h18M6 18l-3 2 3 2M18 18l3 2-3 2"/>',
   spb: '<path d="M4 4h16M4 9h16"/><path d="M12 12v8M8.5 16.5 12 20l3.5-3.5"/>',
   lineh: '<path d="M11 6h10M11 12h10M11 18h10"/><path d="M5 4v16M2.5 6.5 5 4l2.5 2.5M2.5 17.5 5 20l2.5-2.5"/>',
   more: '<circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/>',

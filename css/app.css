@@ -476,9 +476,9 @@ details summary { color: var(--text); }
 /* střed: lišta pro vybraný řádek, stránka, stránkování */
 .ed-center { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--desk); border-radius: var(--rc); overflow: hidden; }
 /* nástroje na střed nad stránkou (vpravo je odsazení o šířku pravého panelu), Muzikanti vždy vpravo nad panelem */
-.ed-tools { position: relative; flex: 0 0 auto; display: flex; justify-content: center; align-items: flex-start; gap: 6px 16px; padding: 8px 272px 8px 8px; background: var(--panel); border-bottom: 1px solid var(--line); }
+.ed-tools { position: relative; flex: 0 0 auto; display: flex; justify-content: center; align-items: flex-start; gap: 6px 16px; padding: 8px 250px 8px 8px; background: var(--panel); border-bottom: 1px solid var(--line); }
 .ed-tools > .ed-undo { position: absolute; top: 8px; right: 8px; }   /* úplně vpravo; nástroje mají vpravo místo jako pravý panel, takže jsou na středu nad stránkou */
-.ed-tools-text { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px; min-width: 0; }
+.ed-tools-text { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 5px; min-width: 0; }
 .tl-grp { display: flex; align-items: center; gap: 3px; }
 .tl-sep { width: 1px; height: 22px; background: var(--line2); }
 .tl { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 30px; height: 32px; padding: 0 8px; border: 1px solid var(--line2); border-radius: var(--r); background: var(--well); color: var(--text); font: 13.5px var(--font); cursor: pointer; white-space: nowrap; }
@@ -487,17 +487,22 @@ details summary { color: var(--text); }
 .seg-row { gap: 0; border: 1px solid var(--line2); border-radius: var(--r); overflow: hidden; }
 .seg-row .tl { border: 0; border-right: 1px solid var(--line2); border-radius: 0; }
 .seg-row .tl:last-child { border-right: 0; }
-.tl.tl-font { width: 152px; padding: 0 6px; appearance: auto; }   /* výběr písma v liště */
+.tl.tl-font { width: 128px; padding: 0 6px; appearance: auto; }   /* výběr písma v liště */
 .tl.tl-size { gap: 1px; padding: 0 7px 0 4px; cursor: text; color: var(--dim); font-size: 12px; }
 .tl-size input { width: 2.3ch; border: 0; background: none; color: var(--text); font: 600 13.5px var(--font); text-align: right; outline: none; padding: 0; }   /* pole na dvě číslice */
 .tl-size:focus-within { background: var(--sel); box-shadow: inset 0 0 0 1px var(--acc); }
 .tl-size.on input { color: var(--acc-hi); }
-.tl-lh-grp .tl-step { min-width: 24px; padding: 0 5px; font-size: 15px; color: var(--dim); }
+.tl-lh-grp .tl-step { min-width: 20px; padding: 0 3px; font-size: 15px; color: var(--dim); }
 .tl-lh-grp .tl-step:hover { color: var(--text); }
-.tl.tl-lh { gap: 2px; padding: 0 4px; }
+.tl.tl-lh { gap: 2px; padding: 0 3px; }
 .tl-lh .ic.tl-lh-ic { width: 14px; height: 14px; color: var(--dim); }
 .tl-lh input { width: 2.4ch; text-align: left; letter-spacing: -.3px; }   /* dvě číslice, např. 1,2 */
 .tl-lh.on .ic.tl-lh-ic { color: var(--acc-hi); }
+.tl-color .tl-col { font-weight: 700; border-bottom: 3px solid var(--tc, var(--acc)); line-height: 1.1; padding: 0 1px; }   /* barva písma – podtržení = poslední použitá */
+.col-sw { display: grid; grid-template-columns: repeat(5, 26px); gap: 6px; }
+.col-dot { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--line2); cursor: pointer; padding: 0; }
+.col-dot:hover { outline: 2px solid var(--acc); outline-offset: 1px; }
+.tl-al-grp .tl { min-width: 26px; padding: 0 4px; }
 .tl-al-grp .tl.on { background: var(--sel); }   /* zarovnání řádku: podle šablony šedě, vlastní barevně */
 .tl-al-grp .tl.own { color: var(--acc-hi); }
 /* zpěváci: tlačítka s barevnou tečkou */
@@ -661,7 +666,7 @@ input[type=checkbox].switch:focus-visible { outline: 2px solid var(--acc-hi); ou
 .st-foot b { font-weight: 700; }
 .st-body { flex: 1 1 auto; display: flex; gap: var(--colgap); min-height: 0; overflow: hidden; }
 .st-col { flex: 1 1 0; min-width: 0; }
-.b-line { position: relative; overflow-wrap: break-word; border-radius: 0; }
+.b-line { position: relative; overflow-wrap: break-word; border-radius: 0; margin-bottom: var(--lgap, 0); }
 .with-bar .b-line { padding-left: calc(var(--bar) + .35em); }
 .b-line.bl::before { content: ""; position: absolute; left: 0; top: .1em; bottom: .1em; width: var(--bar); background: var(--barbg); border-radius: 0; }
 .with-bar-r .b-line { padding-right: calc(var(--bar) + .35em); }

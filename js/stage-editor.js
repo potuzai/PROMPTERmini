@@ -296,7 +296,7 @@ class StageEditor {
     if (this.editing) this.finishEdit(true);   // stránka se překreslí – řádek pod myší se hledá až potom
     const bEl = lineAt();
     const t = bEl && this.targets.find(x => x.bis.includes(+bEl.dataset.bi));
-    if (!t) return;
+    if (!t) { this.curKey = null; this.anchorKey = null; this.curLine = null; this.paintSel(); return; }   // klik vedle textu: nic vybraného = úpravy pro celou píseň
     const off = this.offsetAtPoint(bEl, e.clientX, e.clientY);
     this.pendingClickEdit = !e.shiftKey && this.editable(t) ? { t, offset: off } : null;
     this.select(this.targets.indexOf(this.targets.find(x => x.key === t.key)), e.shiftKey);
@@ -660,7 +660,7 @@ class StageEditor {
       }
       this.syncEdit();
       const ls = this.lines();
-      ls[this.editing.line] = applySingerToLine(ls[this.editing.line], code, code ? mode : 'clear');
+      ls[this.editing.line] = this.singerColorWins(applySingerToLine(ls[this.editing.line], code, code ? mode : 'clear'), code, mode);
       this.ed.src = ls.join('\n'); this.ed.changed(); this.pushHist();
       this.editing.caret = this.caretOffset();
       return this.render();
@@ -668,9 +668,12 @@ class StageEditor {
     const targets = this.selTargets();
     if (!targets.length) return toast('Nejdřív vyber řádek (šipkami nebo kliknutím).', 'warn');
     const ls = this.lines();
-    for (const i of this.srcLinesOf(targets)) ls[i] = applySingerToLine(ls[i], code, code ? mode : 'clear');
+    for (const i of this.srcLinesOf(targets)) ls[i] = this.singerColorWins(applySingerToLine(ls[i], code, code ? mode : 'clear'), code, mode);
     this.commit(ls.join('\n'));
   }
+  /* poslední úprava barvy vyhrává: přidaný zpěvák s barvou písma smaže barvy textu v řádku */
+  singerTextOn(code) { return !!code && parseCodes(code).some(c => this.tpl && singerShowOf(this.tpl, c).text); }
+  singerColorWins(line, code, mode) { return mode !== 'remove' && this.singerTextOn(code) ? stripColor(line) : line; }
   /* Tlačítko zpěváka v liště: přepínač. Označená slova s tímto zpěvákem → barvu zrušit, jinak nastavit;
      řádky: když ho mají všechny vybrané, odebere se, jinak se přidá (nikdo = všichni vypnutí) */
   toggleSinger(code) {
@@ -721,6 +724,7 @@ class StageEditor {
     }
     const frag = r.extractContents();
     for (const s of [...frag.querySelectorAll('.sg-in')]) s.replaceWith(...s.childNodes);
+    if (this.singerTextOn(code)) for (const s of [...frag.querySelectorAll('.tc')]) s.replaceWith(...s.childNodes);   // barva zpěváka nahradí barvu slov
     const node = code ? h('span', { class: 'sg-in', 'data-c': code, style: { color } }, frag) : frag;
     const first = code ? node : node.firstChild, last = code ? node : node.lastChild;
     if (hostIn) {
@@ -806,6 +810,8 @@ class StageEditor {
         else if (kind === 'bigger' || kind === 'smaller' || kind === 'size') this.sizeSel(p => sizeStep(p, kind, val));
         else if (kind === 'upper' || kind === 'lower') { document.execCommand('insertText', false, kind === 'upper' ? sel.toString().toLocaleUpperCase('cs') : sel.toString().toLocaleLowerCase('cs')); }
         else if (kind === 'kc-on' || kind === 'kc-off') this.keepCaseSel(sel.getRangeAt(0), kind === 'kc-on');
+        else if (kind === 'ls') this.lsSel(val);
+        else if (kind === 'color') this.colorSel(val);
         this.syncEdit(); this.pushHist(); this.ed.onSelChange();
         return;
       }
@@ -881,6 +887,48 @@ class StageEditor {
   }
   /* velikost označených slov: fn(stará procenta) → nová procenta (100 % = značku zrušit) */
   /* velikost označených slov: fn(skutečná velikost v %) → nová skutečná velikost (vzhledem k písmu řádku) */
+  /* barva označených slov; '' = barvu zrušit (platí barva řádku / zpěváka / sekce) */
+  colorSel(c) {
+    const sel = window.getSelection();
+    const anc = sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentNode;
+    const host = anc.closest('.tc');
+    if (host && this.editEl.contains(host) && host.textContent.replace(/\u200b/g, '').trim() === sel.toString().trim()) {
+      if (!c) host.replaceWith(...host.childNodes); else { host.dataset.tc = c; host.style.color = c; }
+      return;
+    }
+    const r = sel.getRangeAt(0);
+    const f = r.extractContents();
+    for (const x of [...f.querySelectorAll('.tc')]) x.replaceWith(...x.childNodes);
+    const el = c ? h('span', { class: 'tc', 'data-tc': c, style: { color: c } }, f) : null;
+    if (el) { r.insertNode(el); selectContents(el); } else r.insertNode(f);
+  }
+  /* rozestup písmen označených slov (em); 0 = bez vlastního rozestupu */
+  lsSel(v) {
+    const sel = window.getSelection();
+    const anc = sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentNode;
+    const host = anc.closest('.lsp');
+    const set = el => { el.dataset.ls = v; el.style.letterSpacing = v + 'em'; };
+    if (host && this.editEl.contains(host) && host.textContent.replace(/\u200b/g, '').trim() === sel.toString().trim()) {
+      if (!+v) host.replaceWith(...host.childNodes); else set(host);
+      return;
+    }
+    if (!+v) return;
+    const r = sel.getRangeAt(0);
+    const el = h('span', { class: 'lsp' });
+    set(el);
+    try { const f = r.extractContents(); for (const x of [...f.querySelectorAll('.lsp')]) x.replaceWith(...x.childNodes); el.appendChild(f); r.insertNode(el); } catch (e) { return; }
+    selectContents(el);
+  }
+  /* rozestup písmen v místě výběru / kurzoru: označená slova, jinak celý řádek; null = vlastní není */
+  lsAt() {
+    const sel = window.getSelection();
+    if (this.editing && this.editEl && sel.rangeCount && !sel.isCollapsed && this.editEl.contains(sel.anchorNode)) {
+      const n = sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentNode, host = n.closest('.lsp');
+      if (host && this.editEl.contains(host)) return +host.dataset.ls;
+    }
+    const w = this.lineOuter();
+    return w.ls != null ? +w.ls : null;
+  }
   sizeSel(fn) {
     const sel = window.getSelection();
     const anc = sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentNode;
@@ -1002,6 +1050,15 @@ function selectContents(el) {
   const r = document.createRange(); r.selectNodeContents(el);
   const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
 }
+/* odstraní značky barvy {#rrggbb:…} (text uvnitř zůstane) */
+function stripColor(s) {
+  for (let i; (i = s.search(/\{#[0-9a-fA-F]{6}:/)) >= 0;) {
+    let d = 0, j = i;
+    for (; j < s.length; j++) { if (s[j] === '{') d++; else if (s[j] === '}' && --d === 0) break; }
+    s = s.slice(0, i) + s.slice(i + 9, j) + s.slice(j + 1);
+  }
+  return s;
+}
 /* patří řádek i do sekce s textem? (nad ním je nadpis sekce bez konce „##“, nové stránky či opakování) */
 function inSection(ls, i) {
   for (let j = i; j >= 0; j--) {
@@ -1062,17 +1119,21 @@ function outerMark(b, re) {
   return { mark: m[1], inner: b.slice(m[0].length, -1) };
 }
 /* zarovnání {⇤:…} a mezera pod řádkem {⤓0.5:…} obalují celý řádek jako nejvnější značky */
-const RE_AL_START = /^\{([⇤↔⇥]):/, RE_SP_START = /^\{⤓(\d(?:\.\d{1,2})?):/;
+const RE_AL_START = /^\{([⇤↔⇥]):/, RE_SP_START = /^\{⤓(\d(?:\.\d{1,2})?):/, RE_LS_START = /^\{⇿(-?\d(?:\.\d{1,3})?):/, RE_TC_START = /^\{(#[0-9a-fA-F]{6}):/;
 function peelOuter(b) {
   const w = {};
   for (let m, more = true; more;) {
     more = false;
     if (!w.al && (m = outerMark(b, RE_AL_START))) { w.al = m.mark; b = m.inner; more = true; }
     else if (!w.sp && (m = outerMark(b, RE_SP_START))) { w.sp = m.mark; b = m.inner; more = true; }
+    else if (w.ls == null && (m = outerMark(b, RE_LS_START))) { w.ls = m.mark; b = m.inner; more = true; }
+    else if (!w.tc && (m = outerMark(b, RE_TC_START))) { w.tc = m.mark; b = m.inner; more = true; }
   }
   return { w, b };
 }
 function wrapOuter(b, w) {
+  if (w.tc) b = `{${w.tc}:${b}}`;
+  if (w.ls != null && +w.ls) b = `{⇿${w.ls}:${b}}`;
   if (w.sp) b = `{⤓${w.sp}:${b}}`;
   if (w.al) b = `{${w.al}:${b}}`;
   return b;
@@ -1085,6 +1146,8 @@ function formatLine(src, kind, val) {
   let b = pe.b;
   if (kind === 'al') pe.w.al = val || '';   // '' = podle šablony
   else if (kind === 'sp') pe.w.sp = val || '';
+  else if (kind === 'ls') pe.w.ls = +val ? String(val) : null;
+  else if (kind === 'color') { b = stripColor(b); pe.w.tc = val || null; }   // barva celého řádku nahradí ostatní barvy v něm
   if (kind === 'bold') b = /^\*\*[\s\S]*\*\*$/.test(b) ? b.slice(2, -2) : '**' + b + '**';
   else if (kind === 'italic') b = /^\*(?!\*)[\s\S]*\*$/.test(b) && !/^\*\*/.test(b) ? b.slice(1, -1) : '*' + b + '*';
   else if (kind === 'bigger' || kind === 'smaller' || kind === 'size') {
@@ -1142,6 +1205,7 @@ function serializeInline(node) {
     else if (n.classList.contains('kc')) out += '{aa:' + inner + '}';
     else if (n.classList.contains('al') && n.dataset.al) out += '{' + n.dataset.al + ':' + inner + '}';
     else if (n.classList.contains('spb') && n.dataset.sp) out += '{⤓' + n.dataset.sp + ':' + inner + '}';
+    else if (n.classList.contains('lsp') && n.dataset.ls) out += '{⇿' + n.dataset.ls + ':' + inner + '}';
     else if (tag === 'B' || tag === 'STRONG' || (n.style && (n.style.fontWeight === 'bold' || +n.style.fontWeight >= 600))) out += '**' + inner + '**';
     else if (tag === 'I' || tag === 'EM' || (n.style && n.style.fontStyle === 'italic')) out += '*' + inner + '*';
     else if (tag === 'U') out += '__' + inner + '__';

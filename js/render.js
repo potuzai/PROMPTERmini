@@ -44,6 +44,8 @@ const Render = {
     s.setProperty('--sec-scale', tpl.sectionScale);
     s.setProperty('--note-color', tpl.noteColor);
     s.setProperty('--gap', tpl.stanzaGap + 'em');
+    s.setProperty('--lgap', (tpl.lineGap || 0) + 'em');   // mezera pod každým řádkem (jen u písně)
+    s.fontStyle = tpl.italic ? 'italic' : '';
     s.setProperty('--bar', tpl.barWidth + 'px');
     s.setProperty('--hs', tpl.headerSize + 'px');
     s.setProperty('--hcolor', tpl.headerColor || tpl.sectionColor);
@@ -253,6 +255,8 @@ function applySongStyle(tpl, song) {
   if (st.lineHeight) t.lineHeight = st.lineHeight;
   if (typeof st.stanzaGap === 'number') t.stanzaGap = st.stanzaGap;   // mezera mezi slokami (× výška písma)
   if (st.align) t.align = st.align;
+  // další volby šablony nastavené jen pro tuto píseň (stejné klíče jako šablona)
+  for (const k of SONG_TPL_KEYS) if (st[k] !== undefined && st[k] !== null && st[k] !== '') t[k] = st[k];
   if (Array.isArray(st.singers)) t.singers = st.singers;   // zpěváci jen pro tuto píseň
   // označení zpěváků jen pro tuto píseň (přepíše šablonu): { kód: { barL, barR, bg, text } }
   if (st.singer) {
@@ -261,6 +265,10 @@ function applySongStyle(tpl, song) {
   }
   return t;
 }
+
+/* volby šablony, které jde přepsat jen pro jednu píseň (style písně) */
+const SONG_TPL_KEYS = ['letterSpacing', 'uppercase', 'italic', 'textColor', 'textBy', 'lineGap', 'barWidth', 'padX', 'padY', 'columns', 'colGap',
+  'fit', 'minScale', 'showHeader', 'showFooter', 'headerSize', 'showSections', 'sectionScale', 'showNotes', 'mirror'];
 
 /* zarovnání řádku ve značce {⇤:…} / {↔:…} / {⇥:…} */
 const AL_CSS = { '⇤': 'left', '↔': 'center', '⇥': 'right' }, AL_MARK = { left: '⇤', center: '↔', right: '⇥' };

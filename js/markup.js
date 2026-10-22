@@ -12,7 +12,8 @@
   {130%:slova}            velikost písma v procentech
   {↕1.4:řádek}            řádkování jednoho řádku (výška řádku × písmo)
   {⇤:řádek} {↔:…} {⇥:…}   zarovnání řádku vlevo / na střed / vpravo
-  {⤓0.5:řádek}            mezera pod řádkem (× písmo) (starší zápis {+:…} 125 %, {++:…} 155 %, {-:…} 80 %, {--:…} 65 %)
+  {⤓0.5:řádek}            mezera pod řádkem (× písmo)
+  {⇿0.05:slova}           rozestup písmen (× písmo, může být záporný) (starší zápis {+:…} 125 %, {++:…} 155 %, {-:…} 80 %, {--:…} 65 %)
   (prázdný řádek)         mezera mezi slokami
 
   Starší zápisy pro muzikanty se už nezobrazují nikde (zůstanou v textu skryté, „Vyčistit text“ je smaže):
@@ -204,6 +205,7 @@ function inlineHtml(text, singerMap) {
     s = s.replace(/\{(#[0-9a-fA-F]{6}):([^{}]*)\}/g, (all, c, inner) => `<span class="tc" data-tc="${c.toLowerCase()}" style="color:${c}">${inner}</span>`);
     s = s.replace(/\{([⇤↔⇥]):([^{}]*)\}/g, (all, a, inner) => `<span class="al" data-al="${a}">${inner}</span>`);   // zarovnání řádku
     s = s.replace(/\{⤓(\d(?:\.\d{1,2})?):([^{}]*)\}/g, (all, v, inner) => `<span class="spb" data-sp="${v}">${inner}</span>`);   // mezera pod řádkem
+    s = s.replace(/\{⇿(-?\d(?:\.\d{1,3})?):([^{}]*)\}/g, (all, v, inner) => `<span class="lsp" data-ls="${v}" style="letter-spacing:${v}em">${inner}</span>`);   // rozestup písmen
     s = s.replace(/\{aa:([^{}]*)\}/g, (all, inner) => `<span class="kc">${inner}</span>`);   // {aa:…} písmena tak, jak jsou napsaná (i když šablona píše VELKÝMI)
     s = s.replace(/\{([A-Za-z0-9+]+):([^{}]*)\}/g, singer);
     // {↕1.4:…} řádkování řádku (výšku řádku nastaví vykreslení stránky)

@@ -85,7 +85,7 @@ Myší jako v textovém editoru: klik do řádku = psaní na tom místě, tažen
 
 **Levý panel:** údaje o písni (interpret, název, ladění, BPM, délka, šablona), struktura písně – jediné místo pro sekce: **＋ Sekce** (u vybraného řádku, nebo přesně z řádků označených tažením), **↻** zopakovat sekci, u každé sekce **⋯** přejmenovat, typ (sloka, refrén, mezičást, předehra, mezihra, sólo…), počet opakování, vlastní barva písma, smazat (klik na sekci ji vybere) a moje poznámky (jen na tomto zařízení).
 
-**Lišta nad stránkou** patří vybranému řádku: vlevo písmo písně, B, I, Aa (VELKÁ / malá), velikost (− px +), řádkování (− ↕ +), zpět / znovu, vpravo zpěváci a jejich označení jen pro tuto píseň (barva, přidání, odebrání). V pravém panelu je stránkování (novou stránku vytvoříš prázdnými řádky Enterem, nebo pravým tlačítkem › Vložit › Novou stránku), obrazovka náhledu, playlist (pořadí a další píseň jako ve čtečce) a listuje se stránkami.
+**Lišta nad stránkou** platí pro označená slova, řádek s kurzorem, nebo – když nic vybrané není (klik vedle stránky) – pro celou píseň. Barva písma: platí poslední úprava (barva z lišty přebije zpěváka i sekci, zpěvák s barvou písma nebo barva sekce zase ji). vlevo písmo písně, B, I, Aa (VELKÁ / malá), velikost (− px +), řádkování (− ↕ +), zpět / znovu, vpravo zpěváci a jejich označení jen pro tuto píseň (barva, přidání, odebrání). V pravém panelu je stránkování (novou stránku vytvoříš prázdnými řádky Enterem, nebo pravým tlačítkem › Vložit › Novou stránku), obrazovka náhledu, playlist (pořadí a další píseň jako ve čtečce) a listuje se stránkami.
 
 **Vzhled aplikace** (tmavý, světlý, podle systému), volitelně **PIN** a připojení ke kapele.
 4. Vše jde později změnit v **Nastavení › Toto zařízení** (tam je i **Průvodce nastavením → Spustit**). V **Nastavení › Čtečka a ovládání**:
@@ -171,6 +171,7 @@ Pokročilí můžou přes **⋯ › Zdrojový text…** upravit text tak, jak se
 | `{aa:slova}` | malá písmena i v šabloně, která píše VELKÝMI (v liště Aa) |
 | `{⇤:řádek}` `{↔:…}` `{⇥:…}` | zarovnání řádku vlevo / na střed / vpravo (v liště) |
 | `{⤓0.5:řádek}` | mezera pod řádkem (× výška písma, v liště) |
+| `{⇿0.05:slova}` | rozestup písmen (× výška písma, v liště v %) |
 | `@J text` | řádek zpívám já |
 | `@J+T text` | řádek zpíváme oba |
 | `{T:slovo}` | jiný zpěvák jen pro část řádku |

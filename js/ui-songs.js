@@ -191,15 +191,21 @@ class SongEditor {
     this.tools = h('div', { class: 'ed-tools' }, h('div', { class: 'ed-tools-text' },
       this.fontSel = h('select', { class: 'tl tl-font', title: 'Písmo této písně (bez výběru platí písmo šablony; další volby v ⋯ › Písmo této písně…)', onchange: () => this.setFont(this.fontSel.value) }),
       h('div', { class: 'tl-grp seg-row' },
-        tool(h('b', {}, 'B'), 'Tučně (Ctrl+B) – označená slova, nebo celý řádek', () => this.se.format('bold')),
-        tool(h('i', {}, 'I'), 'Kurzíva (Ctrl+I)', () => this.se.format('italic')),
-        tool('Aa', 'VELKÁ / malá písmena – klik přepne označená slova nebo řádek', () => this.toggleCase()),
+        tool(h('b', {}, 'B'), 'Tučně (Ctrl+B) – označená slova, řádek, nebo bez výběru celá píseň', () => this.fmt('bold')),
+        tool(h('i', {}, 'I'), 'Kurzíva (Ctrl+I) – označená slova, řádek, nebo bez výběru celá píseň', () => this.fmt('italic')),
+        tool('Aa', 'VELKÁ / malá písmena – klik přepne označená slova, řádek, nebo bez výběru celou píseň', () => this.toggleCase()),
+        this.colorBtn = tool(h('span', { class: 'tl-col' }, 'A'), 'Barva písma označených slov, řádku, nebo bez výběru celé písně', e => this.colorPopover(e.currentTarget), 'tl-color'),
       ),
       h('div', { class: 'tl-grp seg-row tl-lh-grp' },
         tool('−', 'Menší písmo (o 2 px)', () => this.stepSize(-2), 'tl-step'),
         this.sizeBox = h('label', { class: 'tl tl-size', title: 'Velikost písma označených slov nebo řádku v px na zvolené obrazovce – napiš a potvrď Enterem' },
           this.sizeInp = h('input', { type: 'text', inputmode: 'numeric', maxlength: 3, value: '' }), 'px'),
         tool('+', 'Větší písmo (o 2 px)', () => this.stepSize(2), 'tl-step')),
+      h('div', { class: 'tl-grp seg-row tl-lh-grp' },
+        tool('−', 'Menší rozestup písmen', () => this.stepLs(-1), 'tl-step'),
+        this.lsBox = h('label', { class: 'tl tl-size tl-lh', title: 'Rozestup písmen označených slov, řádku, nebo bez výběru celé písně – v % výšky písma (může být i záporný); napiš a potvrď Enterem' },
+          ic('lsp', 'tl-lh-ic'), this.lsInp = h('input', { type: 'text', inputmode: 'numeric', maxlength: 3, value: '' })),
+        tool('+', 'Větší rozestup písmen', () => this.stepLs(1), 'tl-step')),
       h('div', { class: 'tl-grp seg-row tl-lh-grp' },
         tool('−', 'Menší řádkování (o 0,1)', () => this.stepLh(-0.1), 'tl-step'),
         this.lhBox = h('label', { class: 'tl tl-size tl-lh', title: 'Řádkování řádku s kurzorem (nebo označených řádků) – výška řádku × písmo; napiš a potvrď Enterem, prázdné = podle písně' },
@@ -281,6 +287,21 @@ class SongEditor {
       if (e.key === 'Enter') { e.preventDefault(); applySize(); (this.se.editEl || this.stageWrap).focus({ preventScroll: true }); }
       else if (e.key === 'Escape') { e.preventDefault(); keepRange = null; this.paintSize(); this.stageWrap.focus({ preventScroll: true }); }
       e.stopPropagation();
+    });
+    let lsRange = null;
+    this.lsInp.addEventListener('focus', () => {
+      const sel = window.getSelection();
+      lsRange = this.se.editEl && sel.rangeCount && this.se.editEl.contains(sel.anchorNode) ? sel.getRangeAt(0).cloneRange() : null;
+      this.lsInp.select();
+    });
+    this.lsInp.addEventListener('keydown', e => {
+      e.stopPropagation();
+      if (e.key === 'Escape') { e.preventDefault(); this.paintLs(); this.stageWrap.focus({ preventScroll: true }); return; }
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      if (lsRange && this.se.editEl) { const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(lsRange); }
+      this.setLs(parseInt(this.lsInp.value, 10) || 0);
+      (this.se.editEl || this.stageWrap).focus({ preventScroll: true });
     });
     this.spInp.addEventListener('focus', () => this.spInp.select());
     this.spInp.addEventListener('keydown', e => {
@@ -369,6 +390,7 @@ class SongEditor {
     this.paintLh();
     this.paintSp();
     this.paintAl();
+    this.paintLs();
   }
   /* písmo písně v liště: „podle šablony“ nebo vlastní (ukládá se do písně jako u Písmo této písně…) */
   paintFont() {
@@ -392,6 +414,13 @@ class SongEditor {
   paintSize() {
     if (!this.sizeInp || !this.se || document.activeElement === this.sizeInp) return;
     if (!this.sizeInp.isConnected) { document.removeEventListener('selectionchange', this.onDocSel); return; }
+    if (this.songScope()) {   // celá píseň: základní velikost písma písně
+      const own = (this.style || {}).sizePct;
+      this.sizeInp.value = String(Math.round(this.lookTpl().fontSize * this.fz()));
+      this.sizeBox.classList.toggle('on', !!own);
+      this.sizeBox.title = 'Velikost písma celé písně v px' + (own ? ` (${own} % šablony)` : ' (podle šablony)') + ' – napiš a potvrď Enterem';
+      return;
+    }
     const p = this.se.sizeAt(), base = this.se.linePx();
     this.sizeInp.value = base ? String(Math.round(base * p / 100)) : '';
     this.sizeBox.classList.toggle('on', p !== 100);
@@ -400,6 +429,7 @@ class SongEditor {
   /* zapnutí zpěváci: u slov v barvě zpěváka ten zpěvák, jinak zpěváci řádku */
   /* Aa: je-li v textu nějaké malé písmeno, vše na VELKÁ, jinak na malá */
   toggleCase() {
+    if (this.songScope()) return this.setSong('uppercase', !this.lookTpl().uppercase);
     const se = this.se, sel = window.getSelection();
     let t;
     if (se.editing && se.editEl && sel.rangeCount && !sel.isCollapsed && se.editEl.contains(sel.anchorNode)) t = sel.toString();
@@ -439,46 +469,130 @@ class SongEditor {
   /* řádkování řádku s kurzorem: vlastní, jinak písně / šablony (šedě) */
   paintLh() {
     if (!this.lhInp || !this.se || document.activeElement === this.lhInp) return;
-    const own = this.se.lineLh(), def = this.lookTpl().lineHeight;
+    const song = this.songScope(), own = song ? (this.style || {}).lineHeight : this.se.lineLh(), def = this.lookTpl().lineHeight;
     this.lhInp.value = String(own != null ? own : Math.round(def * 100) / 100).replace('.', ',');
     this.lhBox.classList.toggle('on', own != null);
   }
   setLh(v) {
+    if (this.songScope()) { this.setSong('lineHeight', v ? Math.round(Math.max(0.8, Math.min(3, v)) * 100) / 100 : undefined); return this.paintLh(); }
     const def = this.lookTpl().lineHeight;
     this.se.format('lh', !v || Math.abs(v - def) < 0.005 ? '' : String(Math.round(Math.max(0.8, Math.min(3, v)) * 100) / 100));
     this.paintLh();
   }
   stepLh(d) {
-    const own = this.se.lineLh();
+    const own = this.songScope() ? null : this.se.lineLh();
     this.setLh(Math.round(((own != null ? own : this.lookTpl().lineHeight) + d) * 10) / 10);
   }
+  /* Barva písma z lišty: označená slova, řádky, nebo celá píseň. Platí poslední úprava
+     (barva z lišty přebije zpěváka i sekci, přidaný zpěvák s barvou písma a barva sekce zase ji). */
+  colorPopover(anchor) {
+    $$('.menu').forEach(m => m.remove());
+    const sel = window.getSelection();
+    const keep = this.se.editEl && sel.rangeCount && this.se.editEl.contains(sel.anchorNode) ? sel.getRangeAt(0).cloneRange() : null;
+    const song = this.songScope();
+    const apply = c => {
+      m.remove();
+      this.lastColor = c || this.lastColor;
+      this.colorBtn.style.setProperty('--tc', this.lastColor || '');
+      if (song) return this.setSongColor(c);
+      if (keep && this.se.editEl) { const s = window.getSelection(); s.removeAllRanges(); s.addRange(keep); }
+      this.se.format('color', c);
+    };
+    const sw = ['#ffffff', '#ffff00', '#ffd23f', '#ff9f43', '#ff5252', '#ff7eb6', '#b388ff', '#4fc3f7', '#7cfc9a', '#9e9e9e'];
+    const custom = h('input', { type: 'color', value: this.lastColor || '#ffffff', onchange: () => apply(custom.value.toLowerCase()) });
+    const m = h('div', { class: 'menu menu-form menu-color' },
+      h('div', { class: 'menu-head' }, song ? 'Barva písma celé písně' : 'Barva písma'),
+      h('div', { class: 'col-sw' }, sw.map(c => h('button', { class: 'col-dot', title: c, style: { background: c }, onmousedown: e => e.preventDefault(), onclick: () => apply(c) }))),
+      h('label', { class: 'chk' }, custom, 'Vlastní barva…'),
+      h('button', { class: 'btn small nogrow', onmousedown: e => e.preventDefault(), onclick: () => apply('') }, song ? 'Podle šablony' : 'Bez vlastní barvy'));
+    placePopover(m, anchor);
+  }
+  /* barva celé písně: smaže ostatní barvy (slov, řádků, sekcí, části písně) a vypne barvu písma zpěváků */
+  setSongColor(c) {
+    const se = this.se;
+    const ls = se.lines().map(l => {
+      const t = l.trim();
+      if (t.startsWith('##') && !/^##\s*$/.test(t)) { const sec = parseSectionLine(t); return sec.color ? formatSectionLine(Object.assign(sec, { color: '' })) : l; }
+      return stripColor(l);
+    });
+    const st = Object.assign({}, this.style || {});
+    if (c) {
+      st.textColor = c; st.textBy = 'singer';
+      const tpl = this.lookTpl();
+      for (const sg of this.singers()) if (singerShowOf(tpl, sg.code).text) st.singer = Object.assign({}, st.singer, { [sg.code]: Object.assign({}, (st.singer || {})[sg.code], { text: false }) });
+    } else { delete st.textColor; delete st.textBy; }
+    this.style = Object.keys(st).length ? st : null;
+    this.markDirty();
+    se.commit(ls.join('\n'));
+  }
+  /* rozestup písmen: označená slova, řádek, nebo celá píseň (v liště v % výšky písma) */
+  lsNow() {
+    if (this.songScope()) return { v: this.lookTpl().letterSpacing || 0, own: (this.style || {}).letterSpacing != null };
+    const own = this.se.lsAt();
+    return { v: own != null ? own : this.lookTpl().letterSpacing || 0, own: own != null };
+  }
+  paintLs() {
+    if (!this.lsInp || !this.se || document.activeElement === this.lsInp) return;
+    const { v, own } = this.lsNow();
+    this.lsInp.value = String(Math.round(v * 100));
+    this.lsBox.classList.toggle('on', own);
+  }
+  setLs(pct) {
+    const v = Math.round(Math.max(-10, Math.min(50, pct))) / 100;
+    if (this.songScope()) this.setSong('letterSpacing', v);
+    else this.se.format('ls', String(v === (this.lookTpl().letterSpacing || 0) ? 0 : v));
+    this.paintLs();
+  }
+  stepLs(d) { this.setLs(Math.round(this.lsNow().v * 100) + d); }
   /* mezera pod řádkem s kurzorem ({⤓0.5:…}, × výška písma) */
   paintSp() {
     if (!this.spInp || !this.se || document.activeElement === this.spInp) return;
-    const own = this.se.lineOuter().sp;
+    const own = this.songScope() ? (this.style || {}).lineGap : this.se.lineOuter().sp;
     this.spInp.value = String(own || 0).replace('.', ',');
     this.spBox.classList.toggle('on', !!own);
   }
   setSp(v) {
+    if (this.songScope()) { this.setSong('lineGap', v > 0 ? Math.round(Math.min(5, v) * 100) / 100 : undefined); return this.paintSp(); }
     this.se.format('sp', !(v > 0) ? '' : String(Math.round(Math.min(5, v) * 100) / 100));
     this.paintSp();
   }
-  stepSp(d) { this.setSp(Math.round((+(this.se.lineOuter().sp || 0) + d) * 10) / 10); }
+  stepSp(d) { this.setSp(Math.round((+((this.songScope() ? (this.style || {}).lineGap : this.se.lineOuter().sp) || 0) + d) * 10) / 10); }
   /* zarovnání řádku: vlastní, jinak podle šablony; klik na zarovnání šablony vlastní zruší */
   paintAl() {
     if (!this.alBtns || !this.se) return;
-    const own = this.se.lineOuter().al, eff = own || AL_MARK[this.lookTpl().align] || '↔';
+    const song = this.songScope(), own = song ? AL_MARK[(this.style || {}).align] : this.se.lineOuter().al;
+    const eff = own || AL_MARK[(song ? this.baseTpl() : this.lookTpl()).align] || '↔';
     [...this.alBtns.children].forEach((b, i) => { b.classList.toggle('on', '⇤↔⇥'[i] === eff); b.classList.toggle('own', !!own && '⇤↔⇥'[i] === own); });
   }
   setAl(a) {
+    if (this.songScope()) { const v = AL_CSS[a]; this.setSong('align', v === this.baseTpl().align ? undefined : v); return this.paintAl(); }
     this.se.format('al', a === AL_MARK[this.lookTpl().align] ? '' : a);
     this.paintAl();
   }
+  /* nic vybraného (klik vedle textu) = úpravy z lišty platí pro celou píseň */
+  songScope() { return !!this.se && !this.se.editing && !this.se.cur(); }
+  baseTpl() { return Store.template(this.inTpl.value || Settings.get('defaultTemplate')); }
+  fz() { const scr = this.screen(); return Screens.fontScale(scr, scr.id === Screens.mine().id); }
+  /* volba písně (style): undefined / stejné jako šablona = podle šablony */
+  setSong(k, v) {
+    const st = Object.assign({}, this.style || {});
+    if (v === undefined || v === null || v === '' || v === this.baseTpl()[k]) delete st[k]; else st[k] = v;
+    this.style = Object.keys(st).length ? st : null;
+    this.markDirty(); this.paintFont(); this.se.render(); this.onSelChange();
+  }
+  fmt(kind) {
+    if (!this.songScope()) return this.se.format(kind);
+    const st = this.style || {};
+    if (kind === 'bold') this.setSong('fontWeight', st.fontWeight ? undefined : (this.baseTpl().fontWeight >= 700 ? 400 : 700));
+    if (kind === 'italic') this.setSong('italic', st.italic ? undefined : true);
+  }
   setSizePx(px) {
+    if (this.songScope()) { const p = Math.round(px / (this.baseTpl().fontSize * this.fz()) * 100); return this.setSong('sizePct', p === 100 ? undefined : Math.max(30, Math.min(300, p))); }
     const base = this.se.linePx();
     if (base) this.se.format('size', szClamp(px / base * 100));
   }
   stepSize(d) {
+    if (this.songScope()) { this.setSizePx(Math.round(this.lookTpl().fontSize * this.fz()) + d); return this.paintSize(); }
     const base = this.se.linePx();
     if (!base) return this.se.format(d > 0 ? 'bigger' : 'smaller');
     this.setSizePx(Math.round(base * this.se.sizeAt() / 100) + d);
@@ -560,13 +674,27 @@ class SongEditor {
     else l[it.line] = '##';
     this.se.commit(l.join('\n'));
   }
+  /* barva sekce: nadpis + smaže barvy textu v sekci; řádky zpěváka s barvou písma dostanou barvu sekce (poslední úprava vyhrává) */
+  setSectionColor(line, color) {
+    const ls = this.se.lines(), tpl = this.lookTpl();
+    const sec = parseSectionLine(ls[line]);
+    ls[line] = formatSectionLine(Object.assign({}, sec, { color }));
+    for (let j = line + 1; j < ls.length; j++) {
+      const t = ls[j].trim();
+      if (t.startsWith('##') || RE_BREAK.test(t) || RE_REPEAT.test(t)) break;
+      if (!t || t.startsWith('//')) continue;
+      const m = RE_SINGER.exec(t), codes = m ? parseCodes(m[1]) : sec.singers;
+      ls[j] = color && codes.some(c => singerShowOf(tpl, c).text) ? formatLine(ls[j], 'color', color) : stripColor(ls[j]);
+    }
+    this.se.commit(ls.join('\n'));
+  }
   sectionColor(anchor, it, setHeader) {
     $$('.menu').forEach(m => m.remove());
     const sec = parseSectionLine(this.se.lines()[it.line]);
     const tpl = this.lookTpl(), kind = sectionKind(sec.name);
     const def = (kind === 'instr' ? tpl.instrColor : tpl[kind + 'Color']) || tpl.textColor || '#ffffff';
     const c = h('input', { type: 'color', value: sec.color || def });
-    c.onchange = () => setHeader(o => Object.assign(o, { color: c.value.toLowerCase() }));
+    c.onchange = () => this.setSectionColor(it.line, c.value.toLowerCase());
     const m = h('div', { class: 'menu menu-form' }, h('div', { class: 'menu-head' }, 'Barva písma sekce „' + sec.name + '“'),
       h('label', { class: 'chk' }, c, 'Vlastní barva'),
       h('div', { class: 'help' }, 'Zpěvák, který má v označení zpěváků zapnuté „Písmo“, má přednost.'),
