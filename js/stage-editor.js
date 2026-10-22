@@ -641,7 +641,7 @@ class StageEditor {
     const ls = this.lines(), info = this.info();
     const s = (ls[t.line] || '').trim();
     let m, own = [];
-    if (t.kind === 'section' && (m = RE_SECTION.exec(s))) own = parseCodes(m[2]);
+    if (t.kind === 'section' && s.startsWith('##')) own = parseSectionLine(s).singers;
     else if ((m = RE_SINGER.exec(s))) own = parseCodes(m[1]);
     const inh = info[t.line] && info[t.line].inherited ? info[t.line].singers || [] : [];
     return { own, inh };
@@ -979,7 +979,7 @@ function selectContents(el) {
 function splitLine(src, kind) {
   const t = String(src || '').trim();
   let m;
-  if (kind === 'section' && (m = RE_SECTION.exec(t))) return { prefix: '## ', body: m[1], suffix: m[2] ? ' @' + m[2] : '' };
+  if (kind === 'section' && t.startsWith('##')) { const sec = parseSectionLine(t); return { prefix: '## ', body: sec.name, suffix: formatSectionLine(sec).slice(('## ' + sec.name).length) }; }
   if (kind === 'note' && (m = RE_NOTE.exec(t))) return { prefix: '// ', body: m[1], suffix: '' };
   if (kind === 'mus' && (m = RE_MUS.exec(t))) return { prefix: '%' + m[1] + ' ', body: m[2], suffix: '' };
   if ((m = RE_SINGER.exec(t))) return { prefix: '@' + m[1] + ' ', body: m[2], suffix: '' };

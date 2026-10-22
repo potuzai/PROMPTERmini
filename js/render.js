@@ -71,22 +71,26 @@ const Render = {
     if (b.type === 'chords') return h('div', { class: 'b-line b-chordline', 'data-src': b.src, style: { '--chc': CHORD_COLOR }, html: chordedHtml(b.text, singerMap) });
     if (b.type === 'break') return h('div', { class: 'b-gap' });
     if (b.type === 'section') {
+      // předehra, mezihra, sólo: pokyn pro kapelu, vidět vždy (i když se nadpisy sekcí neukazují)
+      if (b.instr) return h('div', { class: 'b-instr', 'data-src': b.src, style: { color: b.color || tpl.instrColor || '#ff0000' } }, (b.count > 1 ? b.count + '× ' : '') + b.text);
       const sg = b.singers.map(c => singerMap[c]).filter(Boolean);
-      return h('div', { class: 'b-sec' + (b.repeat ? ' rep' : ''), 'data-src': b.src },
-        b.text, sg.length ? h('span', { class: 'sec-sg' }, ' · ' + sg.map(s => s.name).join(' + ')) : null);
+      return h('div', { class: 'b-sec' + (b.repeat ? ' rep' : ''), 'data-src': b.src, style: b.color ? { color: b.color } : {} },
+        b.text, b.count > 1 ? ' ' + b.count + '×' : '', sg.length ? h('span', { class: 'sec-sg' }, ' · ' + sg.map(s => s.name).join(' + ')) : null);
     }
     if (b.type === 'note') return h('div', { class: 'b-note' + (b.warn ? ' warn' : '') + (b.private ? ' private' : ''), 'data-src': b.src, html: inlineHtml(b.text, singerMap) });
     // řádek textu
     const sgs = b.singers.map(c => singerMap[c]).filter(Boolean);
     const el = h('div', { class: 'b-line', 'data-src': b.src });
+    // barva písma: zpěvák (má-li zapnuté „Písmo“) > vlastní barva sekce > barva části písně ze šablony
     const bySec = tpl.textBy === 'section';
-    if (bySec) { const k = sectionKind(b.sec); if (k) el.style.color = tpl[k + 'Color'] || ''; }
+    if (b.secColor) el.style.color = b.secColor;
+    else if (bySec) { const k = sectionKind(b.sec); if (k && k !== 'instr') el.style.color = tpl[k + 'Color'] || ''; }
     if (sgs.length) {
       // každý zpěvák má své označení (proužek vlevo / vpravo, podklad, barva písma)
       const sh = sgs.map(sg => [sg, singerShowOf(tpl, sg.code)]);
       const pick = k => sh.filter(x => x[1][k]).map(x => x[0].color);
       const txt = sh.find(x => x[1].text);
-      if (txt && !bySec) el.style.color = txt[0].color;
+      if (txt) el.style.color = txt[0].color;
       if (sgs.some(s => s.bold)) el.style.fontWeight = 900;
       if (sgs.some(s => s.italic)) el.style.fontStyle = 'italic';
       const L = pick('barL'), R = pick('barR');
@@ -100,6 +104,8 @@ const Render = {
     }
     let inner = b.showChords ? chordedHtml(b.text, singerMap) : (inlineHtml(b.chords ? stripChords(b.text) : b.text, singerMap) || '&nbsp;');
     if (b.showChords) el.classList.add('has-chords');
+    // počet opakování sekce hned u jejího prvního řádku
+    if (b.secCount > 1) inner = `<span class="rep-n" style="color:${tpl.instrColor || '#ff0000'}">${b.secCount}×</span> ` + inner;
     el.innerHTML = inner;
     // označená slova jiného zpěváka: stejné označení jako celé řádky (barva písma / podklad), proužky jen u řádků
     for (const w of el.querySelectorAll('.sg-in')) {

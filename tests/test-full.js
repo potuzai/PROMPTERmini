@@ -105,22 +105,42 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   assert(await p.evaluate(() => Store.sortedSongs().some(s => s.title === 'Holubí dům (kopie)')) && await p.evaluate(() => SongsView.editor.inTitle.value) === 'Holubí dům (kopie)', 'Uložit jako – nová píseň pod jiným názvem');
   await p.evaluate(id => { location.hash = '#/songs/' + id; }, hid);
   await sleep(500);
-  // nadpis sekce přes ＋ Vložit v liště (před poslední řádek)
+  // nová sekce z panelu Struktura (před poslední řádek)
   await p.focus('.se-wrap'); await p.keyboard.press('End');
-  await insert('Sekce');
-  await p.click('.modal button:has-text("Bridge")');
-  await p.keyboard.press('Enter');
+  await p.click('.ep-lbl-row button:has-text("Sekce")');
+  await p.click('.modal button:has-text("Mezičást")');
+  await p.click('.modal-buttons button:has-text("Vložit")');
   await sleep(200);
-  assert((await src()).includes('## Bridge'), 'vložení sekce tlačítkem');
+  assert((await src()).includes('## Mezičást'), 'vložení sekce z panelu Struktura');
   await p.evaluate(() => SongsView.editor.se.startEdit(null, 'end'));   // nový řádek pod vybraný (jako Enter při psaní)
   await p.keyboard.type('text mostu');
   await p.keyboard.press('Escape');
   await sleep(100);
-  assert(/## Bridge\ntext mostu/.test(await src()), 'nový řádek pod sekcí a psaní');
-  await insert('Opakování sekce');
+  assert(/## Mezičást\ntext mostu/.test(await src()), 'nový řádek pod sekcí a psaní');
+  await p.click('.ep-lbl-row button[title^="Zopakovat sekci"]');
   await p.click('.menu div:has-text("Refrén")');
   await sleep(200);
   assert(/text mostu\n>> Refrén/.test(await src()), 'opakování sekce z nabídky');
+  // úpravy sekce v panelu Struktura: počet opakování, barva; sekce z označených řádků; předehra
+  const keepSrc = await src();
+  await p.click('.ep-struct .st-item:has-text("Mezičást") .st-more');
+  p.once('dialog', () => {});
+  await p.click('.menu > div:has-text("Opakování")');
+  await p.fill('.modal input', '2'); await p.keyboard.press('Enter'); await sleep(200);
+  assert((await src()).includes('## Mezičást 2×') && await p.isVisible('.ep-struct .st-item:has-text("Mezičást") .st-cnt:has-text("2×")'), 'počet opakování sekce');
+  assert(await p.evaluate(() => [...document.querySelectorAll('.se-wrap .rep-n')].some(e => e.textContent.includes('2×'))), 'počet opakování je vidět u prvního řádku sekce');
+  await p.evaluate(() => { const se = SongsView.editor.se; const ls = se.lines(); const i = ls.findIndex(l => l.includes('## Mezičást')); ls[i] = formatSectionLine(Object.assign(parseSectionLine(ls[i]), { color: '#00ffff' })); se.commit(ls.join('\n')); });
+  await sleep(200);
+  assert(await p.evaluate(() => { const l = [...document.querySelectorAll('.se-wrap .b-line')].find(e => e.textContent.includes('text mostu')); return l && getComputedStyle(l).color === 'rgb(0, 255, 255)'; }), 'vlastní barva písma sekce');
+  await p.evaluate(async () => { const s = SongsView.editor; s.se.commit('## Sloka 1\nprvní\ndruhý\ntřetí\nčtvrtý'); s.se.select(2); s.se.select(3, true); });
+  await p.click('.ep-lbl-row button:has-text("Sekce")'); await p.click('.modal button:has-text("Refrén")'); await p.click('.modal-buttons button:has-text("Vložit")'); await sleep(200);
+  assert(await src() === '## Sloka 1\nprvní\n## Refrén\ndruhý\ntřetí\n## Sloka 1\nčtvrtý', 'sekce přesně z označených řádků, za nimi pokračuje původní sekce (' + JSON.stringify(await src()) + ')');
+  await p.evaluate(() => SongsView.editor.se.select(0));
+  await p.click('.ep-lbl-row button:has-text("Sekce")'); await p.click('.modal button:has-text("Předehra")');
+  await p.fill('.modal input[type=number]', '8'); await p.click('.modal-buttons button:has-text("Vložit")'); await sleep(200);
+  assert((await src()).startsWith('## Předehra 8×\n## Sloka 1') && await p.isVisible('.se-wrap .b-instr:has-text("8× Předehra")'), 'předehra s počtem je vidět na stránce');
+  await p.evaluate(k => { const se = SongsView.editor.se; se.commit(k); se.select(se.targets.findIndex(t => se.lines()[t.line].startsWith('>> '))); }, keepSrc); await sleep(200);
+  await p.focus('.se-wrap');
   // tučně celý řádek
   await p.keyboard.press('ArrowUp');
   await p.keyboard.press('Control+B');

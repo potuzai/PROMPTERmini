@@ -184,7 +184,10 @@ class SongEditor {
         h('div', { class: 'ep-row3' }, f('Ladění', this.inKey), f('BPM', this.inTempo), f('Délka', this.inDur)),
         f('Štítky', this.inTags),
         f('Šablona', this.inTpl)),
-      h('div', { class: 'ep-group' }, h('div', { class: 'ep-lbl' }, 'Struktura'), this.structBox),
+      h('div', { class: 'ep-group' }, h('div', { class: 'ep-lbl ep-lbl-row' }, h('span', {}, 'Struktura'),
+        h('button', { class: 'btn small nogrow', title: 'Nová sekce u vybraného řádku – označené řádky (tažením myší) budou celá sekce', onclick: () => this.addSection() }, '＋ Sekce'),
+        h('button', { class: 'btn small nogrow', title: 'Zopakovat sekci (např. refrén) u vybraného řádku – ve čtečce se vypíše celá', onclick: e => this.insertRepeat(e.currentTarget) }, '↻')),
+        this.structBox),
       h('div', { class: 'ep-group' }, h('div', { class: 'ep-lbl' }, 'Moje poznámky'),
         this.privNote = h('textarea', { class: 'inp ep-priv', rows: 2, placeholder: 'Vidíš jen ty na tomto zařízení. Ukážou se nahoře na stránce.' }, PrivateNotes.get(song.id))));
 
@@ -215,9 +218,7 @@ class SongEditor {
           { label: 'VELKÁ PÍSMENA', action: () => this.se.format('upper') },
           { label: 'malá písmena', action: () => this.se.format('lower') }])),
       sep(),
-      menuTool('＋ Vložit ▾', 'Vložit pod vybraný řádek: sekci, opakování, poznámku, mezeru, novou stránku, text (nový řádek = Enter při psaní)', btn => [
-        { label: 'Sekce (sloka, refrén…)', action: () => this.insertSection() },
-        { label: 'Opakování sekce…', action: () => this.insertRepeat(btn) },
+      menuTool('＋ Vložit ▾', 'Vložit u vybraného řádku: poznámku, mezeru, novou stránku, text (nový řádek = Enter při psaní, sekce v panelu Struktura)', btn => [
         { label: 'Poznámka', action: () => this.se.insertLines(['// '], { edit: true }) },
         { label: 'Mezera mezi slokami', action: () => this.se.insertLines(['', '']) },
         { label: 'Nová stránka', action: () => this.se.insertLines([this.breakLine()], { before: true }) },
@@ -414,15 +415,16 @@ class SongEditor {
   /* Struktura písně vlevo: sekce, opakování, konce stránek – klik skočí na sekci */
   paintStruct() {
     if (!this.structBox || !this.se) return;
-    const sm = Store.singerMap();
+    const sm = Store.singerMap(), tpl = this.lookTpl();
     const items = [];
     this.src.split('\n').forEach((l, i) => {
       const t = l.trim();
       let m;
       if (breakScreen(t) !== null) { if (breakScreen(t) === this.screenId) items.push({ line: i, brk: true }); }
-      else if (t.startsWith('##') && (m = RE_SECTION.exec(t))) {
-        const c = parseCodes(m[2])[0];
-        items.push({ line: i, name: m[1] || 'Sekce', color: c && sm[c] ? sm[c].color : '' });
+      else if (t.startsWith('##')) {
+        const sec = parseSectionLine(t), kind = sectionKind(sec.name), c = sec.singers[0];
+        const color = sec.color || (kind === 'instr' ? tpl.instrColor : tpl.textBy === 'section' && kind ? tpl[kind + 'Color'] : '') || (c && sm[c] ? sm[c].color : '');
+        items.push({ line: i, name: sec.name || 'Sekce', count: sec.count, color, instr: kind === 'instr' });
       } else if ((m = RE_REPEAT.exec(t))) items.push({ line: i, name: '↻ ' + m[1], rep: true });
     });
     const cur = this.se.cur();
@@ -432,20 +434,57 @@ class SongEditor {
     if (key === this.structKey) return;
     this.structKey = key;
     this.structBox.innerHTML = '';
-    if (!items.some(it => !it.brk)) { this.structBox.appendChild(h('div', { class: 'help' }, 'Bez sekcí. Sloky a refrény přidáš v liště nad stránkou: ＋ Vložit ▾ → Sekce.')); return; }
+    if (!items.some(it => !it.brk)) { this.structBox.appendChild(h('div', { class: 'help' }, 'Bez sekcí. Vyber řádky (klik, nebo tažením víc řádků) a dej ＋ Sekce.')); return; }
     let pg = 1;
     for (const it of items) {
       if (it.brk) { this.structBox.appendChild(h('div', { class: 'st-brk' }, h('span', {}, 'Stránka ' + (++pg)))); continue; }
-      this.structBox.appendChild(h('div', { class: 'st-item' + (it.line === curLine ? ' on' : '') + (it.rep ? ' rep' : ''), title: 'Přejít na sekci',
-        onclick: () => {
-          this.se.finishEdit(true);
-          let idx = this.se.targets.findIndex(t => t.line >= it.line);
-          if (idx < 0) idx = this.se.targets.length - 1;
-          this.se.select(idx);
-          this.stageWrap.focus({ preventScroll: true });
-        } },
-      h('i', { style: it.color ? { background: it.color } : {} }), h('span', {}, it.name)));
+      const go = () => {
+        this.se.finishEdit(true);
+        let idx = this.se.targets.findIndex(t => t.line >= it.line);
+        if (idx < 0) idx = this.se.targets.length - 1;
+        this.se.select(idx);
+        this.stageWrap.focus({ preventScroll: true });
+      };
+      const menu = e => { e.stopPropagation(); e.preventDefault(); this.sectionMenu(e.currentTarget, it); };
+      this.structBox.appendChild(h('div', { class: 'st-item' + (it.line === curLine ? ' on' : '') + (it.rep ? ' rep' : '') + (it.instr ? ' instr' : ''), title: 'Přejít na sekci (pravé tlačítko = úpravy)',
+        onclick: go, oncontextmenu: menu },
+      h('i', { style: it.color ? { background: it.color } : {} }), h('span', { class: 'st-n' }, it.name),
+      it.count > 1 ? h('b', { class: 'st-cnt' }, it.count + '×') : null,
+      h('button', { class: 'st-more', title: 'Upravit sekci: název, typ, opakování, barva, smazat', onclick: menu }, '⋯')));
     }
+  }
+  /* úpravy sekce z panelu Struktura */
+  sectionMenu(anchor, it) {
+    const ls = () => this.se.lines();
+    const setHeader = fn => { const l = ls(); l[it.line] = formatSectionLine(fn(parseSectionLine(l[it.line]))); this.se.commit(l.join('\n')); };
+    if (it.rep) return popupMenu(anchor, [{ label: 'Smazat opakování', danger: true, action: () => { const l = ls(); l.splice(it.line, 1); this.se.commit(l.join('\n')); } }]);
+    const verses = parseSong(this.src).blocks.filter(b => b.type === 'section' && /^sloka/i.test(b.text)).length;
+    popupMenu(anchor, [
+      { label: 'Přejmenovat…', action: async () => { const n = await promptDlg('Název sekce', it.name); if (n) setHeader(o => Object.assign(o, { name: n })); } },
+      { sep: true },
+      ...SECTION_TYPES.map(t => ({ label: 'Typ: ' + t, action: () => setHeader(o => Object.assign(o, { name: t === 'Sloka' ? 'Sloka ' + (verses + 1) : t })) })),
+      { sep: true },
+      { label: 'Opakování…', hint: it.count > 1 ? it.count + '×' : '1×', action: async () => {
+        const v = await promptDlg('Kolikrát se sekce opakuje (1 = bez označení)', String(it.count || 1));
+        if (v != null && v !== '') setHeader(o => Object.assign(o, { count: Math.max(0, Math.min(99, parseInt(v, 10) || 0)) }));
+      } },
+      { label: 'Barva písma…', action: () => this.sectionColor(anchor, it, setHeader) },
+      { label: 'Zopakovat tuto sekci u vybraného řádku', action: () => this.se.insertLines(['>> ' + it.name]) },
+      { sep: true },
+      { label: 'Smazat sekci (text zůstane)', danger: true, action: () => { const l = ls(); l.splice(it.line, 1); this.se.commit(l.join('\n')); } }]);
+  }
+  sectionColor(anchor, it, setHeader) {
+    $$('.menu').forEach(m => m.remove());
+    const sec = parseSectionLine(this.se.lines()[it.line]);
+    const tpl = this.lookTpl(), kind = sectionKind(sec.name);
+    const def = (kind === 'instr' ? tpl.instrColor : tpl[kind + 'Color']) || tpl.textColor || '#ffffff';
+    const c = h('input', { type: 'color', value: sec.color || def });
+    c.onchange = () => setHeader(o => Object.assign(o, { color: c.value.toLowerCase() }));
+    const m = h('div', { class: 'menu menu-form' }, h('div', { class: 'menu-head' }, 'Barva písma sekce „' + sec.name + '“'),
+      h('label', { class: 'chk' }, c, 'Vlastní barva'),
+      h('div', { class: 'help' }, 'Zpěvák, který má v Zobrazení zapnuté „Písmo“, má přednost.'),
+      h('button', { class: 'btn small nogrow', onclick: () => { setHeader(o => Object.assign(o, { color: '' })); m.remove(); } }, 'Podle šablony'));
+    placePopover(m, anchor);
   }
   focusMeta() { this.inArtist.focus(); this.inArtist.select(); }
   schedulePreview() { clearTimeout(this.pvT); this.pvT = setTimeout(() => { if (!this.se.editing) this.se.render(); }, 250); }
@@ -517,7 +556,7 @@ class SongEditor {
     const insertItems = () => [
       { label: 'Řádek pod', action: () => se.startEdit(null, 'end') },
       { label: 'Mezeru (nová sloka) pod', action: () => se.insertLines(['', ''], {}) },
-      { label: 'Nadpis sekce nad…', action: () => this.insertSection() },
+      { label: 'Sekce…', action: () => this.addSection() },
       { label: 'Opakování sekce', items: () => sections().map(n => ({ label: '↻ ' + n, action: () => se.insertLines(['>> ' + n]) })), empty: 'Nejdřív musí být v písni nadpis sekce (např. Refrén).' },
       { label: 'Poznámku pod', action: () => se.insertLines(['// '], { edit: true }) },
       { label: 'Novou stránku před tento řádek', action: () => se.insertLines([this.breakLine()], { before: true }) },
@@ -562,11 +601,36 @@ class SongEditor {
     }
   }
 
-  async insertSection() {
-    const n = parseSong(this.src).blocks.filter(b => b.type === 'section' && /^sloka/i.test(b.text)).length;
-    const name = await pickSectionName(n + 1);
-    if (!name) return;
-    this.se.insertLines(['## ' + name], { before: true });
+  /* Nová sekce: u vybraného řádku, nebo přesně z označených řádků (za nimi pokračuje původní sekce) */
+  async addSection() {
+    const se = this.se;
+    se.finishEdit(true);
+    const sel = se.selTargets().filter(t => t.kind !== 'repeat');
+    if (!sel.length) return toast('Nejdřív klikni na řádek nebo označ řádky tažením myší.', 'warn');
+    const verses = parseSong(this.src).blocks.filter(b => b.type === 'section' && /^sloka/i.test(b.text)).length;
+    const r = await pickSection(verses + 1);
+    if (!r) return;
+    const ls = se.lines();
+    let first = Math.min(...sel.map(t => t.line));
+    const last = Math.max(...sel.map(t => se.afterTarget(t) - 1));
+    const instr = sectionKind(r.name) === 'instr';
+    const head = formatSectionLine({ name: r.name, count: r.count, color: '', singers: [] });
+    if (!instr && sel.length > 1) {
+      // za označenými řádky pokračuje sekce, do které patřily (když za nimi ještě něco je)
+      let prev = -1;
+      for (let i = first - 1; i >= 0; i--) if (ls[i].trim().startsWith('##')) { prev = i; break; }
+      let next = last + 1;
+      while (next < ls.length && ls[next].trim() === '') next++;
+      const more = next < ls.length && !ls[next].trim().startsWith('##');
+      if (more && prev >= 0 && sectionKind(parseSectionLine(ls[prev]).name) !== 'instr') ls.splice(last + 1, 0, formatSectionLine(Object.assign(parseSectionLine(ls[prev]), { count: 0 })));
+    }
+    ls.splice(first, 0, head);
+    // původní nadpis těsně nad novou sekcí by zůstal prázdný – pryč (pokračování za označením ho nese dál)
+    let above = first - 1;
+    while (above >= 0 && ls[above].trim() === '') above--;
+    if (!instr && sel.length > 1 && above >= 0 && ls[above].trim().startsWith('##') && sectionKind(parseSectionLine(ls[above]).name) !== 'instr') { ls.splice(above, 1); first--; }
+    se.curKey = null; se.curLine = first;
+    se.commit(ls.join('\n'));
   }
   insertRepeat(anchor) {
     const secs = [...new Set(parseSong(this.src).blocks.filter(b => b.type === 'section' && !b.repeat).map(b => b.text))];
@@ -798,13 +862,18 @@ function addToPlaylistMenu(anchor, songIds) {
   popupMenu(anchor, items);
 }
 
-async function pickSectionName(nextVerse) {
-  const names = [`Sloka ${nextVerse}`, 'Refrén', 'Předrefrén', 'Bridge', 'Intro', 'Mezihra', 'Závěr'];
-  const inp = h('input', { class: 'inp', value: names[0] });
-  const body = h('div', {}, h('div', { class: 'row', style: { marginBottom: '10px', flexWrap: 'wrap' } },
-    names.map(n => h('button', { class: 'btn small nogrow', onclick: () => { inp.value = n; inp.focus(); } }, n))), inp,
-    h('p', { class: 'help' }, 'Tip: přidej na konec např. „@V“ a celá sekce bude označena pro všechny.'));
-  return modal({ title: 'Nová sekce', body, buttons: [{ label: 'Zrušit', value: null }, { label: 'Vložit', primary: true, value: () => inp.value.trim() }] });
+const SECTION_TYPES = ['Sloka', 'Refrén', 'Předrefrén', 'Mezičást', 'Předehra', 'Mezihra', 'Sólo', 'Dohra'];
+/* výběr nové sekce: typ / název a počet opakování */
+async function pickSection(nextVerse) {
+  const inp = h('input', { class: 'inp', value: `Sloka ${nextVerse}` });
+  const cnt = h('input', { class: 'inp', type: 'number', min: 1, max: 99, value: 1, style: { width: '90px' } });
+  const body = h('div', {}, h('div', { class: 'row', style: { marginBottom: '10px', flexWrap: 'wrap', gap: '6px' } },
+    SECTION_TYPES.map(n => h('button', { class: 'btn small nogrow', onclick: () => { inp.value = n === 'Sloka' ? `Sloka ${nextVerse}` : n; inp.focus(); } }, n))),
+    h('label', { class: 'f' }, h('span', {}, 'Název'), inp),
+    h('label', { class: 'f' }, h('span', {}, 'Kolikrát se opakuje'), cnt),
+    h('p', { class: 'help' }, 'Předehra, mezihra a sólo jsou pokyny bez textu – na stránce se ukážou vždy (např. „8× PŘEDEHRA“). U ostatních sekcí se počet opakování ukáže před prvním řádkem.'));
+  const ok = await modal({ title: 'Nová sekce', body, buttons: [{ label: 'Zrušit', value: false }, { label: 'Vložit', primary: true, value: true }] });
+  return ok && inp.value.trim() ? { name: inp.value.trim(), count: Math.max(0, parseInt(cnt.value, 10) || 0) } : null;
 }
 
 function showMarkupHelp() {

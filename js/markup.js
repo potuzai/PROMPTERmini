@@ -17,6 +17,19 @@
   %%G Nadpis … %%         blok pro nástroj (tabulatura) – zachová přesné mezery
 */
 const RE_SECTION = /^##\s*(.*?)\s*(?:@([A-Za-z0-9+]+))?\s*$/;
+/* nadpis sekce: „## Refrén 2× #ffff00 @V“ – název, počet opakování, vlastní barva písma, zpěváci celé sekce */
+function parseSectionLine(t) {
+  const m = RE_SECTION.exec(String(t).trim());
+  if (!m || !String(t).trim().startsWith('##')) return null;
+  let name = m[1], count = 0, color = '';
+  let x;
+  if ((x = /\s*(#[0-9a-fA-F]{6})$/.exec(name))) { color = x[1].toLowerCase(); name = name.slice(0, x.index); }
+  if ((x = /(^|\s+)(\d{1,2})\s*[x×]$/i.exec(name))) { count = +x[2]; name = name.slice(0, x.index); }
+  return { name: name.trim(), count, color, singers: parseCodes(m[2]) };
+}
+function formatSectionLine(o) {
+  return '## ' + (o.name || 'Sekce') + (o.count > 1 ? ' ' + o.count + '×' : '') + (o.color ? ' ' + o.color : '') + (o.singers && o.singers.length ? ' @' + o.singers.join('+') : '');
+}
 const RE_SINGER = /^@([A-Za-z0-9+]+)\s?(.*)$/;
 const RE_REPEAT = /^>>\s*(.+?)\s*$/;
 const RE_NOTE = /^\/\/\s?(.*)$/;
@@ -25,10 +38,11 @@ const RE_MUSBLOCK = /^%%([A-Za-z0-9+]*)\s*(.*)$/;
 const RE_INLINE_CHORD = /\[([^\]\s]{1,12})\]/g;
 // konec stránky: „---“ platí pro hlavní čtečku, „--- tablet“ jen pro obrazovku s tímto id
 const RE_BREAK = /^---\s*([A-Za-z0-9][A-Za-z0-9_-]*)?\s*$/;
-/* druh části podle názvu sekce: refrén / mezičást / sloka */
+/* druh části podle názvu sekce: nástrojová (předehra, mezihra, sólo) / refrén / mezičást / sloka */
 function sectionKind(name) {
   const n = String(name || '').toLowerCase();
   if (!n) return '';
+  if (/předehr|predehr|intro|mezihr|^sól|^sol|solo|dohr|outro|pauza|break/.test(n)) return 'instr';   // nástrojová část – bez textu
   if (/refr|chorus|ref\b|^r\s*\d*$/.test(n)) return 'chorus';
   if (/mezi|bridge|předrefr|predrefr|pre-?chorus|most/.test(n)) return 'bridge';
   return 'verse';
@@ -82,13 +96,16 @@ function parseSong(text) {
       blocks.push({ type: 'break', src: i, screen });
       curSection = null;
     } else if ((m = RE_SECTION.exec(t))) {
-      const singers = parseCodes(m[2]);
-      const name = m[1] || 'Sekce';
+      const sec = parseSectionLine(t);
+      const name = sec.name || 'Sekce', singers = sec.singers;
       lines.push({ kind: 'section', singers });
-      const b = { type: 'section', text: name, singers, src: i };
-      curSection = { name, singers, blocks: [b] };
+      const instr = sectionKind(name) === 'instr';
+      const b = { type: 'section', text: name, singers, src: i, count: sec.count, color: sec.color, instr };
+      // nástrojová část (předehra, mezihra, sólo) nemá text – další řádky do ní nepatří
+      curSection = { name, singers, blocks: [b], count: sec.count, color: sec.color, instr, first: true };
       sections[name.toLowerCase()] = curSection.blocks;
       blocks.push(b);
+      if (instr) curSection = null;
     } else if ((m = RE_REPEAT.exec(t))) {
       const name = m[1];
       const ref = sections[name.toLowerCase()];
@@ -113,7 +130,9 @@ function parseSong(text) {
       const text = body.trim();
       const chordsOnly = hasChords(text) && stripChords(text) === '';
       lines.push({ kind: chordsOnly ? 'chords' : 'line', singers, inherited, chords: hasChords(text) });
-      const b = chordsOnly ? { type: 'chords', text, src: i } : { type: 'line', text, singers, src: i, chords: hasChords(text), sec: curSection ? curSection.name : '' };
+      const b = chordsOnly ? { type: 'chords', text, src: i } : { type: 'line', text, singers, src: i, chords: hasChords(text), sec: curSection ? curSection.name : '',
+        secColor: curSection ? curSection.color : '', secCount: curSection && curSection.first ? curSection.count : 0 };
+      if (curSection && !chordsOnly) curSection.first = false;   // počet opakování se ukáže u prvního řádku sekce
       blocks.push(b); if (curSection) curSection.blocks.push(b);
     }
   }
@@ -209,10 +228,10 @@ function applySingerToLine(line, code, mode = 'set') {
   const t = line.trim();
   if (t === '' || RE_REPEAT.test(t) || RE_NOTE.test(t) || RE_BREAK.test(t) || t.startsWith('%')) return line;
   let m;
-  if ((m = RE_SECTION.exec(t))) {
-    let codes = parseCodes(m[2]);
-    codes = nextCodes(codes, code, mode);
-    return '## ' + m[1] + (codes.length ? ' @' + codes.join('+') : '');
+  if (t.startsWith('##')) {
+    const sec = parseSectionLine(t);
+    sec.singers = nextCodes(sec.singers, code, mode);
+    return formatSectionLine(sec);
   }
   let codes = [], body = t;
   if ((m = RE_SINGER.exec(t))) { codes = parseCodes(m[1]); body = m[2]; }

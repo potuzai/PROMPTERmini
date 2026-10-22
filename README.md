@@ -83,7 +83,7 @@ Myší jako v textovém editoru: klik do řádku = psaní na tom místě, tažen
 
 **Nahoře:** název písně, **💾 Uložit** a **⋯** (uložit jako, přidat do playlistu, písmo této písně, vyčistit text, zdrojový text, export .txt, nápověda, smazat píseň), vpravo **▶ Čtečka**.
 
-**Levý panel:** údaje o písni (interpret, ladění, BPM, délka, štítky, šablona), struktura písně (sekce, opakování a konce stránek – klik na sekci ji vybere) a moje poznámky (jen na tomto zařízení).
+**Levý panel:** údaje o písni (interpret, ladění, BPM, délka, štítky, šablona), struktura písně – jediné místo pro sekce: **＋ Sekce** (u vybraného řádku, nebo přesně z řádků označených tažením), **↻** zopakovat sekci, u každé sekce **⋯** přejmenovat, typ (sloka, refrén, mezičást, předehra, mezihra, sólo…), počet opakování, vlastní barva písma, smazat (klik na sekci ji vybere) a moje poznámky (jen na tomto zařízení).
 
 **Lišta nad stránkou** patří vybranému řádku: kdo zpívá, písmo písně, B, I, velikost (A−, px, A+), Aa – VELKÁ / malá, **＋ Vložit** (sekci, opakování, poznámku, mezeru, novou stránku, text ze schránky; nový řádek je Enter při psaní), zpět / znovu a vpravo **Pro muzikanty**. Pod stránkou se volí obrazovka náhledu, playlist (pořadí a další píseň jako ve čtečce) a listuje se stránkami.
 
@@ -163,6 +163,9 @@ Pokročilí můžou přes **⋯ › Zdrojový text…** upravit text tak, jak se
 |---|---|
 | `## Refrén` | nadpis sekce |
 | `## Refrén @V` | celou sekci zpívají všichni |
+| `## Refrén 2× #ffff00` | sekce se opakuje 2× (ukáže se u prvního řádku), vlastní barva písma |
+| `## Předehra 8×` | předehra / mezihra / sólo – pokyn bez textu, na stránce vždy vidět |
+| `{#ff0000:slova}` | vlastní barva písma části textu |
 | `@J text` | řádek zpívám já |
 | `@J+T text` | řádek zpíváme oba |
 | `{T:slovo}` | jiný zpěvák jen pro část řádku |

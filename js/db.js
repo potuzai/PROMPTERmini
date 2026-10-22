@@ -33,6 +33,7 @@ const DEFAULT_TEMPLATE = {
   singerText: false, singerBar: true, singerBarRight: false, singerBg: false, barWidth: 15,
   // barva textu: 'singer' = podle zpěváka, 'section' = podle části písně (zpěvák jen pruhem)
   textBy: 'section', verseColor: '#ffffff', chorusColor: '#ffff00', bridgeColor: '#33ff33',
+  instrColor: '#ff0000',   // předehra, mezihra, sólo a počet opakování sekce
   fit: 'shrink', minScale: 0.6,
   showHeader: true, showFooter: false, headerSize: 25, headerColor: '#9e9e9e',
   mirror: 'none',

@@ -456,6 +456,15 @@ details summary { color: var(--text); }
 .st-item.on { background: var(--sel); font-weight: 600; }
 .st-item i { width: 3px; height: 16px; border-radius: 2px; background: var(--line2); flex: 0 0 auto; }
 .st-item.rep { color: var(--dim); }
+.st-item .st-n { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.st-item .st-cnt { font-size: 12px; color: var(--acc-hi); }
+.st-item.instr .st-n { font-size: 12.5px; text-transform: uppercase; letter-spacing: .03em; color: var(--dim); }
+.st-more { opacity: 0; border: 0; background: none; color: var(--dim); font-size: 15px; padding: 0 4px; cursor: pointer; border-radius: var(--r); }
+.st-item:hover .st-more, .st-item.on .st-more { opacity: 1; }
+.st-more:hover { background: var(--sel); color: var(--text); }
+.ep-lbl-row { display: flex; align-items: center; gap: 6px; }
+.ep-lbl-row > span { flex: 1; }
+.ep-lbl-row .btn { text-transform: none; letter-spacing: 0; font-weight: 500; }
 .st-brk { display: flex; align-items: center; gap: 8px; margin: 6px 0; color: var(--faint); font-size: 11.5px; }
 .st-brk::before, .st-brk::after { content: ""; flex: 1; border-top: 1px dashed var(--line2); }
 /* střed: lišta pro vybraný řádek, stránka, stránkování */
@@ -658,6 +667,8 @@ input[type=checkbox].switch:focus-visible { outline: 2px solid var(--acc-hi); ou
 .b-line.not-mine { opacity: .38; }
 .b-gap { height: var(--gap); }
 .hide-sections .b-sec, .hide-notes .b-note { display: none; }
+.b-instr { font-size: .7em; font-weight: 700; text-transform: uppercase; }   /* předehra, mezihra, sólo */
+.rep-n { font-weight: 700; }
 .sz { line-height: 1.1; }
 /* vrstvy pro muzikanty (jen náhled „Pro muzikanty“ – čtečka je nikdy nevykreslí) */
 .cw { display: inline-flex; flex-direction: column; vertical-align: bottom; }
