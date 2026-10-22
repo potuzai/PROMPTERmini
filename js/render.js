@@ -275,18 +275,26 @@ function singerShowOf(tpl, code) {
   return Object.assign({ barL: !!tpl.singerBar, barR: !!tpl.singerBarRight, bg: !!tpl.singerBg, text: !!tpl.singerText }, (tpl.singerShow || {})[code]);
 }
 /* Tabulka přepínačů: řádky = zpěváci, sloupce = druhy označení. get(kód, klíč) → bool, set(kód, klíč, bool) */
-function singerShowTable(get, set) {
+function singerShowTable(get, set, edit) {
   const sgs = Store.singers();
   const tbl = h('div', { class: 'sgs-tbl', style: { gridTemplateColumns: `minmax(90px, 1fr) repeat(${SINGER_SHOW.length}, auto)` } },
     h('span'), SINGER_SHOW.map(([, short, long]) => h('span', { class: 'sgs-h', title: long }, short)));
   for (const sg of sgs) {
-    tbl.append(h('span', { class: 'sgs-n' }, h('i', { style: { background: sg.color } }), sg.name));
+    // s edit: klik na tečku = změna barvy zpěváka (platí pro celou kapelu)
+    const dot = h('i', { style: { background: sg.color } });
+    if (edit) {
+      const inp = h('input', { type: 'color', value: sg.color,
+        oninput: () => { dot.style.background = inp.value; edit.color(sg.code, inp.value, false); },
+        onchange: () => edit.color(sg.code, inp.value, true) });
+      tbl.append(h('span', { class: 'sgs-n' }, h('label', { class: 'sgs-dot', title: `Barva: ${sg.name} (pro všechny písně)` }, dot, inp), sg.name));
+    } else tbl.append(h('span', { class: 'sgs-n' }, dot, sg.name));
     for (const [k, , long] of SINGER_SHOW) {
       const inp = h('input', { type: 'checkbox', class: 'switch', title: `${sg.name}: ${long.toLowerCase()}`, checked: !!get(sg.code, k), onchange: () => set(sg.code, k, inp.checked) });
       tbl.append(h('label', { class: 'sgs-c' }, inp));
     }
   }
-  tbl.repaint = () => { let i = 0; const inps = tbl.querySelectorAll('input'); for (const sg of sgs) for (const [k] of SINGER_SHOW) inps[i++].checked = !!get(sg.code, k); };
+  if (edit) tbl.append(h('button', { class: 'btn small nogrow sgs-add', onclick: () => edit.add() }, '＋ Přidat zpěváka'));
+  tbl.repaint = () => { let i = 0; const inps = tbl.querySelectorAll('input.switch'); for (const sg of sgs) for (const [k] of SINGER_SHOW) inps[i++].checked = !!get(sg.code, k); };
   return tbl;
 }
 

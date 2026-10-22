@@ -156,8 +156,6 @@ class SongEditor {
     this.pageLbl = h('span', { class: 'page-lbl' }, '1/1');
 
     // zpěváci jako přepínače: klik přidá / odebere; všichni vypnutí = nikdo
-    this.sgButtons = Store.singers().map((s, i) => h('button', { class: 'sw', style: { '--c': s.color }, title: `${s.name} – zapnout / vypnout (Alt+${i + 1}, na stránce ← →)`,
-      onclick: () => this.se.toggleSinger(s.code) }, h('span', { class: 'sw-c' }), h('span', { class: 'sw-n' }, s.name)));
 
     // Uložení, další volby písně a čtečka: vpravo dole pod stránkou
     this.saveBtn = h('button', { class: 'btn', title: 'Uložit změny (Ctrl+S)', onclick: () => this.save(true) }, '💾 Uložit');
@@ -203,7 +201,7 @@ class SongEditor {
     }, 'ed-mus');
     // lišta: nástroje uprostřed nad stránkou, Muzikanti vždy vpravo
     this.tools = h('div', { class: 'ed-tools' }, h('span'), h('div', { class: 'ed-tools-mid' },
-      h('div', { class: 'tl-grp sw-row', title: 'Kdo zpívá vybraný řádek (všichni vypnutí = nikdo)' }, ...this.sgButtons,
+      this.sgRow = h('div', { class: 'tl-grp sw-row', title: 'Kdo zpívá vybraný řádek (všichni vypnutí = nikdo)' },
         tool([ic('sliders'), ic('down', 'caret')], 'Označení zpěváků: proužek vlevo / vpravo, podklad, barva písma – jen pro tuto píseň', e => this.singerPopover(e.currentTarget), 'tl-sgshow')),
       sep(),
       this.fontSel = h('select', { class: 'tl tl-font', title: 'Písmo této písně (bez výběru platí písmo šablony; další volby v ⋯ › Písmo této písně…)', onchange: () => this.setFont(this.fontSel.value) }),
@@ -228,6 +226,7 @@ class SongEditor {
         tool('↷', 'Znovu (Ctrl+Y)', () => this.se.undo(1))),
       ),
       this.musBtn);
+    this.makeSingerBtns();
 
     this.stageWrap = h('div', { class: 'se-wrap' });
     this.scrSel = h('select', { class: 'inp ed-screen', title: 'Pro kterou obrazovku kapely ukázat stránku – každá má svůj rozměr, konce stránek a obsah' },
@@ -393,6 +392,20 @@ class SongEditor {
     this.sizeBox.title = 'Velikost písma v px na obrazovce „' + this.screen().name + '“' + (p !== 100 ? ` (${p} % písma řádku)` : ' (podle šablony)') + ' – napiš a potvrď Enterem';
   }
   /* zapnutí zpěváci: u slov v barvě zpěváka ten zpěvák, jinak zpěváci řádku */
+  /* přepínače zpěváků v liště (před tlačítkem označení) */
+  makeSingerBtns() {
+    (this.sgButtons || []).forEach(b => b.remove());
+    this.sgButtons = Store.singers().map((s, i) => h('button', { class: 'sw', style: { '--c': s.color }, title: `${s.name} – zapnout / vypnout (Alt+${i + 1}, na stránce ← →)`,
+      onclick: () => this.se.toggleSinger(s.code) }, h('span', { class: 'sw-c' }), h('span', { class: 'sw-n' }, s.name)));
+    this.sgRow.prepend(...this.sgButtons);
+    if (this.se) this.paintSingers();
+  }
+  /* zpěváci jsou společní pro kapelu: barva a přidání se uloží do obsazení */
+  async saveSingers(fn) {
+    const cfg = clone(Store.config.get('singers') || { id: 'singers', list: DEFAULT_SINGERS });
+    fn(cfg.list);
+    await Store.put('config', cfg);
+  }
   paintSingers() {
     const se = this.se, t = se.cur();
     let own = t ? se.singersOf(t).own : [];
@@ -768,6 +781,28 @@ class SongEditor {
       if (v === singerShowOf(base, code)[k]) delete o[k]; else o[k] = v;   // stejné jako šablona = bez výjimky
       sg[code] = o;
       apply(sg);
+    }, {
+      color: async (code, color, done) => {
+        const b = this.sgButtons[Store.singers().findIndex(s => s.code === code)];
+        if (b) b.style.setProperty('--c', color);
+        if (!done) return;
+        await this.saveSingers(list => { const s = list.find(x => x.code === code); if (s) s.color = color; });
+        this.makeSingerBtns(); this.se.render();
+      },
+      add: async () => {
+        const name = await promptDlg('Jméno nového zpěváka', '');
+        if (!name || !name.trim()) return;
+        await this.saveSingers(list => {
+          const used = new Set(list.map(s => s.code));
+          const first = name.trim().normalize('NFD').replace(/[^A-Za-z0-9]/g, '').charAt(0).toUpperCase();
+          const code = [first, ...'ABCDEFGHKLMNOPRSUZ123456789'].find(c => c && !used.has(c));
+          const presets = ['#ffd23f', '#4fc3f7', '#7CFC9A', '#ff7eb6', '#ff9f43', '#b388ff', '#ff5252', '#ffffff'];
+          const color = presets.find(c => !list.some(x => (x.color || '').toLowerCase() === c.toLowerCase())) || presets[list.length % presets.length];
+          list.push({ code, name: name.trim(), color, bold: false, italic: false });
+        });
+        this.makeSingerBtns(); this.se.render();
+        this.singerPopover(anchor);
+      },
     });
     const note = h('div', { class: 'help' });
     const reset = h('button', { class: 'btn small nogrow', onclick: () => apply({}) }, 'Podle šablony');
