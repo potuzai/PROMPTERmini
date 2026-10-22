@@ -529,7 +529,8 @@ class SongEditor {
         onclick: go, oncontextmenu: menu },
       h('i', { style: it.color ? { background: it.color } : {} }), h('span', { class: 'st-n' }, it.name),
       it.count > 1 ? h('b', { class: 'st-cnt' }, it.count + '×') : null,
-      h('button', { class: 'st-more', title: 'Upravit sekci: název, typ, opakování, barva, smazat', onclick: menu }, '⋯')));
+      h('button', { class: 'st-more', title: 'Upravit sekci: název, typ, opakování, barva', onclick: menu }, '⋯'),
+      h('button', { class: 'st-more st-del', title: it.rep ? 'Smazat opakování' : 'Odebrat sekci – text zůstane, jen už nebude patřit do žádné sekce', onclick: e => { e.stopPropagation(); this.removeSection(it); } }, '✕')));
     }
   }
   /* úpravy sekce z panelu Struktura */
@@ -550,7 +551,14 @@ class SongEditor {
       { label: 'Barva písma…', action: () => this.sectionColor(anchor, it, setHeader) },
       { label: 'Zopakovat tuto sekci u vybraného řádku', action: () => this.se.insertLines(['>> ' + it.name]) },
       { sep: true },
-      { label: 'Smazat sekci (text zůstane)', danger: true, action: () => { const l = ls(); l.splice(it.line, 1); this.se.commit(l.join('\n')); } }]);
+      { label: 'Odebrat sekci (text zůstane)', danger: true, action: () => this.removeSection(it) }]);
+  }
+  /* odebrat nadpis sekce: text zůstane bez sekce (nespadne do sekce nad ním – místo nadpisu zůstane konec sekce „##“) */
+  removeSection(it) {
+    const l = this.se.lines();
+    if (it.rep || !inSection(l, it.line - 1)) l.splice(it.line, 1);
+    else l[it.line] = '##';
+    this.se.commit(l.join('\n'));
   }
   sectionColor(anchor, it, setHeader) {
     $$('.menu').forEach(m => m.remove());

@@ -463,6 +463,8 @@ details summary { color: var(--text); }
 .st-more { opacity: 0; border: 0; background: none; color: var(--dim); font-size: 15px; padding: 0 4px; cursor: pointer; border-radius: var(--r); }
 .st-item:hover .st-more, .st-item.on .st-more { opacity: 1; }
 .st-more:hover { background: var(--sel); color: var(--text); }
+.st-del { font-size: 12px; }
+.st-del:hover { color: var(--err); }
 .ep-lbl-row { display: flex; align-items: center; gap: 6px; }
 .ep-lbl-row > span { flex: 1; }
 .ep-lbl-row .btn { text-transform: none; letter-spacing: 0; font-weight: 500; }
