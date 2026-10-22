@@ -257,8 +257,7 @@ class SongEditor {
     this.pager = h('div', { class: 'ed-side' },
       h('div', { class: 'ep-group' }, h('div', { class: 'ep-lbl ep-lbl-row' }, h('span', {}, 'Zpěváci'), sgShowBtn), this.sgRow),
       h('div', { class: 'ep-group' }, h('div', { class: 'ep-lbl ep-lbl-row' }, h('span', {}, 'Stránka písně'),
-        this.pageSetBtn = tool(ic('sliders'), 'Rozvržení a zobrazení stránky jen pro tuto píseň: okraje, sloupce, mezery, dlouhá píseň, záhlaví a zápatí, nadpisy sekcí, poznámky, zrcadlení, proužek zpěváka', e => this.pagePopover(e.currentTarget), 'tl-sgshow')),
-        this.pageSetInfo = h('div', { class: 'help' })),
+        this.pageSetBtn = tool(ic('sliders'), 'Rozvržení a zobrazení stránky jen pro tuto píseň: okraje, sloupce, mezery, dlouhá píseň, záhlaví a zápatí, nadpisy sekcí, poznámky, zrcadlení, proužek zpěváka', e => this.pagePopover(e.currentTarget), 'tl-sgshow'))),
       h('div', { class: 'grow' }),
       sgrp('Náhled',
         h('label', { class: 'f' }, h('span', {}, 'Obrazovka'), this.scrSel),
@@ -410,10 +409,6 @@ class SongEditor {
     this.paintAl();
     this.paintLs();
     this.paintFont();
-    if (this.pageSetInfo) {
-      const n = PAGE_KEYS.filter(k => this.style && this.style[k] !== undefined).length;
-      this.pageSetInfo.textContent = n ? `Vlastní nastavení (${n}), ostatní podle šablony` : 'Podle šablony';
-    }
   }
   /* písmo písně v liště: „podle šablony“ nebo vlastní (ukládá se do písně jako u Písmo této písně…) */
   /* označení v psaném řádku si zapamatuje, než fokus vezme výběr písma */
@@ -564,14 +559,14 @@ class SongEditor {
   pagePopover(anchor) {
     this.settingsPopover(anchor, 'Stránka této písně', PAGE_KEYS, [
       ['Rozvržení', [['padX', 'Okraj vlevo a vpravo', 'px'], ['padY', 'Okraj nahoře a dole', 'px'], ['columns', 'Sloupce'], ['colGap', 'Mezera mezi sloupci', 'px'],
-        ['onePage', 'Zakázat více stránek'], ['fit', 'Jinak dlouhá píseň', null, [['shrink', 'zmenšit písmo'], ['paginate', 'na více stránek']]], ['minScale', 'Nejmenší zmenšení', '%']]],
+        ['onePage', 'Zakázat více stránek'], ['fit', 'Jinak dlouhá píseň', null, [['shrink', 'zmenšit písmo'], ['paginate', 'na více stránek']]], ['minScale', 'Nejmenší písmo', 'px']]],
       ['Zobrazení', [['showHeader', 'Záhlaví'], ['showFooter', 'Zápatí'], ['headerSize', 'Velikost záhlaví a zápatí', 'px'], ['showNotes', 'Poznámky (//)'], ['mirror', 'Zrcadlení']]],
     ]);
   }
   /* sekce písně (Struktura): nadpisy, mezera mezi slokami, barvy částí písně – jen pro tuto píseň */
   sectionPopover(anchor) {
     this.settingsPopover(anchor, 'Sekce této písně', SECTION_KEYS, [
-      ['Nadpisy', [['showSections', 'Nadpisy sekcí'], ['sectionScale', 'Velikost nadpisů', '%'], ['sectionColor', 'Barva nadpisů']]],
+      ['Nadpisy', [['showSections', 'Nadpisy sekcí'], ['sectionScale', 'Velikost nadpisů', 'px'], ['sectionColor', 'Barva nadpisů']]],
       ['Mezery', [['stanzaGap', 'Mezera mezi slokami', '×']]],
       ['Barva textu', [['verseColor', 'Sloka'], ['chorusColor', 'Refrén'], ['bridgeColor', 'Mezičást'], ['instrColor', 'Předehra, mezihra, sólo']]],
     ]);
@@ -596,6 +591,14 @@ class SongEditor {
             const sel = h('select', { class: 'inp pg-sel' }, (opts || f.o).map(([val, lab]) => h('option', { value: val, selected: String(val) === String(v) }, lab)));
             sel.onchange = () => set(typeof f.o[0][0] === 'number' ? +sel.value : sel.value);
             ctl = sel;
+          } else if (f.rel) {
+            // násobek velikosti písma, ukázaný v px (krok 2 px)
+            const fs = tpl.fontSize || 60, clamp = x => Math.max(f.min, Math.min(f.max, x));
+            const go = d => set(clamp((Math.round(v * fs) + d * 2) / fs));
+            ctl = h('div', { class: 'pg-step' },
+              h('button', { class: 'tl tl-step', onmousedown: e => e.preventDefault(), onclick: () => go(-1) }, '−'),
+              h('label', { class: 'pg-num' }, numField(v, { scale: fs, dec: 0, min: f.min, max: f.max }, set), h('span', {}, 'px')),
+              h('button', { class: 'tl tl-step', onmousedown: e => e.preventDefault(), onclick: () => go(1) }, '+'));
           } else {
             const step = +f.step * (unit === '%' ? 5 : 1) || 1, dec = (String(step).split('.')[1] || '').length;
             const go = d => set(Math.round(Math.max(f.min, Math.min(f.max, +v + d * step)) / step) * step);
@@ -1149,13 +1152,14 @@ class SongEditor {
 /* Číselné pole, do kterého jde kliknout a napsat hodnotu (Enter / odchod potvrdí, Esc vrátí).
    o.pct = zobrazit v % (×100), o.dec = desetinná místa, o.min / o.max = rozsah */
 function numField(v, o, onSet) {
-  const scale = o.pct ? 100 : 1;
-  const show = x => String(+(+x * scale).toFixed(o.dec != null ? o.dec : 2)).replace('.', ',');
+  // scale: zobrazená hodnota = uložená × scale (o.pct = ×100; o.scale může být i funkce, např. velikost písma pro px)
+  const sc = () => typeof o.scale === 'function' ? o.scale() : o.scale || (o.pct ? 100 : 1);
+  const show = x => String(+(+x * sc()).toFixed(o.dec != null ? o.dec : 2)).replace('.', ',');
   const inp = h('input', { class: 'num-in', type: 'text', inputmode: 'decimal', value: show(v) });
   const commit = () => {
     const n = parseFloat(inp.value.replace(',', '.'));
     if (isNaN(n)) { inp.value = show(v); return; }
-    let x = n / scale;
+    let x = n / sc();
     if (o.min != null) x = Math.max(o.min, x);
     if (o.max != null) x = Math.min(o.max, x);
     inp.value = show(x);

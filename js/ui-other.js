@@ -29,13 +29,13 @@ const TPL_FIELDS = [
   { k: 'stanzaGap', l: 'Mezera mezi slokami (× výška písma)', t: 'range', min: 0, max: 2, step: 0.05 },
   { k: 'onePage', l: 'Zakázat více stránek (písmo se zmenší, aby se píseň vešla na 1 stránku)', t: 'check' },
   { k: 'fit', l: 'Když jsou povolené další stránky', t: 'select', o: [['shrink', 'nejdřív zmenšit písmo (nejvýš na nejmenší zmenšení)'], ['paginate', 'hned rozdělit na více stránek']] },
-  { k: 'minScale', l: 'Nejmenší zmenšení písma (při povolených dalších stránkách)', t: 'range', min: 0.4, max: 1, step: 0.05, pct: true },
+  { k: 'minScale', l: 'Nejmenší písmo při zmenšování (při povolených dalších stránkách)', t: 'range', min: 0.4, max: 1, step: 0.05, rel: true },
   { g: 'Zobrazení' },
   { k: 'showHeader', l: 'Záhlaví (název, ladění, pořadí)', t: 'check' },
   { k: 'showFooter', l: 'Zápatí (strana, další píseň)', t: 'check' },
   { k: 'headerSize', l: 'Velikost záhlaví/zápatí (px)', t: 'range', min: 14, max: 70, step: 1 },
   { k: 'showSections', l: 'Zobrazit nadpisy sekcí', t: 'check' },
-  { k: 'sectionScale', l: 'Velikost nadpisů sekcí', t: 'range', min: 0.3, max: 1.2, step: 0.05, pct: true },
+  { k: 'sectionScale', l: 'Velikost nadpisů sekcí', t: 'range', min: 0.3, max: 1.2, step: 0.05, rel: true },
   { k: 'showNotes', l: 'Zobrazit poznámky (//)', t: 'check' },
   { k: 'mirror', l: 'Zrcadlení (pro sklo prompteru)', t: 'select', o: [['none', 'žádné'], ['h', 'vodorovně'], ['v', 'svisle'], ['hv', 'obojí']] },
 ];
@@ -142,9 +142,10 @@ const TemplatesView = {
         // hodnota jde i napsat (klik do čísla)
         const pct = f.pct || f.k === 'letterSpacing', dec = pct ? 0 : (String(f.step).split('.')[1] || '').length;
         const r = h('input', { type: 'range', min: f.min, max: f.max, step: f.step, value: v });
-        const num = numField(v, { pct, dec, min: f.min, max: f.max }, x => { t[f.k] = x; r.value = x; upd(); });
+        // rel: násobek velikosti písma, ukazuje se v px
+        const num = numField(v, f.rel ? { scale: () => t.fontSize, dec: 0, min: f.min, max: f.max } : { pct, dec, min: f.min, max: f.max }, x => { t[f.k] = x; r.value = x; upd(); });
         r.oninput = () => { t[f.k] = +r.value; num.setValue(+r.value); upd(); };
-        ctl = h('label', { class: 'f' }, h('span', {}, f.l, ': ', num, pct ? ' %' : ''), r, f.help ? h('span', { class: 'help field-help' }, f.help) : null);
+        ctl = h('label', { class: 'f' }, h('span', {}, f.l, ': ', num, pct ? ' %' : f.rel ? ' px' : ''), r, f.help ? h('span', { class: 'help field-help' }, f.help) : null);
       }
       fs.appendChild(h('div', { style: { marginBottom: '8px' } }, ctl));
     }
