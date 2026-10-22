@@ -190,7 +190,7 @@ class StageEditor {
   paintSel() {
     for (const e of this.stage.querySelectorAll('.is-sel, .is-cur')) e.classList.remove('is-sel', 'is-cur');
     const sel = this.selTargets();
-    this.wrap.classList.toggle('multi', sel.length > 1);
+    this.wrap.classList.toggle('multi', sel.length > 1 || this.anchorKey != null);
     for (const t of sel) for (const e of this.elsOf(t)) e.classList.add('is-sel');
     for (const e of this.elsOf(this.cur())) e.classList.add('is-cur');
     this.curLine = this.cur() ? this.cur().line : this.curLine;

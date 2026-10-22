@@ -217,12 +217,11 @@ class SongEditor {
         menuTool('Aa ▾', 'Velká / malá písmena', () => [
           { label: 'VELKÁ PÍSMENA', action: () => this.se.format('upper') },
           { label: 'malá písmena', action: () => this.se.format('lower') }])),
-      h('div', { class: 'tl-grp seg-row' },
-        tool('↕−', 'Menší řádkování (o 0,05)', () => this.stepLh(-0.05)),
+      h('div', { class: 'tl-grp seg-row tl-lh-grp' },
+        tool('−', 'Menší řádkování (o 0,05)', () => this.stepLh(-0.05), 'tl-step'),
         this.lhBox = h('label', { class: 'tl tl-size tl-lh', title: 'Řádkování řádku s kurzorem (nebo označených řádků) – výška řádku × písmo; napiš a potvrď Enterem, prázdné = podle písně' },
-          h('span', { class: 'tl-lh-ic' }, '↕'), this.lhInp = h('input', { type: 'text', inputmode: 'decimal', maxlength: 4, value: '' })),
-        tool('↕+', 'Větší řádkování (o 0,05)', () => this.stepLh(0.05))),
-      sep(),
+          ic('lineh', 'tl-lh-ic'), this.lhInp = h('input', { type: 'text', inputmode: 'decimal', maxlength: 4, value: '' })),
+        tool('+', 'Větší řádkování (o 0,05)', () => this.stepLh(0.05), 'tl-step')),
       sep(),
       h('div', { class: 'tl-grp' },
         tool('↶', 'Zpět (Ctrl+Z)', () => this.se.undo(-1)),
@@ -462,7 +461,7 @@ class SongEditor {
         const next = items.find(x => !x.brk && x.line > it.line);
         const end = next ? next.line : Infinity;
         const idxs = se.targets.map((t, i) => [t, i]).filter(([t]) => t.line > it.line && t.line < end && t.kind !== 'repeat').map(x => x[1]);
-        if (idxs.length) { se.select(idxs[0]); if (idxs.length > 1) se.select(idxs[idxs.length - 1], true); }
+        if (idxs.length) { se.select(idxs[0]); se.select(idxs[idxs.length - 1], true); } // i jediný řádek jako blok
         else { let idx = se.targets.findIndex(t => t.line >= it.line); se.select(idx < 0 ? se.targets.length - 1 : idx); }
         this.stageWrap.focus({ preventScroll: true });
       };
