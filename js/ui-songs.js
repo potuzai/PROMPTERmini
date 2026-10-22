@@ -221,7 +221,7 @@ class SongEditor {
         tool('↷', 'Znovu (Ctrl+Y)', () => this.se.undo(1))),
       ),
       this.sgRow = h('div', { class: 'tl-grp sw-row', title: 'Kdo zpívá vybraný řádek (všichni vypnutí = nikdo)' },
-        tool([ic('sliders'), ic('down', 'caret')], 'Označení zpěváků: proužek vlevo / vpravo, podklad, barva písma – jen pro tuto píseň', e => this.singerPopover(e.currentTarget), 'tl-sgshow')));
+        tool(ic('sliders'), 'Označení zpěváků: proužek vlevo / vpravo, podklad, barva písma – jen pro tuto píseň', e => this.singerPopover(e.currentTarget), 'tl-sgshow')));
     this.makeSingerBtns();
 
     this.stageWrap = h('div', { class: 'se-wrap' });
