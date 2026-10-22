@@ -218,10 +218,10 @@ class SongEditor {
           { label: 'VELKÁ PÍSMENA', action: () => this.se.format('upper') },
           { label: 'malá písmena', action: () => this.se.format('lower') }])),
       h('div', { class: 'tl-grp seg-row tl-lh-grp' },
-        tool('−', 'Menší řádkování (o 0,05)', () => this.stepLh(-0.05), 'tl-step'),
+        tool('−', 'Menší řádkování (o 0,1)', () => this.stepLh(-0.1), 'tl-step'),
         this.lhBox = h('label', { class: 'tl tl-size tl-lh', title: 'Řádkování řádku s kurzorem (nebo označených řádků) – výška řádku × písmo; napiš a potvrď Enterem, prázdné = podle písně' },
           ic('lineh', 'tl-lh-ic'), this.lhInp = h('input', { type: 'text', inputmode: 'decimal', maxlength: 4, value: '' })),
-        tool('+', 'Větší řádkování (o 0,05)', () => this.stepLh(0.05), 'tl-step')),
+        tool('+', 'Větší řádkování (o 0,1)', () => this.stepLh(0.1), 'tl-step')),
       sep(),
       h('div', { class: 'tl-grp' },
         tool('↶', 'Zpět (Ctrl+Z)', () => this.se.undo(-1)),
@@ -404,7 +404,7 @@ class SongEditor {
   paintLh() {
     if (!this.lhInp || !this.se || document.activeElement === this.lhInp) return;
     const own = this.se.lineLh(), def = this.lookTpl().lineHeight;
-    this.lhInp.value = String(own != null ? own : Math.round(def * 100) / 100);
+    this.lhInp.value = String(own != null ? own : Math.round(def * 100) / 100).replace('.', ',');
     this.lhBox.classList.toggle('on', own != null);
   }
   setLh(v) {
@@ -414,7 +414,7 @@ class SongEditor {
   }
   stepLh(d) {
     const own = this.se.lineLh();
-    this.setLh((own != null ? own : this.lookTpl().lineHeight) + d);
+    this.setLh(Math.round(((own != null ? own : this.lookTpl().lineHeight) + d) * 10) / 10);
   }
   setSizePx(px) {
     const base = this.se.linePx();
