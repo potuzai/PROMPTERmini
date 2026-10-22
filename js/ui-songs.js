@@ -196,13 +196,14 @@ class SongEditor {
       h('div', { class: 'ep-group' }, h('div', { class: 'ep-lbl' }, 'Moje poznámky'),
         this.privNote = h('textarea', { class: 'inp ep-priv', rows: 2, placeholder: 'Vidíš jen ty na tomto zařízení. Ukážou se nahoře na stránce.' }, PrivateNotes.get(song.id))));
 
-    // Lišta nad stránkou: vše pro vybraný řádek
-    const sep = () => h('span', { class: 'tl-sep' });
-    // lišta nad stránkou: úpravy textu
-    // lišta jde přepnout na plovoucí panel v okně se stránkou (přesouvá se tažením za úchyt)
+    // Úpravy textu: lišta nad stránkou, plovoucí panel v okně se stránkou (přesouvá se tažením za úchyt), nebo v pravém panelu
     this.toolsGrip = h('div', { class: 'tl-grip', title: 'Přetažením přesuneš lištu' }, ic('grip'));
-    this.floatBtn = tool(ic('float'), '', () => { Settings.set('edToolsFloat', !Settings.get('edToolsFloat')); this.applyToolsMode(); }, 'tl-float');
-    this.tools = h('div', { class: 'ed-tools' }, h('div', { class: 'tl-grp tl-mode' }, this.toolsGrip, this.floatBtn), h('div', { class: 'ed-tools-text' },
+    this.modeGrp = h('div', { class: 'tl-grp tl-mode' }, this.toolsGrip,
+      tool(ic('float'), 'Kde jsou úpravy textu: lišta nahoře, plovoucí panel, nebo v pravém panelu', e => this.toolsModeMenu(e.currentTarget), 'tl-float'));
+    this.undoGrp = h('div', { class: 'tl-grp ed-undo' },
+      tool('↶', 'Zpět (Ctrl+Z)', () => this.se.undo(-1)),
+      tool('↷', 'Znovu (Ctrl+Y)', () => this.se.undo(1)));
+    this.tools = h('div', { class: 'ed-tools' }, this.modeGrp, this.toolsText = h('div', { class: 'ed-tools-text' },
       this.fontSel = h('select', { class: 'tl tl-font', title: 'Písmo označených slov, řádku, nebo bez výběru celé písně', onmousedown: () => this.keepSel(), onchange: () => this.setFont(this.fontSel.value) }),
       h('div', { class: 'tl-grp seg-row' },
         tool(h('b', {}, 'B'), 'Tučně (Ctrl+B) – označená slova, řádek, nebo bez výběru celá píseň', () => this.fmt('bold')),
@@ -235,9 +236,7 @@ class SongEditor {
         tool(ic('alignc'), 'Zarovnat řádek na střed', () => this.setAl('↔')),
         tool(ic('alignr'), 'Zarovnat řádek vpravo', () => this.setAl('⇥'))),
       ),
-      h('div', { class: 'tl-grp ed-undo' },   // zpět / znovu úplně vpravo
-        tool('↶', 'Zpět (Ctrl+Z)', () => this.se.undo(-1)),
-        tool('↷', 'Znovu (Ctrl+Y)', () => this.se.undo(1))));
+      this.undoGrp);   // zpět / znovu úplně vpravo
     // zpěváci: nahoře v pravém panelu
     this.sgRow = h('div', { class: 'sw-row', title: 'Kdo zpívá vybraný řádek (všichni vypnutí = nikdo)' });
     const sgShowBtn = tool(ic('sliders'), 'Zpěváci a jejich označení jen pro tuto píseň: barva, přidání, odebrání, proužek vlevo / vpravo, podklad, barva písma', e => this.singerPopover(e.currentTarget), 'tl-sgshow');
@@ -255,17 +254,18 @@ class SongEditor {
       h('button', { class: 'tl', title: 'Předchozí stránka (PgUp)', onclick: () => this.se.turnPage(-1) }, ic('up')),
       this.pageLbl,
       h('button', { class: 'tl', title: 'Další stránka (PgDn)', onclick: () => this.se.turnPage(1) }, ic('down')));
-    // Pravý panel pod lištou: zpěváci, náhled (obrazovka, playlist), dole uložení a čtečka
-    const sgrp = (label, ...kids) => h('div', { class: 'ep-group' }, h('div', { class: 'ep-lbl' }, label), ...kids);
-    this.pager = h('div', { class: 'ed-side' },
-      h('div', { class: 'ep-group' }, h('div', { class: 'ep-lbl ep-lbl-row' }, h('span', {}, 'Zpěváci'), sgShowBtn), this.sgRow),
-      h('div', { class: 'ep-group' }, h('div', { class: 'ep-lbl ep-lbl-row' }, h('span', {}, 'Stránka písně'),
-        this.pageSetBtn = tool(ic('sliders'), 'Rozvržení a zobrazení stránky jen pro tuto píseň: okraje, sloupce, mezery, dlouhá píseň, záhlaví a zápatí, nadpisy sekcí, poznámky, zrcadlení, proužek zpěváka', e => this.pagePopover(e.currentTarget), 'tl-sgshow'))),
-      h('div', { class: 'grow' }),
-      h('div', { class: 'ep-group' }, h('div', { class: 'ep-lbl ep-lbl-row' }, h('span', {}, 'Náhled'),
-        tool(ic('sliders'), 'Náhled stránky: pro kterou obrazovku a jako v kterém playlistu', e => this.previewPopover(e.currentTarget), 'tl-sgshow')),
-        this.pvInfo = h('div', { class: 'ep-info' })),
-      h('div', { class: 'ed-save' }, this.savedInd, h('div', { class: 'ed-save-row' }, this.saveBtn, moreBtn), readerBtn));
+    // Pravý panel: zpěváci, stránka písně, náhled (obrazovka, playlist), uložení a čtečka; pořadí podle umístění úprav textu
+    this.sgGroup = h('div', { class: 'ep-group' }, h('div', { class: 'ep-lbl ep-lbl-row' }, h('span', {}, 'Zpěváci'), sgShowBtn), this.sgRow);
+    this.pageGroup = h('div', { class: 'ep-group' }, h('div', { class: 'ep-lbl ep-lbl-row' }, h('span', {}, 'Stránka písně'),
+      this.pageSetBtn = tool(ic('sliders'), 'Rozvržení a zobrazení stránky jen pro tuto píseň: okraje, sloupce, mezery, dlouhá píseň, záhlaví a zápatí, nadpisy sekcí, poznámky, zrcadlení, proužek zpěváka', e => this.pagePopover(e.currentTarget), 'tl-sgshow')));
+    this.textHead = h('div', { class: 'ep-lbl ep-lbl-row' }, h('span', {}, 'Text'));
+    this.textGroup = h('div', { class: 'ep-group ep-text' }, this.textHead);
+    this.sideGrow = h('div', { class: 'grow' });
+    this.pvGroup = h('div', { class: 'ep-group' }, h('div', { class: 'ep-lbl ep-lbl-row' }, h('span', {}, 'Náhled'),
+      tool(ic('sliders'), 'Náhled stránky: pro kterou obrazovku a jako v kterém playlistu', e => this.previewPopover(e.currentTarget), 'tl-sgshow')),
+      this.pvInfo = h('div', { class: 'ep-info' }));
+    this.saveBox = h('div', { class: 'ed-save' }, this.savedInd, h('div', { class: 'ed-save-row' }, this.saveBtn, moreBtn), readerBtn);
+    this.pager = h('div', { class: 'ed-side' });
     const ed = h('div', { class: 'song-editor' },
       h('div', { class: 'ed-body' }, this.leftPanel,
         this.center = h('div', { class: 'ed-center' }, this.tools, h('div', { class: 'ed-main' }, h('div', { class: 'ed-stagebox' }, this.stageWrap, this.pageNav), this.pager))));
@@ -379,13 +379,29 @@ class SongEditor {
 
 
   /* ----- Šablona a údaje pro stránku ----- */
-  /* lišta: pevně nahoře, nebo plovoucí panel v okně se stránkou (poloha se pamatuje) */
+  /* úpravy textu: lišta nahoře ('top'), plovoucí panel v okně se stránkou ('float', poloha se pamatuje), nebo v pravém panelu ('side') */
+  toolsMode() { return isMobile() ? 'top' : Settings.get('edToolsMode') || 'side'; }
+  toolsModeMenu(anchor) {
+    const cur = this.toolsMode(), set = m => () => { Settings.set('edToolsMode', m); this.applyToolsMode(); };
+    popupMenu(anchor, [['top', 'Lišta nahoře nad stránkou'], ['float', 'Plovoucí panel (přesun tažením)'], ['side', 'V pravém panelu']]
+      .map(([m, label]) => ({ label, hint: m === cur ? '✓' : '', action: set(m) })));
+  }
   applyToolsMode() {
-    const fl = !isMobile() && !!Settings.get('edToolsFloat');
-    this.center.classList.toggle('tools-float', fl);
-    this.floatBtn.title = fl ? 'Vrátit lištu nahoru nad stránku' : 'Plovoucí lišta – v okně se stránkou, přesouvá se tažením za úchyt';
-    this.floatBtn.replaceChildren(ic(fl ? 'dock' : 'float'));
-    if (fl) { const p = Settings.get('edToolsPos') || { x: 12, y: 12 }; this.placeTools(p.x, p.y); }
+    const mode = this.toolsMode(), side = mode === 'side';
+    this.center.classList.toggle('tools-float', mode === 'float');
+    this.center.classList.toggle('tools-side', side);
+    if (side) {
+      // pravý panel shora: čtečka, uložení, stránka písně, zpěváci, úpravy textu; náhled dole
+      this.textHead.append(this.undoGrp, this.modeGrp);
+      this.textGroup.append(this.tools);
+      this.tools.replaceChildren(this.toolsText);
+      this.pager.replaceChildren(this.saveBox, this.pageGroup, this.sgGroup, this.textGroup, this.sideGrow, this.pvGroup);
+    } else {
+      this.tools.replaceChildren(this.modeGrp, this.toolsText, this.undoGrp);
+      if (this.tools.parentNode !== this.center) this.center.prepend(this.tools);
+      this.pager.replaceChildren(this.sgGroup, this.pageGroup, this.sideGrow, this.pvGroup, this.saveBox);
+    }
+    if (mode === 'float') { const p = Settings.get('edToolsPos') || { x: 12, y: 12 }; this.placeTools(p.x, p.y); }
     else this.tools.style.left = this.tools.style.top = '';
   }
   placeTools(x, y) {
