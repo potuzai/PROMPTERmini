@@ -203,6 +203,7 @@ class SongEditor {
       h('div', { class: 'tl-grp sw-row', title: 'Kdo zpívá vybraný řádek (všichni vypnutí = nikdo)' }, ...this.sgButtons,
         tool('Zobrazení ▾', 'Jak se který zpěvák na stránce označí: proužek vlevo / vpravo, podklad, barva písma – jen pro tuto píseň', e => this.singerPopover(e.currentTarget))),
       sep(),
+      this.fontSel = h('select', { class: 'tl tl-font', title: 'Písmo této písně (bez výběru platí písmo šablony; další volby v ⋯ › Písmo této písně…)', onchange: () => this.setFont(this.fontSel.value) }),
       h('div', { class: 'tl-grp seg-row' },
         tool(h('b', {}, 'B'), 'Tučně (Ctrl+B) – označená slova, nebo celý řádek', () => this.se.format('bold')),
         tool(h('i', {}, 'I'), 'Kurzíva (Ctrl+I)', () => this.se.format('italic')),
@@ -214,8 +215,7 @@ class SongEditor {
           { label: 'VELKÁ PÍSMENA', action: () => this.se.format('upper') },
           { label: 'malá písmena', action: () => this.se.format('lower') }])),
       sep(),
-      menuTool('＋ Vložit ▾', 'Vložit pod vybraný řádek: řádek, sekci, opakování, poznámku, mezeru, novou stránku, text', btn => [
-        { label: 'Řádek', hint: 'Enter', action: () => this.se.startEdit(null, 'end') },
+      menuTool('＋ Vložit ▾', 'Vložit pod vybraný řádek: sekci, opakování, poznámku, mezeru, novou stránku, text (nový řádek = Enter při psaní)', btn => [
         { label: 'Sekce (sloka, refrén…)', action: () => this.insertSection() },
         { label: 'Opakování sekce…', action: () => this.insertRepeat(btn) },
         { label: 'Poznámka', action: () => this.se.insertLines(['// '], { edit: true }) },
@@ -259,6 +259,8 @@ class SongEditor {
     this.privNote.addEventListener('input', () => { PrivateNotes.set(this.id, this.privNote.value); this.schedulePreview(); });
     [this.inTitle, this.inArtist, this.inKey, this.inTempo, this.inDur, this.inTags].forEach(i => i.addEventListener('input', onMeta));
     this.inTpl.addEventListener('change', onMeta);
+    this.inTpl.addEventListener('change', () => this.paintFont());
+    this.paintFont();
     this.inPl.addEventListener('change', () => this.se.render());
     this.inTitle.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === 'Escape') { e.preventDefault(); this.stageWrap.focus(); } });
     // tlačítka panelu a lišty nesmí vzít stránce výběr ani kurzor
@@ -361,6 +363,23 @@ class SongEditor {
     this.paintStruct();
     this.paintSingers();
     this.paintSize();
+  }
+  /* písmo písně v liště: „podle šablony“ nebo vlastní (ukládá se do písně jako u Písmo této písně…) */
+  paintFont() {
+    if (!this.fontSel) return;
+    const base = Store.template(this.inTpl.value || Settings.get('defaultTemplate'));
+    const cur = (this.style && this.style.fontFamily) || '';
+    this.fontSel.replaceChildren(h('option', { value: '' }, base.fontFamily + ' (šablona)'),
+      ...FONTS.map(f => h('option', { value: f, style: { fontFamily: `"${f}"` } }, f)));
+    this.fontSel.value = cur;
+    this.fontSel.style.fontFamily = `"${cur || base.fontFamily}", sans-serif`;
+  }
+  setFont(f) {
+    const st = Object.assign({}, this.style || {});
+    if (f) st.fontFamily = f; else delete st.fontFamily;
+    this.style = Object.keys(st).length ? st : null;
+    this.markDirty(); this.se.render(); this.paintFont();
+    this.stageWrap.focus({ preventScroll: true });
   }
   /* Velikost písma v px na zvolené obrazovce. Ukládá se poměrem k písmu řádku ze šablony
      ({130%:…}), takže na jiné obrazovce i po změně šablony zůstane ve stejném poměru. */
@@ -619,6 +638,7 @@ class SongEditor {
       const clean = {};
       for (const [k, v] of Object.entries(st)) if (v !== '' && v != null && !(k === 'sizePct' && +v === 100)) clean[k] = v;
       this.style = Object.keys(clean).length ? clean : null;
+      this.paintFont();
       this.markDirty(); this.schedulePreview();
     };
     const f = (label, el) => h('label', { class: 'f' }, h('span', {}, label), el);

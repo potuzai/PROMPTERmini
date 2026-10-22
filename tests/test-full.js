@@ -112,7 +112,7 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   await p.keyboard.press('Enter');
   await sleep(200);
   assert((await src()).includes('## Bridge'), 'vložení sekce tlačítkem');
-  await insert('Řádek');
+  await p.evaluate(() => SongsView.editor.se.startEdit(null, 'end'));   // nový řádek pod vybraný (jako Enter při psaní)
   await p.keyboard.type('text mostu');
   await p.keyboard.press('Escape');
   await sleep(100);
