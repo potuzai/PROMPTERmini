@@ -89,8 +89,10 @@ function parseSong(text) {
       continue;
     }
     if (t === '') {
+      // první prázdný řádek = mezera mezi slokami, každý další = celý prázdný řádek
+      const extra = i > 0 && lines[i - 1] && lines[i - 1].kind === 'gap';
       lines.push({ kind: 'gap', singers: [] });
-      const b = { type: 'gap', src: i };
+      const b = extra ? { type: 'gap', src: i, extra: true } : { type: 'gap', src: i };
       blocks.push(b); if (curSection) curSection.blocks.push(b);
     } else if ((m = RE_BREAK.exec(t))) {
       const screen = m[1] || 'main';
@@ -145,7 +147,7 @@ function parseSong(text) {
   // Odstraní mezery na začátku a konci a zdvojené mezery
   const out = [];
   for (const b of blocks) {
-    if (b.type === 'gap' && (out.length === 0 || out[out.length - 1].type === 'gap' || out[out.length - 1].type === 'break')) continue;
+    if (b.type === 'gap' && (out.length === 0 || (!b.extra && out[out.length - 1].type === 'gap') || out[out.length - 1].type === 'break')) continue;
     out.push(b);
   }
   while (out.length && out[out.length - 1].type === 'gap') out.pop();
@@ -169,7 +171,7 @@ function filterForView(blocks) {
   // bez skrytých řádků nesmí zůstat zdvojené mezery
   const res = [];
   for (const b of out) {
-    if (b.type === 'gap' && (!res.length || res[res.length - 1].type === 'gap')) continue;
+    if (b.type === 'gap' && !b.extra && (!res.length || res[res.length - 1].type === 'gap')) continue;
     res.push(b);
   }
   while (res.length && res[res.length - 1].type === 'gap') res.pop();

@@ -58,7 +58,7 @@ const Render = {
   },
 
   blockEl(b, tpl, singerMap) {
-    if (b.type === 'gap') return h('div', { class: 'b-gap' });
+    if (b.type === 'gap') return b.extra ? h('div', { class: 'b-line b-empty', 'data-src': b.src }, '\u00a0') : h('div', { class: 'b-gap' });
     if (b.type === 'break') return h('div', { class: 'b-gap' });
     if (b.type === 'section') {
       // předehra, mezihra, sólo: pokyn pro kapelu, vidět vždy (i když se nadpisy sekcí neukazují)
