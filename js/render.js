@@ -65,13 +65,13 @@ const Render = {
     if (b.type === 'section') {
       // předehra, mezihra, sólo: pokyn pro kapelu, vidět vždy (i když se nadpisy sekcí neukazují)
       // nadpis jde formátovat jako text (písmo, velikost, zarovnání…)
-      // počet opakování je uvnitř formátování nadpisu (stejná velikost a styl)
+      // u pokynu (předehra…) je počet opakování uvnitř formátování (stejná velikost a styl)
       const raw = b.label || b.text, cnt = b.count > 1 ? b.count + '×' : '';
       let el;
       if (b.instr) el = h('div', { class: 'b-instr', 'data-src': b.src, style: { color: b.color || tpl.instrColor || '#ff0000' }, html: inlineHtml(cnt ? insideMarks(raw, cnt + ' ') : raw, singerMap) });
       else {
         const sg = b.singers.map(c => singerMap[c]).filter(Boolean);
-        el = h('div', { class: 'b-sec' + (b.repeat ? ' rep' : ''), 'data-src': b.src, style: b.color ? { color: b.color } : {}, html: inlineHtml(cnt ? insideMarks(raw, ' ' + cnt, true) : raw, singerMap) },
+        el = h('div', { class: 'b-sec' + (b.repeat ? ' rep' : ''), 'data-src': b.src, style: b.color ? { color: b.color } : {}, html: inlineHtml(raw, singerMap) },   // počet opakování je u prvního řádku sekce, ne v nadpisu
           sg.length ? h('span', { class: 'sec-sg' }, ' · ' + sg.map(s => s.name).join(' + ')) : null);
       }
       if (b.align) el.style.textAlign = AL_CSS[b.align];
