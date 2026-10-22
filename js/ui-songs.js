@@ -188,7 +188,7 @@ class SongEditor {
 
     // Lišta nad stránkou: vše pro vybraný řádek
     const sep = () => h('span', { class: 'tl-sep' });
-    // Muzikanti: v pravém panelu pod náhledem
+    // Muzikanti: nahoře v pravém panelu
     this.musBtn = h('button', { class: 'btn small ed-mus', title: 'Akordy a poznámky pro nástroje – ve čtečce se nikdy nezobrazí', onclick: e => {
       const btn = e.currentTarget, on = !!(Settings.get('musView') || {}).on;
       popupMenu(btn, [
@@ -234,6 +234,7 @@ class SongEditor {
     // Pravý panel pod lištou: stránkování, náhled (obrazovka, playlist), dole uložení a čtečka
     const sgrp = (label, ...kids) => h('div', { class: 'ep-group' }, h('div', { class: 'ep-lbl' }, label), ...kids);
     this.pager = h('div', { class: 'ed-side' },
+      this.musBtn,
       sgrp('Stránka',
         h('div', { class: 'ed-pages' },
           h('button', { class: 'tl', title: 'Předchozí stránka (PgUp)', onclick: () => this.se.turnPage(-1) }, '‹'),
@@ -242,8 +243,7 @@ class SongEditor {
         h('button', { class: 'btn small ed-break', title: 'Na zvolené obrazovce začít od vybraného řádku novou stránku (ostatní obrazovky stránkují samy)', onclick: () => this.se.insertLines([this.breakLine()], { before: true }) }, '＋ Nová stránka od řádku')),
       sgrp('Náhled',
         h('label', { class: 'f' }, h('span', {}, 'Obrazovka'), this.scrSel),
-        h('label', { class: 'f' }, h('span', {}, 'Jako v playlistu'), this.inPl),
-        this.musBtn),
+        h('label', { class: 'f' }, h('span', {}, 'Jako v playlistu'), this.inPl)),
       h('div', { class: 'grow' }),
       h('div', { class: 'ed-save' }, this.savedInd, h('div', { class: 'ed-save-row' }, this.saveBtn, moreBtn), readerBtn));
     const ed = h('div', { class: 'song-editor' },
