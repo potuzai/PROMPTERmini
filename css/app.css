@@ -498,16 +498,26 @@ details summary { color: var(--text); }
 .tl-grip:active { cursor: grabbing; }
 .tl-grip .ic { width: 16px; height: 16px; }
 .ed-center { position: relative; }
-.tools-float .ed-tools { position: absolute; z-index: 20; flex-direction: column; align-items: stretch; gap: 8px; width: 152px; padding: 6px 8px 8px; border: 1px solid var(--line2); border-radius: var(--rc); box-shadow: 0 10px 28px rgba(0,0,0,.5); }
+/* plovoucí lišta: úzký sloupec, tlačítka ve 2 sloupcích (jako palety nástrojů v grafických editorech), čísla nad − + */
+.tools-float .ed-tools { position: absolute; z-index: 20; flex-direction: column; align-items: stretch; gap: 10px; width: 104px; padding: 6px 8px 10px; border: 1px solid var(--line2); border-radius: var(--rc); box-shadow: 0 10px 28px rgba(0,0,0,.5); }
 .tools-float .ed-tools > .tl-mode, .tools-float .ed-tools > .ed-undo { position: static; }
-.tools-float .ed-tools > .tl-mode { justify-content: space-between; border-bottom: 1px solid var(--line); padding-bottom: 4px; }
-.tools-float .tl-grip { display: flex; }
-.tools-float .ed-tools-text { flex-direction: column; align-items: stretch; flex-wrap: nowrap; gap: 6px; }
-.tools-float .ed-tools-text > .tl-grp, .tools-float .ed-undo { justify-content: stretch; }
-.tools-float .ed-tools-text > .tl-grp > *, .tools-float .ed-undo > * { flex: 1 1 0; min-width: 0; }
-.tools-float .ed-tools-text > .tl-grp > .tl-step { flex: 0 0 26px; }
-.tools-float .tl.tl-font { width: 100%; }
-.tools-float .ed-undo { border-top: 1px solid var(--line); padding-top: 6px; }
+.tools-float .tl-grip { display: flex; width: auto; height: 26px; }
+.tools-float .ed-tools-text { flex-direction: column; align-items: stretch; flex-wrap: nowrap; gap: 10px; }
+.tools-float .tl-grp { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; border: 0; overflow: visible; }
+.tools-float .tl-grp .tl { width: auto; min-width: 0; height: 38px; padding: 0; border: 1px solid var(--line2); border-radius: var(--r); font-size: 16px; }
+.tools-float .tl-grp .tl .ic { width: 18px; height: 18px; }
+.tools-float .tl-mode { border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.tools-float .tl-mode .tl { height: 26px; border: 0; background: none; color: var(--dim); }
+.tools-float .tl.tl-font { width: 100%; height: 34px; font-size: 13px; }
+.tools-float .tl-lh-grp { grid-template-areas: "v v" "m p"; }
+.tools-float .tl-lh-grp > :first-child { grid-area: m; }
+.tools-float .tl-lh-grp > :nth-child(2) { grid-area: v; height: 32px; justify-content: center; gap: 4px; background: none; border-color: transparent; }
+.tools-float .tl-lh-grp > :last-child { grid-area: p; }
+.tools-float .tl-lh-grp .tl-step { font-size: 20px; color: var(--text); }
+.tools-float .tl-size input { font-size: 16px; }
+.tools-float .tl-lh .ic.tl-lh-ic { width: 17px; height: 17px; }
+.tools-float .tl-al-grp { grid-template-columns: repeat(3, 1fr); gap: 2px; }
+.tools-float .ed-undo { border-top: 1px solid var(--line); padding-top: 8px; }
 .tl-sep { width: 1px; height: 22px; background: var(--line2); }
 .tl { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 30px; height: 32px; padding: 0 8px; border: 1px solid var(--line2); border-radius: var(--r); background: var(--well); color: var(--text); font: 13.5px var(--font); cursor: pointer; white-space: nowrap; }
 .tl:hover { background: var(--hover); }
