@@ -135,6 +135,8 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   await p.evaluate(async () => { const s = SongsView.editor; s.se.commit('## Sloka 1\nprvní\ndruhý\ntřetí\nčtvrtý'); s.se.select(2); s.se.select(3, true); });
   await p.click('.ep-lbl-row button:has-text("Sekce")'); await p.click('.modal button:has-text("Refrén")'); await p.click('.modal-buttons button:has-text("Vložit")'); await sleep(200);
   assert(await src() === '## Sloka 1\nprvní\n## Refrén\ndruhý\ntřetí\n## Sloka 1\nčtvrtý', 'sekce přesně z označených řádků, za nimi pokračuje původní sekce (' + JSON.stringify(await src()) + ')');
+  await p.click('.ep-struct .st-item:has-text("Refrén")'); await sleep(200);
+  assert(await p.evaluate(() => { const se = SongsView.editor.se; return se.selTargets().map(t => se.lines()[t.line]).join('|') === 'druhý|třetí' && document.querySelector('.se-wrap').classList.contains('multi'); }), 'klik na sekci ve Struktuře označí celý její text jako blok');
   await p.evaluate(() => SongsView.editor.se.select(0));
   await p.click('.ep-lbl-row button:has-text("Sekce")'); await p.click('.modal button:has-text("Předehra")');
   await p.fill('.modal input[type=number]', '8'); await p.click('.modal-buttons button:has-text("Vložit")'); await sleep(200);

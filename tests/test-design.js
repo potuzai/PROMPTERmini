@@ -172,11 +172,11 @@ const URL = 'http://localhost:8123/index.html';
       && await q.isVisible('.ed-left-panel .ep-meta'), 'editor: název a údaje v levém panelu');
     assert(await q.locator('.ep-struct .st-item').count() === 3 && await q.isVisible('.ep-struct .st-brk:has-text("Stránka 2")'), 'struktura: sekce, opakování a konec stránky');
     await q.click('.ep-struct .st-item:has-text("Refrén") >> nth=0'); await sleep(200);
-    assert(await q.evaluate(() => SongsView.editor.se.cur().line) === 2 && await q.isVisible('.ep-struct .st-item.on:has-text("Refrén")'), 'klik na sekci ji vybere na stránce');
+    assert(await q.evaluate(() => SongsView.editor.se.cur().line) === 3 && await q.isVisible('.ep-struct .st-item.on:has-text("Refrén")'), 'klik na sekci označí její řádky na stránce');
     await q.click('.ed-tools .sw:has-text("Ty")'); await sleep(300);
-    assert((await q.evaluate(() => SongsView.editor.src)).includes('## Refrén @V+T'), 'klik na zpěváka v liště ho přidá k sekci');
-    await q.click('.ed-tools .sw:has-text("Všichni")'); await sleep(300);
-    assert((await q.evaluate(() => SongsView.editor.src)).includes('## Refrén @T'), 'opětovný klik zpěváka ze sekce odebere');
+    assert((await q.evaluate(() => SongsView.editor.src)).includes('@T Holubí dům'), 'klik na zpěváka v liště ho přidá řádkům sekce');
+    await q.click('.ed-tools .sw:has-text("Ty")'); await sleep(300);
+    assert((await q.evaluate(() => SongsView.editor.src)).includes('\nHolubí dům'), 'opětovný klik zpěváka ho z řádků odebere');
 
     /* ----- Čtečka: lišta, seznam, nabídka ----- */
     await q.keyboard.press('Control+S'); await sleep(200);

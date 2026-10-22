@@ -438,11 +438,15 @@ class SongEditor {
     let pg = 1;
     for (const it of items) {
       if (it.brk) { this.structBox.appendChild(h('div', { class: 'st-brk' }, h('span', {}, 'Stránka ' + (++pg)))); continue; }
+      // klik = označit celou sekci jako blok (zpěvák, písmo, velikost pak platí pro celou sekci)
       const go = () => {
-        this.se.finishEdit(true);
-        let idx = this.se.targets.findIndex(t => t.line >= it.line);
-        if (idx < 0) idx = this.se.targets.length - 1;
-        this.se.select(idx);
+        const se = this.se;
+        se.finishEdit(true);
+        const next = items.find(x => !x.brk && x.line > it.line);
+        const end = next ? next.line : Infinity;
+        const idxs = se.targets.map((t, i) => [t, i]).filter(([t]) => t.line > it.line && t.line < end && t.kind !== 'repeat').map(x => x[1]);
+        if (idxs.length) { se.select(idxs[0]); if (idxs.length > 1) se.select(idxs[idxs.length - 1], true); }
+        else { let idx = se.targets.findIndex(t => t.line >= it.line); se.select(idx < 0 ? se.targets.length - 1 : idx); }
         this.stageWrap.focus({ preventScroll: true });
       };
       const menu = e => { e.stopPropagation(); e.preventDefault(); this.sectionMenu(e.currentTarget, it); };
