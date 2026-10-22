@@ -29,7 +29,7 @@ const TPL_FIELDS = [
   { k: 'stanzaGap', l: 'Mezera mezi slokami (× výška písma)', t: 'range', min: 0, max: 2, step: 0.05 },
   { k: 'onePage', l: 'Zakázat více stránek (písmo se zmenší, aby se píseň vešla na 1 stránku)', t: 'check' },
   { k: 'fit', l: 'Když jsou povolené další stránky', t: 'select', o: [['shrink', 'nejdřív zmenšit písmo (nejvýš na nejmenší zmenšení)'], ['paginate', 'hned rozdělit na více stránek']] },
-  { k: 'minScale', l: 'Nejmenší písmo při zmenšování (při povolených dalších stránkách)', t: 'range', min: 0.4, max: 1, step: 0.05, rel: true },
+  { k: 'minScale', l: 'Nejmenší písmo', t: 'range', min: 0.4, max: 1, step: 0.05, rel: true, help: 'Jen když jsou povolené další stránky: do této velikosti se písmo zmenší, pak se píseň rozdělí.' },
   { g: 'Zobrazení' },
   { k: 'showHeader', l: 'Záhlaví (název, ladění, pořadí)', t: 'check' },
   { k: 'showFooter', l: 'Zápatí (strana, další píseň)', t: 'check' },

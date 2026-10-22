@@ -199,7 +199,10 @@ class SongEditor {
     // Lišta nad stránkou: vše pro vybraný řádek
     const sep = () => h('span', { class: 'tl-sep' });
     // lišta nad stránkou: úpravy textu
-    this.tools = h('div', { class: 'ed-tools' }, h('div', { class: 'ed-tools-text' },
+    // lišta jde přepnout na plovoucí panel v okně se stránkou (přesouvá se tažením za úchyt)
+    this.toolsGrip = h('div', { class: 'tl-grip', title: 'Přetažením přesuneš lištu' }, ic('grip'));
+    this.floatBtn = tool(ic('float'), '', () => { Settings.set('edToolsFloat', !Settings.get('edToolsFloat')); this.applyToolsMode(); }, 'tl-float');
+    this.tools = h('div', { class: 'ed-tools' }, h('div', { class: 'tl-grp tl-mode' }, this.toolsGrip, this.floatBtn), h('div', { class: 'ed-tools-text' },
       this.fontSel = h('select', { class: 'tl tl-font', title: 'Písmo označených slov, řádku, nebo bez výběru celé písně', onmousedown: () => this.keepSel(), onchange: () => this.setFont(this.fontSel.value) }),
       h('div', { class: 'tl-grp seg-row' },
         tool(h('b', {}, 'B'), 'Tučně (Ctrl+B) – označená slova, řádek, nebo bez výběru celá píseň', () => this.fmt('bold')),
@@ -265,9 +268,11 @@ class SongEditor {
       h('div', { class: 'ed-save' }, this.savedInd, h('div', { class: 'ed-save-row' }, this.saveBtn, moreBtn), readerBtn));
     const ed = h('div', { class: 'song-editor' },
       h('div', { class: 'ed-body' }, this.leftPanel,
-        h('div', { class: 'ed-center' }, this.tools, h('div', { class: 'ed-main' }, h('div', { class: 'ed-stagebox' }, this.stageWrap, this.pageNav), this.pager))));
+        this.center = h('div', { class: 'ed-center' }, this.tools, h('div', { class: 'ed-main' }, h('div', { class: 'ed-stagebox' }, this.stageWrap, this.pageNav), this.pager))));
     this.root.innerHTML = '';
     this.root.appendChild(ed);
+    this.applyToolsMode();
+    this.dragTools();
 
     const onMeta = () => { this.markDirty(); this.schedulePreview(); };
     this.privNote.addEventListener('input', () => { PrivateNotes.set(this.id, this.privNote.value); this.schedulePreview(); });
@@ -374,6 +379,36 @@ class SongEditor {
 
 
   /* ----- Šablona a údaje pro stránku ----- */
+  /* lišta: pevně nahoře, nebo plovoucí panel v okně se stránkou (poloha se pamatuje) */
+  applyToolsMode() {
+    const fl = !isMobile() && !!Settings.get('edToolsFloat');
+    this.center.classList.toggle('tools-float', fl);
+    this.floatBtn.title = fl ? 'Vrátit lištu nahoru nad stránku' : 'Plovoucí lišta – v okně se stránkou, přesouvá se tažením za úchyt';
+    this.floatBtn.replaceChildren(ic(fl ? 'dock' : 'float'));
+    if (fl) { const p = Settings.get('edToolsPos') || { x: 12, y: 12 }; this.placeTools(p.x, p.y); }
+    else this.tools.style.left = this.tools.style.top = '';
+  }
+  placeTools(x, y) {
+    const c = this.center, t = this.tools;
+    x = Math.round(Math.max(0, Math.min(c.clientWidth - t.offsetWidth, x)));
+    y = Math.round(Math.max(0, Math.min(c.clientHeight - t.offsetHeight, y)));
+    t.style.left = x + 'px'; t.style.top = y + 'px';
+    return { x, y };
+  }
+  dragTools() {
+    this.toolsGrip.addEventListener('pointerdown', e => {
+      if (!this.center.classList.contains('tools-float')) return;
+      e.preventDefault();
+      const sx = e.clientX - this.tools.offsetLeft, sy = e.clientY - this.tools.offsetTop;
+      let pos = null;
+      const move = ev => { pos = this.placeTools(ev.clientX - sx, ev.clientY - sy); };
+      const up = () => { removeEventListener('pointermove', move); removeEventListener('pointerup', up); if (pos) Settings.set('edToolsPos', pos); };
+      addEventListener('pointermove', move); addEventListener('pointerup', up);
+    });
+    // po změně okna zůstane lišta uvnitř
+    const fit = () => { if (!this.center.isConnected) return removeEventListener('resize', fit); if (this.center.classList.contains('tools-float')) this.applyToolsMode(); };
+    addEventListener('resize', fit);
+  }
   /* náhled: výběr obrazovky a playlistu schovaný pod tlačítkem, pod nadpisem jen stručně aktuální výběr */
   previewPopover(anchor) {
     $$('.menu').forEach(m => m.remove());

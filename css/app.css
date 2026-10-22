@@ -492,6 +492,22 @@ details summary { color: var(--text); }
 .ed-tools > .ed-undo { position: absolute; top: 8px; right: 8px; }   /* úplně vpravo; nástroje mají vpravo místo jako pravý panel, takže jsou na středu nad stránkou */
 .ed-tools-text { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 5px; min-width: 0; }
 .tl-grp { display: flex; align-items: center; gap: 3px; }
+/* přepínač plovoucí lišty a úchyt (úchyt jen u plovoucí) */
+.ed-tools > .tl-mode { position: absolute; top: 8px; right: 84px; }   /* vedle Zpět / Znovu */
+.tl-grip { display: none; width: 22px; height: 30px; align-items: center; justify-content: center; color: var(--faint); cursor: grab; touch-action: none; }
+.tl-grip:active { cursor: grabbing; }
+.tl-grip .ic { width: 16px; height: 16px; }
+.ed-center { position: relative; }
+.tools-float .ed-tools { position: absolute; z-index: 20; flex-direction: column; align-items: stretch; gap: 8px; width: 152px; padding: 6px 8px 8px; border: 1px solid var(--line2); border-radius: var(--rc); box-shadow: 0 10px 28px rgba(0,0,0,.5); }
+.tools-float .ed-tools > .tl-mode, .tools-float .ed-tools > .ed-undo { position: static; }
+.tools-float .ed-tools > .tl-mode { justify-content: space-between; border-bottom: 1px solid var(--line); padding-bottom: 4px; }
+.tools-float .tl-grip { display: flex; }
+.tools-float .ed-tools-text { flex-direction: column; align-items: stretch; flex-wrap: nowrap; gap: 6px; }
+.tools-float .ed-tools-text > .tl-grp, .tools-float .ed-undo { justify-content: stretch; }
+.tools-float .ed-tools-text > .tl-grp > *, .tools-float .ed-undo > * { flex: 1 1 0; min-width: 0; }
+.tools-float .ed-tools-text > .tl-grp > .tl-step { flex: 0 0 26px; }
+.tools-float .tl.tl-font { width: 100%; }
+.tools-float .ed-undo { border-top: 1px solid var(--line); padding-top: 6px; }
 .tl-sep { width: 1px; height: 22px; background: var(--line2); }
 .tl { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 30px; height: 32px; padding: 0 8px; border: 1px solid var(--line2); border-radius: var(--r); background: var(--well); color: var(--text); font: 13.5px var(--font); cursor: pointer; white-space: nowrap; }
 .tl:hover { background: var(--hover); }
@@ -934,6 +950,7 @@ input[type=checkbox].switch:focus-visible { outline: 2px solid var(--acc-hi); ou
   .ed-side .grow { display: none; }
   .ed-tools { display: flex; overflow-x: auto; padding: 6px 8px; }   /* lišta v jednom řádku, posouvá se prstem */
   .ed-tools > .ed-undo { position: static; }
+  .ed-tools > .tl-mode { display: none; }
   .ed-tools-text { flex-wrap: nowrap; }
   .ed-tools > *, .ed-tools-text > *, .ed-tools .tl, .ed-tools .sw { flex-shrink: 0; }
   .ep-group { margin-top: 16px; }
