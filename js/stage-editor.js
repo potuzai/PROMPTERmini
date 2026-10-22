@@ -1234,7 +1234,8 @@ function wrapOuter(b, w) {
 }
 function formatLine(src, kind, val) {
   const info = parseSong(src).lines[0] || {};
-  if (!['line', 'note', 'section'].includes(info.kind)) return src;
+  if (info.kind === 'section' && kind === 'color') return formatSectionLine(Object.assign(parseSectionLine(src), { color: val || '' }));   // barva z lišty u nadpisu = barva sekce
+  if (!['line', 'note'].includes(info.kind)) return src;   // nadpis sekce má vlastní volby (barva, opakování) – značky do názvu nepatří
   const sp = splitLine(src, info.kind);
   const pe = peelOuter(sp.body);
   let b = pe.b;

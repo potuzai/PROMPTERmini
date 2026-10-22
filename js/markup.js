@@ -29,6 +29,9 @@ function parseSectionLine(t) {
   let x;
   if ((x = /\s*(#[0-9a-fA-F]{6})$/.exec(name))) { color = x[1].toLowerCase(); name = name.slice(0, x.index); }
   if ((x = /(^|\s+)(\d{1,2})\s*[x×]$/i.exec(name))) { count = +x[2]; name = name.slice(0, x.index); }
+  // značky formátování do názvu sekce nepatří (starší úpravy je tam mohly zapsat)
+  for (let prev = null; prev !== name;) { prev = name; name = name.replace(/\{[^:{}]*:([^{}]*)\}/g, '$1'); }
+  name = name.replace(/\*\*|__/g, '');
   return { name: name.trim(), count, color, singers: parseCodes(m[2]) };
 }
 function formatSectionLine(o) {
