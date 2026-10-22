@@ -499,11 +499,16 @@ details summary { color: var(--text); }
 .tl-lh input { width: 2.4ch; text-align: left; letter-spacing: -.3px; }   /* dvě číslice, např. 1,2 */
 .tl-lh.on .ic.tl-lh-ic { color: var(--acc-hi); }
 .tl-color .tl-col { font-weight: 700; border-bottom: 3px solid var(--tc, var(--acc)); line-height: 1.1; padding: 0 1px; }   /* barva písma – podtržení = poslední použitá */
-.menu-page { max-height: 78vh; overflow-y: auto; }   /* stránka písně */
-.menu-page .pg-set { display: flex; flex-direction: column; gap: 8px; text-align: left; }
-.menu-page .f { display: flex; flex-direction: column; align-items: stretch; gap: 3px; margin: 0; }
-.menu-page .pg-row.own > * > span, .menu-page .pg-row.own .chk { color: var(--acc-hi); }
-.menu-page input[type=range] { width: 100%; }
+.menu-page { max-height: 80vh; overflow-y: auto; width: 320px; }   /* stránka písně: vlevo název, vpravo ovládání */
+.menu-page .pg-set { display: flex; flex-direction: column; align-items: stretch; gap: 2px; text-align: left; }
+.menu-page .pg-g { margin: 8px 0 2px; font: 600 11px var(--font); letter-spacing: .05em; text-transform: uppercase; color: var(--dim); }
+.menu-page .pg-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 32px; }
+.menu-page .pg-l { flex: 1; min-width: 0; font-size: 13px; }
+.menu-page .pg-row.own .pg-l::after { content: ''; display: inline-block; width: 6px; height: 6px; margin-left: 6px; border-radius: 50%; background: var(--acc-hi); vertical-align: middle; }
+.menu-page .pg-sel { width: 140px; min-height: 28px; padding: 2px 6px; font-size: 13px; }
+.menu-page .pg-step { display: flex; align-items: center; border: 1px solid var(--line2); border-radius: var(--r); overflow: hidden; }
+.menu-page .pg-step .tl { border: 0; border-radius: 0; height: 28px; min-width: 26px; padding: 0; color: var(--dim); }
+.menu-page .pg-step span { min-width: 64px; text-align: center; font-size: 13px; font-variant-numeric: tabular-nums; }
 .col-sw { display: grid; grid-template-columns: repeat(5, 26px); gap: 6px; }
 .col-dot { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--line2); cursor: pointer; padding: 0; }
 .col-dot:hover { outline: 2px solid var(--acc); outline-offset: 1px; }

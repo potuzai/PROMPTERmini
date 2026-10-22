@@ -519,36 +519,50 @@ class SongEditor {
   /* Nastavení stránky jen pro tuto píseň – stejné volby jako v šabloně (výchozí hodnoty = šablona) */
   pagePopover(anchor) {
     $$('.menu').forEach(m => m.remove());
-    const keys = PAGE_KEYS;
+    const F = k => TPL_FIELDS.find(f => f.k === k);
+    // přehledně: skupiny, vlevo název, vpravo přepínač / výběr / − hodnota +
+    const groups = [
+      ['Zpěváci', [['barWidth', 'Šířka proužku', 'px']]],
+      ['Rozvržení', [['padX', 'Okraj vlevo a vpravo', 'px'], ['padY', 'Okraj nahoře a dole', 'px'], ['columns', 'Sloupce'], ['colGap', 'Mezera mezi sloupci', 'px'],
+        ['stanzaGap', 'Mezera mezi slokami', '×'], ['fit', 'Dlouhá píseň', null, [['shrink', 'zmenšit písmo'], ['paginate', 'na více stránek']]], ['minScale', 'Nejmenší zmenšení', '%']]],
+      ['Zobrazení', [['showHeader', 'Záhlaví'], ['showFooter', 'Zápatí'], ['headerSize', 'Velikost záhlaví a zápatí', 'px'], ['showSections', 'Nadpisy sekcí'],
+        ['sectionScale', 'Velikost nadpisů sekcí', '%'], ['showNotes', 'Poznámky (//)'], ['mirror', 'Zrcadlení']]],
+    ];
     const box = h('div', { class: 'pg-set' });
     const paint = () => {
       box.innerHTML = '';
       const tpl = this.lookTpl(), base = this.baseTpl(), st = this.style || {};
-      for (const f of TPL_FIELDS.filter(f => keys.includes(f.k))) {
-        const v = tpl[f.k], own = st[f.k] !== undefined && st[f.k] !== base[f.k];
-        let ctl;
-        if (f.t === 'check') ctl = h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: !!v, onchange: e => { this.setSong(f.k, e.target.checked); paint(); } }), f.l);
-        else if (f.t === 'select') {
-          const sel = h('select', { class: 'inp' }, f.o.map(([val, lab]) => h('option', { value: val, selected: String(val) === String(v) }, lab)));
-          sel.onchange = () => { this.setSong(f.k, typeof f.o[0][0] === 'number' ? +sel.value : sel.value); paint(); };
-          ctl = h('label', { class: 'f' }, h('span', {}, f.l), sel);
-        } else {
-          const fmt = f.fmt || (x => f.pct ? Math.round(x * 100) + ' %' : String(+(+x).toFixed(3)));
-          const lab = h('b', {}, fmt(v));
-          const r = h('input', { type: 'range', min: f.min, max: f.max, step: f.step, value: v });
-          r.oninput = () => { lab.textContent = fmt(r.value); };
-          r.onchange = () => { this.setSong(f.k, +r.value); paint(); };
-          ctl = h('label', { class: 'f' }, h('span', {}, f.l, ': ', lab), r);
+      for (const [title, rows] of groups) {
+        box.appendChild(h('div', { class: 'pg-g' }, title));
+        for (const [k, label, unit, opts] of rows) {
+          const f = F(k), v = tpl[k], own = st[k] !== undefined && st[k] !== base[k];
+          const set = val => { this.setSong(k, val); paint(); };
+          let ctl;
+          if (f.t === 'check') ctl = h('input', { type: 'checkbox', class: 'switch', checked: !!v, onchange: e => set(e.target.checked) });
+          else if (f.t === 'select') {
+            const sel = h('select', { class: 'inp pg-sel' }, (opts || f.o).map(([val, lab]) => h('option', { value: val, selected: String(val) === String(v) }, lab)));
+            sel.onchange = () => set(typeof f.o[0][0] === 'number' ? +sel.value : sel.value);
+            ctl = sel;
+          } else {
+            const step = +f.step * (unit === '%' ? 5 : 1) || 1, dec = String(step).split('.')[1] || '';
+            const show = x => unit === '%' ? Math.round(x * 100) + ' %' : (+(+x).toFixed(dec.length)).toString().replace('.', ',') + (unit === 'px' ? ' px' : unit === '×' ? ' ×' : '');
+            const go = d => set(Math.round(Math.max(f.min, Math.min(f.max, +v + d * step)) / step) * step);
+            ctl = h('div', { class: 'pg-step' },
+              h('button', { class: 'tl tl-step', onmousedown: e => e.preventDefault(), onclick: () => go(-1) }, '−'),
+              h('span', {}, show(v)),
+              h('button', { class: 'tl tl-step', onmousedown: e => e.preventDefault(), onclick: () => go(1) }, '+'));
+          }
+          box.appendChild(h('div', { class: 'pg-row' + (own ? ' own' : ''), title: own ? 'Jen pro tuto píseň (šablona: ' + base[k] + ')' : 'Podle šablony' }, h('span', { class: 'pg-l' }, label), ctl));
         }
-        box.appendChild(h('div', { class: 'pg-row' + (own ? ' own' : '') }, ctl));
       }
-      reset.style.display = keys.some(k => st[k] !== undefined) ? '' : 'none';
+      reset.style.display = PAGE_KEYS.some(k => st[k] !== undefined) ? '' : 'none';
     };
     const reset = h('button', { class: 'btn small nogrow', style: { alignSelf: 'flex-start' }, onclick: () => {
-      const st = Object.assign({}, this.style || {}); keys.forEach(k => delete st[k]);
+      const st = Object.assign({}, this.style || {}); PAGE_KEYS.forEach(k => delete st[k]);
       this.style = Object.keys(st).length ? st : null; this.markDirty(); this.se.render(); this.onSelChange(); paint();
     } }, 'Vše podle šablony');
-    const m = h('div', { class: 'menu menu-form menu-page' }, h('div', { class: 'menu-head' }, 'Stránka této písně'), h('div', { class: 'help' }, 'Výchozí hodnoty jsou ze šablony; změněné jsou zvýrazněné.'), box, reset);
+    const m = h('div', { class: 'menu menu-form menu-page' }, h('div', { class: 'menu-head' }, 'Stránka této písně'),
+      h('div', { class: 'help' }, 'Výchozí je šablona, změny platí jen pro tuto píseň (označené tečkou).'), box, reset);
     paint();
     placePopover(m, anchor);
   }
