@@ -237,8 +237,7 @@ class SongEditor {
       h('div', { class: 'ed-save' }, this.savedInd, h('div', { class: 'ed-save-row' }, this.saveBtn, moreBtn), readerBtn));
     const ed = h('div', { class: 'song-editor' },
       h('div', { class: 'ed-body' }, this.leftPanel,
-        h('div', { class: 'ed-center' }, h('div', { class: 'ed-main' },
-          h('div', { class: 'ed-col' }, this.tools, h('div', { class: 'ed-stagebox' }, this.stageWrap, this.pageNav)), this.pager))));   // lišta jen nad stránkou, pravý panel vedle
+        h('div', { class: 'ed-center' }, this.tools, h('div', { class: 'ed-main' }, h('div', { class: 'ed-stagebox' }, this.stageWrap, this.pageNav), this.pager))));
     this.root.innerHTML = '';
     this.root.appendChild(ed);
 
