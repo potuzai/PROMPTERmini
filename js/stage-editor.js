@@ -270,7 +270,7 @@ class StageEditor {
     if (e.altKey && /^Digit[0-9]$/.test(e.code)) { e.preventDefault(); return this.singerByNumber(+e.code.slice(5), e.shiftKey); }
     if (k === 'Escape') { e.preventDefault(); this.finishEdit(); return; }
     if (k === 'Tab') { e.preventDefault(); return; }
-    if (k === 'Enter') { e.preventDefault(); return this.splitLine(); }
+    if (k === 'Enter') { e.preventDefault(); return this.splitLine(e.shiftKey); }   // Shift+Enter: nový řádek už mimo sekci
     if (k === 'ArrowUp' || k === 'ArrowDown') { e.preventDefault(); return this.moveEdit(k === 'ArrowUp' ? -1 : 1); }
     const sel = window.getSelection();
     if (k === 'Backspace' && sel.isCollapsed && this.caretOffset() === 0) { e.preventDefault(); return this.joinPrev(); }
@@ -479,7 +479,7 @@ class StageEditor {
     this.render();
     if (!silent || (had && !this.wrap.contains(document.activeElement))) this.wrap.focus({ preventScroll: true });
   }
-  splitLine() {
+  splitLine(outOfSection) {
     const el = this.editEl, i = this.editing.line, kind = this.editKind;
     const sel = window.getSelection();
     const r = sel.getRangeAt(0);
@@ -495,11 +495,12 @@ class StageEditor {
     // nový řádek pokračuje stejným zpěvákem; za nadpisem / poznámkou začíná obyčejný řádek
     let prefix = '';
     if (kind === 'line') { const m = RE_SINGER.exec((ls[i] || '').trim()); if (m) prefix = '@' + m[1] + ' '; }
-    ls.splice(i + 1, 0, after ? prefix + after : '');
+    const end = outOfSection && kind === 'line' && inSection(ls, i) ? ['##'] : [];   // konec sekce před novým řádkem
+    ls.splice(i + 1, 0, ...end, after ? prefix + after : '');
     this.ed.src = ls.join('\n');
     this.ed.changed();
     this.pushHist();
-    this.editing = { line: i + 1, caret: 'start', prefix };
+    this.editing = { line: i + 1 + end.length, caret: 'start', prefix };
     this.render();
   }
   moveEdit(d) {
@@ -520,6 +521,13 @@ class StageEditor {
     const info = this.info();
     const prev = ls[i - 1], cur = ls[i];
     const curBody = splitLine(cur, this.editKind).body;
+    if (/^##\s*$/.test(prev.trim())) {
+      // smazat konec sekce: řádek se vrátí do sekce nad ním
+      ls.splice(i - 1, 1);
+      this.ed.src = ls.join('\n'); this.ed.changed(); this.pushHist();
+      this.editing = { line: i - 1, caret: 'start' };
+      return this.render();
+    }
     if (!prev.trim()) {
       // smazat mezeru mezi slokami
       ls.splice(i - 1, 1);
@@ -993,6 +1001,15 @@ function textNodes(root) {
 function selectContents(el) {
   const r = document.createRange(); r.selectNodeContents(el);
   const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+}
+/* patří řádek i do sekce s textem? (nad ním je nadpis sekce bez konce „##“, nové stránky či opakování) */
+function inSection(ls, i) {
+  for (let j = i; j >= 0; j--) {
+    const t = (ls[j] || '').trim();
+    if (/^##\s*$/.test(t) || RE_BREAK.test(t) || RE_REPEAT.test(t)) return false;
+    if (t.startsWith('##')) return sectionKind(parseSectionLine(t).name) !== 'instr';
+  }
+  return false;
 }
 /* Rozdělí řádek zdroje na značky (zachovat) a viditelný text (upravovat) */
 function splitLine(src, kind) {

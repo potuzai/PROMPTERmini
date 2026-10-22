@@ -1,6 +1,7 @@
 'use strict';
 /* ===== Značkovací jazyk textu písně =====
   ## Název sekce [@KÓD]   nadpis sekce (volitelně výchozí zpěvák celé sekce)
+  ##                      konec sekce (další řádky už do ní nepatří)
   @KÓD text               řádek konkrétního zpěváka (více: @J+T)
   >> Název sekce          zopakovat dříve definovanou sekci
   // poznámka             poznámka (malým písmem)
@@ -95,6 +96,10 @@ function parseSong(text) {
       const screen = m[1] || 'main';
       lines.push({ kind: 'break', singers: [], screen });
       blocks.push({ type: 'break', src: i, screen });
+      curSection = null;
+    } else if (/^##\s*$/.test(t)) {
+      // samotné „##“ = konec sekce: další řádky už k ní nepatří (Shift+Enter v editoru)
+      lines.push({ kind: 'secend', singers: [] });
       curSection = null;
     } else if ((m = RE_SECTION.exec(t))) {
       const sec = parseSectionLine(t);

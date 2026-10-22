@@ -495,6 +495,7 @@ class SongEditor {
       const t = l.trim();
       let m;
       if (breakScreen(t) !== null) { if (breakScreen(t) === this.screenId) items.push({ line: i, brk: true }); }
+      else if (/^##\s*$/.test(t)) return;   // konec sekce
       else if (t.startsWith('##')) {
         const sec = parseSectionLine(t), kind = sectionKind(sec.name), c = sec.singers[0];
         const color = sec.color || (kind === 'instr' ? tpl.instrColor : tpl.textBy === 'section' && kind ? tpl[kind + 'Color'] : '') || (c && sm[c] ? sm[c].color : '');
