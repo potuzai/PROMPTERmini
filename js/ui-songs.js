@@ -438,7 +438,23 @@ class SongEditor {
   /* zapnutí zpěváci: u slov v barvě zpěváka ten zpěvák, jinak zpěváci řádku */
   /* Aa: je-li v textu nějaké malé písmeno, vše na VELKÁ, jinak na malá */
   toggleCase() {
-    if (this.songScope()) return this.setSong('uppercase', !this.lookTpl().uppercase);
+    if (this.songScope()) {
+      // celá píseň: zobrazeno VELKÝMI → psát normálně (řádky psané celé velkými na „Velké první písmeno“), jinak VŠE VELKÝMI
+      const src = this.se.lines(), info = parseSong(this.src).lines;
+      const anyLower = src.some((l, i) => info[i] && info[i].kind === 'line' && /\p{Ll}/u.test(stripMarkupBody(l)));
+      if (!this.lookTpl().uppercase && anyLower) return this.setSong('uppercase', true);
+      const ls = src.map((l, i) => {
+        if (!info[i] || !['line', 'note'].includes(info[i].kind) || /\p{Ll}/u.test(stripMarkupBody(l))) return l;
+        const sp = splitLine(l, info[i].kind);
+        const b = caseText(sp.body, false).replace(/^((?:\{[^:}]*:|[\s*_[(„"'-])*)(\p{L})/u, (x, pre, c) => pre + c.toLocaleUpperCase('cs'));
+        return sp.prefix + b + sp.suffix;
+      });
+      const st = Object.assign({}, this.style || {});
+      if (this.baseTpl().uppercase) st.uppercase = false; else delete st.uppercase;
+      this.style = Object.keys(st).length ? st : null;
+      this.markDirty();
+      return this.se.commit(ls.join('\n'));
+    }
     const se = this.se, sel = window.getSelection();
     let t;
     if (se.editing && se.editEl && sel.rangeCount && !sel.isCollapsed && se.editEl.contains(sel.anchorNode)) t = sel.toString();
