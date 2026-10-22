@@ -64,10 +64,19 @@ const Render = {
     if (b.type === 'break') return h('div', { class: 'b-gap' });
     if (b.type === 'section') {
       // předehra, mezihra, sólo: pokyn pro kapelu, vidět vždy (i když se nadpisy sekcí neukazují)
-      if (b.instr) return h('div', { class: 'b-instr', 'data-src': b.src, style: { color: b.color || tpl.instrColor || '#ff0000', textAlign: AL_CSS[b.align] || '' } }, (b.count > 1 ? b.count + '× ' : '') + b.text);
-      const sg = b.singers.map(c => singerMap[c]).filter(Boolean);
-      return h('div', { class: 'b-sec' + (b.repeat ? ' rep' : ''), 'data-src': b.src, style: Object.assign(b.color ? { color: b.color } : {}, b.align ? { textAlign: AL_CSS[b.align] } : {}) },
-        b.text, b.count > 1 ? ' ' + b.count + '×' : '', sg.length ? h('span', { class: 'sec-sg' }, ' · ' + sg.map(s => s.name).join(' + ')) : null);
+      // nadpis jde formátovat jako text (písmo, velikost, zarovnání…)
+      const label = inlineHtml(b.label || b.text, singerMap);
+      let el;
+      if (b.instr) el = h('div', { class: 'b-instr', 'data-src': b.src, style: { color: b.color || tpl.instrColor || '#ff0000' }, html: (b.count > 1 ? b.count + '× ' : '') + label });
+      else {
+        const sg = b.singers.map(c => singerMap[c]).filter(Boolean);
+        el = h('div', { class: 'b-sec' + (b.repeat ? ' rep' : ''), 'data-src': b.src, style: b.color ? { color: b.color } : {}, html: label },
+          b.count > 1 ? ' ' + b.count + '×' : '', sg.length ? h('span', { class: 'sec-sg' }, ' · ' + sg.map(s => s.name).join(' + ')) : null);
+      }
+      if (b.align) el.style.textAlign = AL_CSS[b.align];
+      if (b.hidden) el.classList.add('sec-off');   // nadpis této sekce skrytý
+      lineMarks(el);
+      return el;
     }
     if (b.type === 'note') return h('div', { class: 'b-note' + (b.warn ? ' warn' : '') + (b.private ? ' private' : ''), 'data-src': b.src, html: inlineHtml(b.text, singerMap) });
     // řádek textu
@@ -98,12 +107,7 @@ const Render = {
     // počet opakování sekce hned u jejího prvního řádku
     if (b.secCount > 1) inner = `<span class="rep-n" style="color:${tpl.instrColor || '#ff0000'}">${b.secCount}×</span> ` + inner;
     el.innerHTML = inner;
-    const lh = el.querySelector('.lh');   // vlastní řádkování řádku
-    if (lh) el.style.lineHeight = lh.dataset.lh;
-    const al = el.querySelector('.al');   // vlastní zarovnání řádku
-    if (al) el.style.textAlign = AL_CSS[al.dataset.al] || '';
-    const spb = el.querySelector('.spb');   // mezera pod řádkem
-    if (spb) el.style.marginBottom = spb.dataset.sp + 'em';
+    lineMarks(el);
     // označená slova jiného zpěváka: stejné označení jako celé řádky (barva písma / podklad), proužky jen u řádků
     for (const w of el.querySelectorAll('.sg-in')) {
       const sg = singerMap[parseCodes(w.dataset.c)[0]];
@@ -271,6 +275,15 @@ const SONG_TPL_KEYS = ['letterSpacing', 'uppercase', 'italic', 'textColor', 'tex
   'fit', 'minScale', 'showHeader', 'showFooter', 'headerSize', 'showSections', 'sectionScale', 'showNotes', 'mirror',
   'sectionColor', 'verseColor', 'chorusColor', 'bridgeColor', 'instrColor'];
 
+/* značky celého řádku: vlastní řádkování, zarovnání a mezera pod řádkem */
+function lineMarks(el) {
+  const lh = el.querySelector('.lh');
+  if (lh) el.style.lineHeight = lh.dataset.lh;
+  const al = el.querySelector('.al');
+  if (al) el.style.textAlign = AL_CSS[al.dataset.al] || '';
+  const spb = el.querySelector('.spb');
+  if (spb) el.style.marginBottom = spb.dataset.sp + 'em';
+}
 /* zarovnání řádku ve značce {⇤:…} / {↔:…} / {⇥:…} */
 const AL_CSS = { '⇤': 'left', '↔': 'center', '⇥': 'right' }, AL_MARK = { left: '⇤', center: '↔', right: '⇥' };
 

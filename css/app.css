@@ -471,6 +471,7 @@ details summary { color: var(--text); }
 .st-item:hover .st-more, .st-item.on .st-more { opacity: 1; }
 .st-more:hover { background: var(--sel); color: var(--text); }
 .st-del { font-size: 12px; }
+.st-item.off .st-n { color: var(--faint); font-style: italic; }   /* nadpis sekce skrytý */
 .st-del:hover { color: var(--err); }
 .ep-lbl-row { display: flex; align-items: center; gap: 6px; }
 .ep-lbl-row > span { flex: 1; }
@@ -675,6 +676,7 @@ input[type=checkbox].switch:focus-visible { outline: 2px solid var(--acc-hi); ou
 .stage { position: absolute; left: 0; top: 0; display: flex; flex-direction: column; overflow: hidden; padding: var(--pady) var(--padx);
   font-size: calc(var(--fs) * var(--k)); font-weight: var(--fw); line-height: var(--lh); letter-spacing: var(--ls); text-align: var(--align); }
 .stage.upper .st-body { text-transform: uppercase; }
+.stage .sec-off { display: none; }   /* skrytý nadpis sekce */
 .stage .kc { text-transform: none; }   /* {aa:…} malá písmena i při šabloně VELKÝMI */
 .st-head, .st-foot { flex: 0 0 auto; display: flex; justify-content: space-between; align-items: baseline; gap: 20px; font-size: var(--hs); line-height: 1.5; font-weight: 400; color: var(--hcolor); text-align: left; letter-spacing: 0; white-space: nowrap; overflow: hidden; font-family: Arial, sans-serif; }
 .st-head { border-bottom: 1px solid color-mix(in srgb, var(--hcolor) 35%, transparent); margin-bottom: calc(var(--hs) * .5); padding-bottom: calc(var(--hs) * .15); }

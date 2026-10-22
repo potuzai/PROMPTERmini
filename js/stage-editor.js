@@ -206,7 +206,7 @@ class StageEditor {
     let last = null;
     lay.blocks.forEach((b, i) => {
       if ((b.type === 'gap' && !b.extra) || b.type === 'break' || b.private || pageOf[i] === undefined) return;
-      if (b.type === 'section' && !tpl.showSections && !b.repeat && !b.instr) return;   // předehra, mezihra, sólo jsou vidět vždy
+      if (b.type === 'section' && ((!tpl.showSections && !b.repeat && !b.instr) || b.hidden)) return;   // předehra, mezihra, sólo jsou vidět vždy
       if (b.type === 'note' && !tpl.showNotes && !b.warn) return;
       const rep = b.repeat || (info[b.src] && info[b.src].kind === 'repeat');
       const line = b.repeat ? b.rsrc : b.src;
@@ -928,7 +928,6 @@ class StageEditor {
     if (!t) return {};
     const src = this.lines()[t.line] || '';
     const info = parseSong(src).lines[0] || {};
-    if (info.kind === 'section') return { al: parseSectionLine(src).align };   // nadpis sekce: jen zarovnání
     return peelOuter(splitLine(src, info.kind || 'line').body).w;
   }
   /* součin velikostí všech značek {N%:…} od uzlu až k psanému řádku (v %) */
@@ -1165,7 +1164,7 @@ function inSection(ls, i) {
 function splitLine(src, kind) {
   const t = String(src || '').trim();
   let m;
-  if (kind === 'section' && t.startsWith('##')) { const sec = parseSectionLine(t); return { prefix: '## ', body: sec.name, suffix: formatSectionLine(sec).slice(('## ' + sec.name).length) }; }
+  if (kind === 'section' && t.startsWith('##')) { const sec = parseSectionLine(t); return { prefix: '## ', body: sec.label, suffix: formatSectionLine(sec).slice(('## ' + sec.label).length) }; }
   if (kind === 'note' && (m = RE_NOTE.exec(t))) return { prefix: '// ', body: m[1], suffix: '' };
   if ((m = RE_SINGER.exec(t))) return { prefix: '@' + m[1] + ' ', body: m[2], suffix: '' };
   return { prefix: '', body: t, suffix: '' };
@@ -1236,8 +1235,7 @@ function wrapOuter(b, w) {
 function formatLine(src, kind, val) {
   const info = parseSong(src).lines[0] || {};
   if (info.kind === 'section' && kind === 'color') return formatSectionLine(Object.assign(parseSectionLine(src), { color: val || '' }));   // barva z lišty u nadpisu = barva sekce
-  if (info.kind === 'section' && kind === 'al') return formatSectionLine(Object.assign(parseSectionLine(src), { align: val || '' }));   // zarovnání nadpisu / pokynu (mezihra…)
-  if (!['line', 'note'].includes(info.kind)) return src;   // nadpis sekce má vlastní volby (barva, opakování) – značky do názvu nepatří
+  if (!['line', 'note', 'section'].includes(info.kind)) return src;
   const sp = splitLine(src, info.kind);
   const pe = peelOuter(sp.body);
   let b = pe.b;

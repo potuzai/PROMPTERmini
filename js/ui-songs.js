@@ -764,7 +764,7 @@ class SongEditor {
       else if (t.startsWith('##')) {
         const sec = parseSectionLine(t), kind = sectionKind(sec.name), c = sec.singers[0];
         const color = sec.color || (kind === 'instr' ? tpl.instrColor : tpl.textBy === 'section' && kind ? tpl[kind + 'Color'] : '') || (c && sm[c] ? sm[c].color : '');
-        items.push({ line: i, name: sec.name || 'Sekce', count: sec.count, color, instr: kind === 'instr' });
+        items.push({ line: i, name: sec.name || 'Sekce', count: sec.count, color, instr: kind === 'instr', hidden: sec.hidden });
       } else if ((m = RE_REPEAT.exec(t))) items.push({ line: i, name: '↻ ' + m[1], rep: true });
     });
     const cur = this.se.cur();
@@ -790,7 +790,7 @@ class SongEditor {
         this.stageWrap.focus({ preventScroll: true });
       };
       const menu = e => { e.stopPropagation(); e.preventDefault(); this.sectionMenu(e.currentTarget, it); };
-      this.structBox.appendChild(h('div', { class: 'st-item' + (it.line === curLine ? ' on' : '') + (it.rep ? ' rep' : '') + (it.instr ? ' instr' : ''), title: 'Přejít na sekci (pravé tlačítko = úpravy)',
+      this.structBox.appendChild(h('div', { class: 'st-item' + (it.line === curLine ? ' on' : '') + (it.rep ? ' rep' : '') + (it.instr ? ' instr' : '') + (it.hidden ? ' off' : ''), title: 'Přejít na sekci (pravé tlačítko = úpravy)',
         onclick: go, oncontextmenu: menu },
       h('i', { style: it.color ? { background: it.color } : {} }), h('span', { class: 'st-n' }, it.name),
       it.count > 1 ? h('b', { class: 'st-cnt' }, it.count + '×') : null,
@@ -814,6 +814,7 @@ class SongEditor {
         if (v != null && v !== '') setHeader(o => Object.assign(o, { count: Math.max(0, Math.min(99, parseInt(v, 10) || 0)) }));
       } },
       { label: 'Barva písma…', action: () => this.sectionColor(anchor, it, setHeader) },
+      { label: it.hidden ? 'Ukázat nadpis v textu' : 'Skrýt nadpis v textu', hint: it.hidden ? 'skrytý' : '', action: () => setHeader(o => Object.assign(o, { hidden: !o.hidden })) },
       { label: 'Zopakovat tuto sekci u vybraného řádku', action: () => this.se.insertLines(['>> ' + it.name]) },
       { sep: true },
       { label: 'Odebrat sekci (text zůstane)', danger: true, action: () => this.removeSection(it) }]);
