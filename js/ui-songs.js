@@ -598,12 +598,11 @@ class SongEditor {
             sel.onchange = () => set(typeof f.o[0][0] === 'number' ? +sel.value : sel.value);
             ctl = sel;
           } else {
-            const step = +f.step * (unit === '%' ? 5 : 1) || 1, dec = String(step).split('.')[1] || '';
-            const show = x => unit === '%' ? Math.round(x * 100) + ' %' : (+(+x).toFixed(dec.length)).toString().replace('.', ',') + (unit === 'px' ? ' px' : unit === '×' ? ' ×' : '');
+            const step = +f.step * (unit === '%' ? 5 : 1) || 1, dec = (String(step).split('.')[1] || '').length;
             const go = d => set(Math.round(Math.max(f.min, Math.min(f.max, +v + d * step)) / step) * step);
             ctl = h('div', { class: 'pg-step' },
               h('button', { class: 'tl tl-step', onmousedown: e => e.preventDefault(), onclick: () => go(-1) }, '−'),
-              h('span', {}, show(v)),
+              h('label', { class: 'pg-num' }, numField(v, { pct: unit === '%', dec: unit === '%' ? 0 : dec, min: f.min, max: f.max }, set), unit ? h('span', {}, unit) : null),
               h('button', { class: 'tl tl-step', onmousedown: e => e.preventDefault(), onclick: () => go(1) }, '+'));
           }
           box.appendChild(h('div', { class: 'pg-row' + (own ? ' own' : ''), title: own ? 'Jen pro tuto píseň (šablona: ' + base[k] + ')' : 'Podle šablony' }, h('span', { class: 'pg-l' }, label), ctl));
@@ -1020,9 +1019,9 @@ class SongEditor {
     const f = (label, el) => h('label', { class: 'f' }, h('span', {}, label), el);
     const fontSel = h('select', { class: 'inp' }, h('option', { value: '' }, `dle šablony (${base.fontFamily})`), FONTS.map(x => h('option', { value: x, selected: st.fontFamily === x }, x)));
     fontSel.onchange = () => { st.fontFamily = fontSel.value; apply(); };
-    const sizeLbl = h('b', {}, (st.sizePct || 100) + ' %');
+    const sizeLbl = numField(st.sizePct || 100, { dec: 0, min: 30, max: 300 }, v => { st.sizePct = v; size.value = v; apply(); });
     const size = h('input', { type: 'range', min: 50, max: 200, step: 5, value: st.sizePct || 100 });
-    size.oninput = () => { st.sizePct = +size.value; sizeLbl.textContent = size.value + ' %'; apply(); };
+    size.oninput = () => { st.sizePct = +size.value; sizeLbl.setValue(+size.value); apply(); };
     const wSel = h('select', { class: 'inp' }, [['', 'dle šablony'], [400, 'normální'], [600, 'polotučné'], [700, 'tučné'], [900, 'extra tučné']].map(([v, l]) => h('option', { value: v, selected: String(st.fontWeight || '') === String(v) }, l)));
     wSel.onchange = () => { st.fontWeight = wSel.value ? +wSel.value : ''; apply(); };
     const lhSel = h('select', { class: 'inp' }, [['', 'dle šablony'], [1.05, 'těsné'], [1.2, 'normální'], [1.4, 'volnější'], [1.6, 'volné']].map(([v, l]) => h('option', { value: v, selected: String(st.lineHeight || '') === String(v) }, l)));
@@ -1032,7 +1031,7 @@ class SongEditor {
     const m = h('div', { class: 'menu menu-form' },
       h('div', { class: 'menu-head' }, 'Písmo jen pro tuto píseň'),
       f('Font', fontSel),
-      h('label', { class: 'f' }, h('span', {}, 'Velikost: ', sizeLbl, ` (šablona ${base.fontSize} px)`), size),
+      h('label', { class: 'f' }, h('span', {}, 'Velikost: ', sizeLbl, ` % (šablona ${base.fontSize} px)`), size),
       h('div', { class: 'grid2' }, f('Tloušťka', wSel), f('Řádkování', lhSel)),
       f('Zarovnání', alSel),
       h('div', { class: 'row', style: { marginTop: '6px' } },
@@ -1072,15 +1071,16 @@ class SongEditor {
       apply({}); this.makeSingerBtns(); this.singerPopover(anchor);
     } }, 'Vrátit výchozí');
     // šířka proužku zpěváka (jen pro tuto píseň)
-    const bwVal = h('span', {});
+    const bwF = TPL_FIELDS.find(x => x.k === 'barWidth');
+    const bwVal = numField(this.lookTpl().barWidth, { dec: 0, min: bwF.min, max: bwF.max }, v => { this.setSong('barWidth', v); paint(); });
     const bwStep = d => { const f = TPL_FIELDS.find(x => x.k === 'barWidth'); this.setSong('barWidth', Math.max(f.min, Math.min(f.max, this.lookTpl().barWidth + d))); paint(); };
     const bw = h('div', { class: 'pg-row' }, h('span', { class: 'pg-l' }, 'Šířka proužku'),
       h('div', { class: 'pg-step' },
-        h('button', { class: 'tl tl-step', onmousedown: e => e.preventDefault(), onclick: () => bwStep(-1) }, '−'), bwVal,
+        h('button', { class: 'tl tl-step', onmousedown: e => e.preventDefault(), onclick: () => bwStep(-1) }, '−'), h('label', { class: 'pg-num' }, bwVal, h('span', {}, 'px')),
         h('button', { class: 'tl tl-step', onmousedown: e => e.preventDefault(), onclick: () => bwStep(1) }, '+')));
     const paint = () => {
       tbl.repaint();
-      bwVal.textContent = this.lookTpl().barWidth + ' px';
+      bwVal.setValue(this.lookTpl().barWidth);
       bw.classList.toggle('own', !!(this.style && this.style.barWidth !== undefined));
       reset.style.display = Object.keys(own()).length || (this.style && (this.style.singers || this.style.barWidth !== undefined)) ? '' : 'none';
     };
@@ -1128,6 +1128,32 @@ class SongEditor {
     this.se.finishEdit(true);
     location.hash = '#/reader/song:' + this.id;   // s neuloženými změnami se App zeptá
   }
+}
+
+/* Číselné pole, do kterého jde kliknout a napsat hodnotu (Enter / odchod potvrdí, Esc vrátí).
+   o.pct = zobrazit v % (×100), o.dec = desetinná místa, o.min / o.max = rozsah */
+function numField(v, o, onSet) {
+  const scale = o.pct ? 100 : 1;
+  const show = x => String(+(+x * scale).toFixed(o.dec != null ? o.dec : 2)).replace('.', ',');
+  const inp = h('input', { class: 'num-in', type: 'text', inputmode: 'decimal', value: show(v) });
+  const commit = () => {
+    const n = parseFloat(inp.value.replace(',', '.'));
+    if (isNaN(n)) { inp.value = show(v); return; }
+    let x = n / scale;
+    if (o.min != null) x = Math.max(o.min, x);
+    if (o.max != null) x = Math.min(o.max, x);
+    inp.value = show(x);
+    if (x !== +v) { v = x; onSet(x); }
+  };
+  inp.addEventListener('keydown', e => {
+    e.stopPropagation();
+    if (e.key === 'Enter') { e.preventDefault(); commit(); inp.blur(); }
+    else if (e.key === 'Escape') { e.preventDefault(); inp.value = show(v); inp.blur(); }
+  });
+  inp.addEventListener('change', commit);
+  inp.addEventListener('focus', () => inp.select());
+  inp.setValue = x => { v = x; inp.value = show(x); };
+  return inp;
 }
 
 /* ===== Sdílené pomocníky pro UI ===== */

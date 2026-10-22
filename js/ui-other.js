@@ -142,11 +142,12 @@ const TemplatesView = {
         c.oninput = () => { t[f.k] = c.value; upd(); };
         ctl = h('label', { class: 'chk' }, c, f.l);
       } else if (f.t === 'range') {
-        const fmt = f.fmt || (x => f.pct ? Math.round(x * 100) + ' %' : String(+(+x).toFixed(3)));
-        const lab = h('b', {}, fmt(v));
+        // hodnota jde i napsat (klik do čísla)
+        const pct = f.pct || f.k === 'letterSpacing', dec = pct ? 0 : (String(f.step).split('.')[1] || '').length;
         const r = h('input', { type: 'range', min: f.min, max: f.max, step: f.step, value: v });
-        r.oninput = () => { t[f.k] = +r.value; lab.textContent = fmt(r.value); upd(); };
-        ctl = h('label', { class: 'f' }, h('span', {}, f.l, ': ', lab), r, f.help ? h('span', { class: 'help field-help' }, f.help) : null);
+        const num = numField(v, { pct, dec, min: f.min, max: f.max }, x => { t[f.k] = x; r.value = x; upd(); });
+        r.oninput = () => { t[f.k] = +r.value; num.setValue(+r.value); upd(); };
+        ctl = h('label', { class: 'f' }, h('span', {}, f.l, ': ', num, pct ? ' %' : ''), r, f.help ? h('span', { class: 'help field-help' }, f.help) : null);
       }
       fs.appendChild(h('div', { style: { marginBottom: '8px' } }, ctl));
     }

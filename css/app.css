@@ -516,7 +516,10 @@ details summary { color: var(--text); }
 .menu-page .pg-sel { width: 140px; min-height: 28px; padding: 2px 6px; font-size: 13px; }
 .menu-page .pg-step { display: flex; align-items: center; border: 1px solid var(--line2); border-radius: var(--r); overflow: hidden; }
 .menu-page .pg-step .tl { border: 0; border-radius: 0; height: 28px; min-width: 26px; padding: 0; color: var(--dim); }
-.menu-page .pg-step span { min-width: 64px; text-align: center; font-size: 13px; font-variant-numeric: tabular-nums; }
+.menu-page .pg-num { display: flex; align-items: center; justify-content: center; gap: 3px; min-width: 64px; font-size: 13px; color: var(--dim); cursor: text; }
+.num-in { width: 4.2ch; padding: 1px 2px; border: 0; border-radius: 3px; background: none; color: var(--text); font: 600 13px var(--font); text-align: right; outline: none; font-variant-numeric: tabular-nums; cursor: text; }   /* číslo jde přepsat */
+.num-in:hover { background: var(--hover); }
+.num-in:focus { background: var(--sel); box-shadow: inset 0 0 0 1px var(--acc); }
 .menu-page .pg-color { width: 40px; height: 26px; padding: 0; border: 1px solid var(--line2); border-radius: var(--r); background: none; cursor: pointer; }
 .col-sw { display: grid; grid-template-columns: repeat(5, 26px); gap: 6px; }
 .col-dot { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--line2); cursor: pointer; padding: 0; }
