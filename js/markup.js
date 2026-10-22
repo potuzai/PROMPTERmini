@@ -12,10 +12,8 @@
   {↕1.4:řádek}            řádkování jednoho řádku (výška řádku × písmo) (starší zápis {+:…} 125 %, {++:…} 155 %, {-:…} 80 %, {--:…} 65 %)
   (prázdný řádek)         mezera mezi slokami
 
-  Pro muzikanty (ve čtečce se NIKDY nezobrazí, jen v náhledu „Pro muzikanty“ a v tisku):
-  [Am]Zpívám [C]ptákům    akord nad slovem
-  %G text                 řádek pro nástroj (G = zkratka nástroje, více: %G+B)
-  %%G Nadpis … %%         blok pro nástroj (tabulatura) – zachová přesné mezery
+  Starší zápisy pro muzikanty se už nezobrazují nikde (zůstanou v textu skryté, „Vyčistit text“ je smaže):
+  [Am] akordy, %G řádek pro nástroj, %%G … %% blok pro nástroj
 */
 const RE_SECTION = /^##\s*(.*?)\s*(?:@([A-Za-z0-9+]+))?\s*$/;
 /* nadpis sekce: „## Refrén 2× #ffff00 @V“ – název, počet opakování, vlastní barva písma, zpěváci celé sekce */
@@ -157,31 +155,10 @@ function hasChords(text) {
 function stripChords(text) {
   return String(text).replace(RE_INLINE_CHORD, (all, c) => isChordToken(c) ? '' : all).replace(/ {2,}/g, ' ').trim();
 }
-/* Řádek s akordy nad slovy: každý úsek = akord nahoře + text pod ním */
-function chordedHtml(text, singerMap) {
-  const parts = [];
-  let last = 0, chord = null, m;
-  RE_INLINE_CHORD.lastIndex = 0;
-  while ((m = RE_INLINE_CHORD.exec(text))) {
-    if (!isChordToken(m[1])) continue;
-    parts.push({ chord, text: text.slice(last, m.index) });
-    chord = m[1]; last = m.index + m[0].length;
-  }
-  parts.push({ chord, text: text.slice(last) });
-  return parts.filter((p, i) => i > 0 || p.text !== '').map(p =>
-    `<span class="cw"><span class="ch">${p.chord ? esc(p.chord) : '&nbsp;'}</span><span class="cl">${inlineHtml(p.text, singerMap) || '&nbsp;'}</span></span>`).join('');
-}
 
-/* Výběr vrstev pro muzikanty: null = čtečka (nic), jinak { chords: bool, inst: { G: true, … } } */
-function filterForView(blocks, mus) {
-  const instOn = codes => mus && codes.some(c => mus.inst && mus.inst[c]);
-  const out = [];
-  for (const b of blocks) {
-    if (b.type === 'mus' || b.type === 'musblock') { if (instOn(b.inst)) out.push(b); continue; }
-    if (b.type === 'chords') { if (mus && mus.chords) out.push(b); continue; }
-    if (b.type === 'line' && b.chords) { out.push(Object.assign({}, b, { showChords: !!(mus && mus.chords) })); continue; }
-    out.push(b);
-  }
+/* Co se zobrazí: bez starších zápisů pro muzikanty (řádky s akordy, %G, %%G … %%) */
+function filterForView(blocks) {
+  const out = blocks.filter(b => b.type !== 'mus' && b.type !== 'musblock' && b.type !== 'chords');
   // bez skrytých řádků nesmí zůstat zdvojené mezery
   const res = [];
   for (const b of out) {
@@ -271,23 +248,20 @@ const SECTION_ALIASES = [
 ];
 
 function cleanText(text, opts = {}) {
-  // chords: 'keep' = akordy převést do textu pro muzikanty ([Am]), 'remove' = smazat, 'none' = nechat beze změny
-  const o = Object.assign({ chords: 'keep', detectSections: true, trimSpaces: true, collapseBlank: true }, opts);
+  // chords: 'remove' = smazat akordy, tabulatury a starší poznámky pro nástroje (%G, %%G … %%), 'none' = nechat
+  const o = Object.assign({ chords: 'remove', detectSections: true, trimSpaces: true, collapseBlank: true }, opts);
   if (opts.removeChords === false && !opts.chords) o.chords = 'none';
   let lines = String(text || '').replace(/\r\n?/g, '\n').replace(/\t/g, '    ').replace(/ /g, ' ').split('\n');
-  // tabulatury (e|---0---|) → blok pro kytaru, ať se jim nerozhází mezery
-  if (o.chords !== 'none') lines = wrapTabs(lines);
-  if (o.chords === 'keep') lines = mergeChordLines(lines);
   if (o.chords === 'remove') {
-    lines = lines.filter(l => !(l.trim() && isChordLine(l)))
-      .map(l => l.startsWith('%') ? l : l.replace(/\[([^\]\s]{1,10})\]/g, (all, inner) => CHORD_RE.test(inner) ? '' : all));
+    let blk = false;
+    lines = lines.filter(l => {
+      const t = l.trim();
+      if (t.startsWith('%%')) { blk = !blk; return false; }
+      return !blk && !t.startsWith('%') && !(t && (isChordLine(l) || TAB_RE.test(l)));
+    }).map(l => l.replace(/\[([^\]\s]{1,10})\]/g, (all, inner) => CHORD_RE.test(inner) ? '' : all));
   }
   if (o.trimSpaces) {
-    let inBlock = false;
-    lines = lines.map(l => {
-      if (/^%%/.test(l.trim())) { inBlock = l.trim() !== '%%' || !inBlock ? !inBlock : false; return l.trim(); }
-      return inBlock ? l.replace(/\s+$/, '') : l.replace(/\s+/g, ' ').trim();
-    });
+    lines = lines.map(l => l.replace(/\s+/g, ' ').trim());
   }
   if (o.detectSections) {
     const out = [];
@@ -335,46 +309,7 @@ function cleanText(text, opts = {}) {
   return lines.join('\n');
 }
 const TAB_RE = /^\s*[a-gA-G][#b]?\s?\|[-0-9a-z|\/\\~^().*\s]{3,}$/;
-function wrapTabs(lines) {
-  const out = [];
-  for (let i = 0; i < lines.length; i++) {
-    if (TAB_RE.test(lines[i]) && i + 1 < lines.length && TAB_RE.test(lines[i + 1])) {
-      out.push('%%G Tabulatura');
-      while (i < lines.length && TAB_RE.test(lines[i])) out.push(lines[i++].replace(/\s+$/, ''));
-      out.push('%%');
-      i--;
-    } else out.push(lines[i]);
-  }
-  return out;
-}
 
-/* Řádek akordů nad textem → akordy vložené do textu na stejné pozice: „[Am]Zpívám [C]ptákům“ */
-function mergeChordLines(lines) {
-  const out = [];
-  let inBlock = false;
-  for (let i = 0; i < lines.length; i++) {
-    const l = lines[i], t = l.trim();
-    if (/^%%/.test(t)) { inBlock = !inBlock || t !== '%%' ? !inBlock : false; out.push(l); continue; }
-    if (inBlock || !t || !isChordLine(l)) { out.push(l); continue; }
-    const toks = [...l.matchAll(/\S+/g)].filter(m => isChordToken(m[0])).map(m => ({ c: m[0].replace(/[()]/g, ''), i: m.index }));
-    const next = lines[i + 1];
-    const nt = next !== undefined ? next.trim() : '';
-    const nextIsLyric = nt && !isChordLine(next) && !/^(##|>>|\/\/|%|@|---|\[[^\]]+\]\s*$|\d{1,2}[.)])/.test(nt) && !/^[A-Za-zÁ-ž\s]+\d*\s*:\s*$/.test(nt);
-    if (!toks.length) continue;
-    if (nextIsLyric) {
-      let lyr = next;
-      for (const tk of toks.slice().sort((a, b) => b.i - a.i)) {
-        if (lyr.length < tk.i) lyr = lyr.padEnd(tk.i, ' ');
-        lyr = lyr.slice(0, tk.i) + '[' + tk.c + ']' + lyr.slice(tk.i);
-      }
-      out.push(lyr.replace(/\s+$/, ''));
-      i++;
-    } else {
-      out.push(toks.map(tk => '[' + tk.c + ']').join(' '));   // samostatný řádek akordů (intro, mezihra)
-    }
-  }
-  return out;
-}
 
 function aliasSection(s) {
   for (const [re, name] of SECTION_ALIASES) {

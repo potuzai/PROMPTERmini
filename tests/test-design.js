@@ -27,7 +27,7 @@ const URL = 'http://localhost:8123/index.html';
     await p.setViewportSize({ width: 1280, height: 800 });
     await p.evaluate(() => { Reader.close(); Settings.set('welcomed', false); location.hash = '#/songs'; setupWizard(); });
     await p.waitForSelector('.wizard', { timeout: 5000 });
-    assert(await p.isVisible('.wz-opt:has-text("Čtečka na pódiu")') && await p.isVisible('.wz-opt:has-text("Muzikant")'), 'průvodce nabízí role zařízení');
+    assert(await p.isVisible('.wz-opt:has-text("Čtečka na pódiu")') && await p.isVisible('.wz-opt:has-text("Obojí na jednom")') && !(await p.isVisible('.wz-opt:has-text("Muzikant")')), 'průvodce nabízí role zařízení (bez muzikanta)');
     await p.click('.wz-opt:has-text("Čtečka na pódiu")');
     await p.keyboard.press('ArrowRight'); await sleep(100);
     assert(await p.isVisible('.wz-opt.on:has-text("Počítač pro úpravy")'), 'šipka → přepne volbu (airmouse)');
@@ -68,12 +68,6 @@ const URL = 'http://localhost:8123/index.html';
     assert(await p.evaluate(() => document.documentElement.dataset.theme) === 'dark', '„podle systému“ sleduje tmavý režim systému');
     await p.click('.set-row:has-text("Průvodce nastavením") button'); await sleep(200);
     assert(await p.isVisible('.wizard .wz-opt.on:has-text("Počítač pro úpravy")'), 'průvodce jde spustit znovu s aktuální volbou');
-    await p.click('.wz-opt:has-text("Muzikant")'); await sleep(100);
-    assert(await p.isVisible('.wz-step.skip:has-text("Velikost")'), 'muzikant: kroky s monitorem se přeskočí');
-    await p.click('.wz-foot .btn.primary'); await sleep(200);
-    assert(await p.isVisible('h1:has-text("Hotovo")'), 'muzikant jde rovnou na shrnutí');
-    await p.click('.wz-foot .btn.primary'); await sleep(300);
-    assert(await p.evaluate(() => Settings.get('deviceRole') === 'musician' && Settings.get('myView').chords), 'muzikant: zapnuté akordy a poznámky');
     await ctx.close();
 
     /* ----- Obrazovky kapely: profil tabletu, vlastní konce stránek, osobní zobrazení ----- */
@@ -90,27 +84,26 @@ const URL = 'http://localhost:8123/index.html';
       const tab = await r.evaluate(() => Screens.others()[0]);
       assert(tab && tab.name === 'Tablet kytara', 'nová obrazovka kapely se uloží do sdílené konfigurace');
       await r.click('.scr-box button:has-text("Na šířku")'); await sleep(150);
-      await r.click('.scr-box label.chk:has-text("Kytara") input'); await sleep(150);
       const tab2 = await r.evaluate(() => Screens.others()[0]);
-      assert(tab2.w > tab2.h && tab2.view.chords && tab2.view.inst.includes('G'), 'obrazovka: orientace a co se ukáže (akordy, kytara)');
+      assert(tab2.w > tab2.h && !tab2.view, 'obrazovka: orientace (bez vrstev pro muzikanty)');
       assert(await r.evaluate(() => Screens.main().w < Screens.main().h), 'hlavní čtečka zůstala na výšku');
       await r.evaluate(() => { location.hash = '#/settings/device'; }); await sleep(300);
       await r.selectOption('.set-sec select.set-sel >> nth=1', tab.id); await sleep(200);
       assert(await r.evaluate(() => Screens.mine().name) === 'Tablet kytara', 'zařízení si vybere svou obrazovku');
-      const lay = await r.evaluate(id => { const s = Store.songs.get('tb'); const sc = Screens.mine(); const l = Render.layout(s, Store.template('default'), sc.w, sc.h, Screens.view(sc, true), screenOpts(sc, s.id, true)); return { pages: l.pages.length, types: l.blocks.map(b => b.type) }; });
-      assert(lay.pages === 1 && lay.types.includes('mus') && lay.types.includes('line'), 'tablet: konec stránky hlavní čtečky neplatí, poznámka pro kytaru vidět');
-      const mainLay = await r.evaluate(() => { const s = Store.songs.get('tb'); const sc = Screens.main(); return Render.layout(s, Store.template('default'), sc.w, sc.h, Screens.view(sc, false), screenOpts(sc, s.id, false)).pages.length; });
+      const lay = await r.evaluate(id => { const s = Store.songs.get('tb'); const sc = Screens.mine(); const l = Render.layout(s, Store.template('default'), sc.w, sc.h, screenOpts(sc, s.id, true)); return { pages: l.pages.length, types: l.blocks.map(b => b.type) }; });
+      assert(lay.pages === 1 && !lay.types.includes('mus') && lay.types.includes('line'), 'tablet: konec stránky hlavní čtečky neplatí, poznámka pro nástroj se nezobrazí');
+      const mainLay = await r.evaluate(() => { const s = Store.songs.get('tb'); const sc = Screens.main(); return Render.layout(s, Store.template('default'), sc.w, sc.h, screenOpts(sc, s.id, false)).pages.length; });
       assert(mainLay === 2, 'hlavní čtečka: ruční konec stránky platí');
       // editor: náhled pro tablet, nová stránka jen pro tablet
       await r.evaluate(() => { location.hash = '#/songs/tb'; }); await sleep(800);
       assert(await r.evaluate(id => SongsView.editor.screenId === id, tab.id), 'editor ukazuje náhled pro obrazovku zařízení');
       await r.evaluate(() => SongsView.editor.se.select(1)); await sleep(100);
-      await r.click('.ed-side button:has-text("Nová stránka")'); await sleep(300);
+      await r.evaluate(() => SongsView.editor.se.insertLines([SongsView.editor.breakLine()], { before: true })); await sleep(300);   // pravé tlačítko › Vložit › Novou stránku
       const src = await r.evaluate(() => SongsView.editor.src);
       assert(src.includes('--- ' + tab.id) && src.split('\n').filter(l => l.trim() === '---').length === 1, 'nová stránka se vloží jen pro tuto obrazovku');
       assert(await r.evaluate(() => SongsView.editor.se.lay.pages.length) === 2, 'náhled tabletu má teď 2 stránky');
       await r.selectOption('.ed-screen', 'main'); await sleep(300);
-      assert(await r.evaluate(() => SongsView.editor.se.lay.pages.length === 2 && !SongsView.editor.se.lay.blocks.some(b => b.type === 'mus')), 'přepnutí náhledu na hlavní čtečku: její stránky, bez poznámek pro kytaru');
+      assert(await r.evaluate(() => SongsView.editor.se.lay.pages.length === 2 && !SongsView.editor.se.lay.blocks.some(b => b.type === 'mus')), 'přepnutí náhledu na hlavní čtečku: její stránky');
       // soukromá poznámka a zvýraznění mých řádků
       await r.fill('.ep-priv', 'nádech před refrénem'); await sleep(500);
       assert(await r.evaluate(() => PrivateNotes.get('tb') === 'nádech před refrénem' && !Store.songs.get('tb').text.includes('nádech')), 'soukromá poznámka se uloží jen do zařízení, ne do písně');
@@ -119,8 +112,6 @@ const URL = 'http://localhost:8123/index.html';
       assert(await r.isVisible('#reader .b-note.private:has-text("nádech")'), 'čtečka: soukromá poznámka nahoře');
       await r.evaluate(() => Reader.next()); await sleep(200);
       assert(await r.evaluate(() => [...document.querySelectorAll('#reader .b-line.not-mine')].map(e => e.textContent).join('|')) === 'tři', 'čtečka: cizí řádky ztlumené, moje a „všichni“ ne');
-      await r.evaluate(() => { Settings.set('myView', { chords: false, inst: [] }); Reader.cache.clear(); Reader.render(); }); await sleep(200);
-      assert(!(await r.evaluate(() => !!document.querySelector('#reader .b-mus'))), 'vlastní „co vidím“ přepíše obrazovku (bez poznámek pro kytaru)');
       await c3.close();
     }
 

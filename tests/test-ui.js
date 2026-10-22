@@ -43,7 +43,7 @@ const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode
   await p.waitForTimeout(300);
   const v = await src();
   console.log(v);
-  assert(v.includes('## Sloka 1') && v.includes('## Refrén') && v.includes('>> Refrén') && v.includes('[Am] [C]') && !/^Am\s/m.test(v), 'čištění vloženého textu (akordy převedeny pro muzikanty)');
+  assert(v.includes('## Sloka 1') && v.includes('## Refrén') && v.includes('>> Refrén') && !v.includes('[Am]') && !/^Am\s/m.test(v), 'čištění vloženého textu (akordy odstraněny)');
   // označit 2 řádky jako J (klik + Shift+klik, Alt+1)
   await p.click('.se-wrap .b-line:has-text("První řádek")');
   await p.click('.se-wrap .b-line:has-text("Druhý řádek")', { modifiers: ['Shift'] });
@@ -161,10 +161,10 @@ const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode
   await p.keyboard.press('Escape'); await p.waitForTimeout(300);
   assert(!(await p.evaluate(() => Reader.isOpen())), 'Esc zavře čtečku');
   // PIN
-  await p.evaluate(() => { Settings.set('pinHash', sha1Bytes(utf8.enc('prompter:1234'))); sessionStorage.removeItem('unlocked'); location.hash = '#/settings/instruments'; });
+  await p.evaluate(() => { Settings.set('pinHash', sha1Bytes(utf8.enc('prompter:1234'))); sessionStorage.removeItem('unlocked'); location.hash = '#/settings/device'; });
   await p.waitForTimeout(300);
   assert(await p.isVisible('.modal'), 'PIN je vyžadován');
   await p.fill('.modal input', '1234'); await p.keyboard.press('Enter'); await p.waitForTimeout(300);
-  assert(await p.isVisible('table.tbl'), 'odemčeno PINem');
+  assert(await p.isVisible('.set-head h1'), 'odemčeno PINem');
   await b.close();
 })();

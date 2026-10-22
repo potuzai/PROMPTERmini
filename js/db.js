@@ -11,15 +11,6 @@ const DEFAULT_SINGERS = [
   { code: 'V', name: 'Všichni', color: '#7CFC9A', bold: true, italic: false },
 ];
 
-// Nástroje – informace jen pro muzikanty (ve čtečce se nezobrazí)
-const DEFAULT_INSTRUMENTS = [
-  { code: 'G', name: 'Kytara', color: '#ff9f43' },
-  { code: 'B', name: 'Basa', color: '#b388ff' },
-  { code: 'D', name: 'Bicí', color: '#ff7eb6' },
-  { code: 'K', name: 'Klávesy', color: '#4dd0e1' },
-];
-const CHORD_COLOR = '#ff5a4f';
-
 /* Výchozí šablona = „Hlavní čtečka“ kapely (platí i bez přihlášení ke kapele) */
 const DEFAULT_TEMPLATE = {
   id: 'default', name: 'Hlavní čtečka',
@@ -61,13 +52,11 @@ const DEFAULT_SETTINGS = {
   readOnly: false,               // jen stahovat (např. čtečka)
   welcomed: false,
   rememberBand: true,            // „Zůstat přihlášen“ – false = heslo kapely jen do zavření prohlížeče
-  deviceRole: '',                // k čemu zařízení slouží: reader | editor | both | musician (nastaví průvodce)
+  deviceRole: '',                // k čemu zařízení slouží: reader | editor | both (nastaví průvodce)
   theme: 'dark',                 // vzhled aplikace: dark | light | auto (podle systému)
   screenId: '',                  // kterou obrazovkou kapely je toto zařízení; '' = program: hlavní čtečka, web: podle okna
-  myView: null,                  // vlastní „co vidím“ ({ chords, inst: [] }); null = jako profil obrazovky
   mySinger: '', highlightMine: false, // zvýraznit řádky, které zpívám já
   privateNotes: {},              // soukromé poznámky k písním (jen toto zařízení)
-  musView: { on: false, chords: true, inst: {} },   // náhled „Pro muzikanty“ – co zobrazit (jen tento počítač)
   gh: { owner: '', repo: '', branch: 'main', token: '', login: '', canPush: null },
   lastSyncAt: '',                // poslední úspěšná synchronizace (ISO)
   songSort: 'artist', plSort: 'new', plCols: false, editScreen: '', printOpts: null,   // poslední volby v seznamech, editoru a tisku
@@ -185,7 +174,6 @@ const Store = {
     if (m) this.meta = Object.assign(this.meta, m);
     // Výchozí data při prvním spuštění
     if (!this.config.has('singers')) await this.put('config', { id: 'singers', list: clone(DEFAULT_SINGERS) }, { silent: true, noStamp: true });
-    if (!this.config.has('instruments')) await this.put('config', { id: 'instruments', list: clone(DEFAULT_INSTRUMENTS) }, { silent: true, noStamp: true });
     if (this.templates.size === 0) {
       await this.put('templates', clone(DEFAULT_TEMPLATE), { silent: true, noStamp: true });
     }
@@ -262,8 +250,6 @@ const Store = {
     return [...m.values()];
   },
   singerMap(src) { const m = {}; for (const s of this.singers(src)) m[s.code.toUpperCase()] = s; return m; },
-  instruments() { return (this.config.get('instruments') || { list: DEFAULT_INSTRUMENTS }).list; },
-  instrumentMap() { const m = {}; for (const s of this.instruments()) m[s.code.toUpperCase()] = s; return m; },
 
   template(id) {
     return Object.assign(clone(DEFAULT_TEMPLATE), this.templates.get(id) || this.templates.get(Settings.get('defaultTemplate')) || this.templates.get('default') || {});

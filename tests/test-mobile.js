@@ -18,7 +18,7 @@ const URL = process.env.APP_URL || 'http://localhost:8123/index.html';
     await Store.put('playlists', { id: 'mp', name: 'Mobil', date: '2026-10-16', templateId: '', note: '', items: [...Store.songs.keys()] });
   });
   const overflow = () => p.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1 || [...document.querySelectorAll('.content, .song-editor, .side')].some(c => c.offsetParent && c.scrollWidth > c.clientWidth + 2));
-  for (const v of ['songs', 'songs/m1', 'playlists', 'playlists/mp', 'templates/default', 'settings/instruments', 'settings']) {
+  for (const v of ['songs', 'songs/m1', 'playlists', 'playlists/mp', 'templates/default', 'settings/device', 'settings']) {
     await p.evaluate(h => { location.hash = '#/' + h; }, v); await sleep(400);
     assert(!(await overflow()), `bez vodorovného přetékání: ${v}`);
   }

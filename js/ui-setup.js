@@ -6,7 +6,6 @@ const DEVICE_ROLES = [
   { id: 'reader', icon: 'stagemon', name: 'Čtečka na pódiu', desc: 'Po zapnutí rovnou otevře čtečku s posledním playlistem. Úpravy můžeš zamknout PINem.' },
   { id: 'editor', icon: 'monitor', name: 'Počítač pro úpravy', desc: 'Psaní textů, playlisty, šablony. Čtečku jen jako náhled nebo na druhém monitoru.' },
   { id: 'both', icon: 'both', name: 'Obojí na jednom', desc: 'Doma upravuješ, na koncertě přepneš do čtečky. Hodí se pro jeden notebook.' },
-  { id: 'musician', icon: 'phone', name: 'Muzikant (mobil, tablet)', desc: 'Písně s akordy a poznámkami pro tvůj nástroj. Ze sdílených písní jen stahuje.' },
 ];
 const SCREEN_PRESETS = [
   { label: '21,5″ Full HD', w: 1080, h: 1920, d: 21.5 }, { label: '24″ Full HD', w: 1080, h: 1920, d: 24 },
@@ -27,10 +26,6 @@ function fontAdvice(W, H, diag, dist) {
 function applyDeviceRole(role) {
   Settings.set('deviceRole', role);
   Settings.set('startInReader', role === 'reader');
-  if (role === 'musician') {
-    Settings.set('myView', Object.assign({ chords: true, inst: [] }, Settings.get('myView') || {}));
-    if (Sync.enabled()) Settings.set('readOnly', true);
-  }
 }
 function roleName(id) { return (DEVICE_ROLES.find(r => r.id === id) || {}).name || 'nevybráno'; }
 
@@ -60,7 +55,7 @@ function setupWizard() {
   const title = h('h1', {});
   const sub = h('p', { class: 'wz-sub' });
   const body = h('div', { class: 'wz-body' });
-  const backBtn = h('button', { class: 'btn', onclick: () => go(st.step === 3 && skipSize() ? 0 : st.step - 1) }, 'Zpět');
+  const backBtn = h('button', { class: 'btn', onclick: () => go(st.step - 1) }, 'Zpět');
   const hint = h('span', { class: 'wz-hint' });
   const nextBtn = h('button', { class: 'btn primary', onclick: () => next() }, 'Pokračovat');
   const el = h('div', { class: 'wizard', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Nastavení zařízení' },
@@ -69,10 +64,9 @@ function setupWizard() {
     h('div', { class: 'wz-card' }, title, sub, body, h('div', { class: 'wz-foot' }, backBtn, hint, nextBtn)));
   document.body.appendChild(el);
 
-  const skipSize = () => st.role === 'musician';
   const next = () => {
     if (st.step === 3) return finish();
-    go(st.step === 0 && skipSize() ? 3 : st.step + 1);
+    go(st.step + 1);
   };
   // karty vybrané šipkami ←→ (airmouse), OK = pokračovat
   const cards = (items, value, onPick, cls = '') => {
@@ -107,8 +101,7 @@ function setupWizard() {
     stepsEl.innerHTML = '';
     steps.forEach((s, i) => {
       if (i) stepsEl.appendChild(h('span', { class: 'wz-line' }));
-      const skipped = skipSize() && (i === 1 || i === 2);
-      stepsEl.appendChild(h('span', { class: 'wz-step' + (i === st.step ? ' on' : i < st.step ? ' done' : '') + (skipped ? ' skip' : '') },
+      stepsEl.appendChild(h('span', { class: 'wz-step' + (i === st.step ? ' on' : i < st.step ? ' done' : '') },
         h('span', { class: 'wz-num' }, i < st.step ? ic('check') : String(i + 1)), s));
     });
   }
@@ -181,7 +174,7 @@ function setupWizard() {
       title.textContent = 'Hotovo, zkontroluj to';
       sub.textContent = 'Vše se dá kdykoli změnit v Nastavení › Toto zařízení.';
       const rows = [['Zařízení', roleName(st.role), 0]];
-      if (!skipSize()) rows.push(['Obrazovka kapely', st.scr === 'new' ? (st.scrName.trim() || 'Nová obrazovka') + ' (nová)' : Screens.get(st.scr).name, 2], ['Monitor', (isPortrait() ? 'Na výšku' : 'Na šířku') + (st.rot ? ` · otočit o ${st.rot === 90 ? '90° ↻' : '90° ↺'}` : ''), 1],
+      rows.push(['Obrazovka kapely', st.scr === 'new' ? (st.scrName.trim() || 'Nová obrazovka') + ' (nová)' : Screens.get(st.scr).name, 2], ['Monitor', (isPortrait() ? 'Na výšku' : 'Na šířku') + (st.rot ? ` · otočit o ${st.rot === 90 ? '90° ↻' : '90° ↺'}` : ''), 1],
         ['Displej', `${st.w} × ${st.h} px · ${st.diag}″ · ${st.dist} m`, 2]);
       rows.push(['Po zapnutí', st.role === 'reader' ? 'Otevřít čtečku s posledním playlistem' : 'Otevřít seznam písní', 0]);
       const pin = h('input', { class: 'inp wz-pin', type: 'password', inputmode: 'numeric', placeholder: 'bez PINu', 'aria-label': 'PIN pro úpravy', value: st.pin });
@@ -190,7 +183,7 @@ function setupWizard() {
         h('div', { class: 'wz-sum' }, rows.map(([k, v, s]) => h('div', {}, h('span', {}, k), h('b', {}, v), h('button', { type: 'button', class: 'linkbtn', onclick: () => go(s) }, 'Změnit')))),
         h('div', { class: 'wz-row' }, ic('sun'), h('div', { class: 'wz-row-t' }, h('b', {}, 'Vzhled aplikace'), h('span', {}, 'Světlý se hodí do jasné místnosti, „podle systému“ se přepíná sám.')),
           segControl(THEMES, st.theme, v => { st.theme = v; Settings.set('theme', v); App.applyTheme(); })),
-        st.role === 'musician' ? null : h('div', { class: 'wz-row' }, ic('lock'), h('div', { class: 'wz-row-t' }, h('b', {}, 'Zamknout úpravy PINem'), h('span', {}, st.role === 'reader' ? 'Doporučeno: na pódiu nikdo omylem nesmaže píseň.' : 'Nepovinné – bez PINu půjde jen číst.')), pin),
+        h('div', { class: 'wz-row' }, ic('lock'), h('div', { class: 'wz-row-t' }, h('b', {}, 'Zamknout úpravy PINem'), h('span', {}, st.role === 'reader' ? 'Doporučeno: na pódiu nikdo omylem nesmaže píseň.' : 'Nepovinné – bez PINu půjde jen číst.')), pin),
         h('div', { class: 'wz-row' }, ic('users'), h('div', { class: 'wz-row-t' }, h('b', {}, 'Kapela'), h('span', {}, 'E-mail a heslo kapely – písně a playlisty se pak samy synchronizují. Jde to i později.')),
           h('div', { class: 'wz-btns' },
             h('button', { type: 'button', class: 'btn', onclick: () => finish('join') }, '🔑 Přihlásit ke kapele'))));
@@ -201,12 +194,10 @@ function setupWizard() {
 
   function finish(band) {
     applyDeviceRole(st.role);
-    if (!skipSize()) {
-      const dims = { w: Math.max(320, st.w | 0), h: Math.max(240, st.h | 0), diag: +st.diag, dist: +st.dist };
-      if (st.scr === 'new') Screens.add(Object.assign({ name: st.scrName.trim() || 'Nová obrazovka', view: { chords: false, inst: [] } }, dims)).then(sc => Settings.set('screenId', sc.id));
-      else { Screens.save(Object.assign(Screens.get(st.scr), dims)); Settings.set('screenId', st.scr); }
-      Settings.set('readerRotate', st.rot);
-    }
+    const dims = { w: Math.max(320, st.w | 0), h: Math.max(240, st.h | 0), diag: +st.diag, dist: +st.dist };
+    if (st.scr === 'new') Screens.add(Object.assign({ name: st.scrName.trim() || 'Nová obrazovka' }, dims)).then(sc => Settings.set('screenId', sc.id));
+    else { Screens.save(Object.assign(Screens.get(st.scr), dims)); Settings.set('screenId', st.scr); }
+    Settings.set('readerRotate', st.rot);
     Settings.set('theme', st.theme); App.applyTheme();
     if (st.pin) { Settings.set('pinHash', pinHash(st.pin)); sessionStorage.setItem('unlocked', '1'); }
     Settings.set('welcomed', true);
@@ -227,7 +218,7 @@ function setupWizard() {
       return;
     }
     if (e.key === 'Enter' && !(e.target.matches('button') && !e.target.classList.contains('wz-opt'))) { e.preventDefault(); e.stopPropagation(); next(); }
-    else if (e.key === 'Escape' && st.step) { e.preventDefault(); go(st.step === 3 && skipSize() ? 0 : st.step - 1); }
+    else if (e.key === 'Escape' && st.step) { e.preventDefault(); go(st.step - 1); }
     else if (inField) e.stopPropagation();
   };
   document.addEventListener('keydown', onKey, true);

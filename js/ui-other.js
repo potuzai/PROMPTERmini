@@ -190,70 +190,16 @@ const TemplatesView = {
   },
 };
 
-/* Nástroje – informace jen pro muzikanty (Nastavení › Nástroje) */
-function instrumentsSection() {
-  const cfg = clone(Store.config.get('instruments') || { id: 'instruments', list: DEFAULT_INSTRUMENTS });
-  const save = debounce(() => Store.put('config', cfg), 500);
-  const tbody = h('tbody');
-  const presets = ['#ff9f43', '#b388ff', '#ff7eb6', '#4dd0e1', '#c6ff00', '#ffab91', '#90caf9', '#e0e0e0'];
-  const paint = () => {
-    tbody.innerHTML = '';
-    cfg.list.forEach((s, i) => {
-      const code = h('input', { class: 'inp', value: s.code, maxlength: 3, style: { width: '70px', textTransform: 'uppercase', fontWeight: 700 } });
-      const name = h('input', { class: 'inp', value: s.name });
-      const color = h('input', { type: 'color', value: s.color });
-      const sample = h('code', {}, '%' + s.code + ' …');
-      code.onchange = async () => {
-        const nc = code.value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-        if (!nc || cfg.list.some((x, j) => j !== i && x.code === nc)) { toast('Zkratka musí být jedinečná (písmena/číslice).', 'err'); code.value = s.code; return; }
-        const old = s.code; s.code = nc; save(); sample.textContent = '%' + nc + ' …';
-        const n = await renameInstrumentCode(old, nc);
-        if (n) toast(`Zkratka změněna i v ${n} písních`, 'ok');
-      };
-      name.oninput = () => { s.name = name.value; save(); };
-      color.oninput = () => { s.color = color.value; save(); };
-      tbody.appendChild(h('tr', {},
-        h('td', {}, code), h('td', {}, name), h('td', {}, color), h('td', {}, sample),
-        h('td', {}, h('button', { class: 'btn small icon danger', title: 'Odebrat', onclick: async () => {
-          if (!await confirmDlg(`Odebrat nástroj „${s.name}“? Jeho řádky v písních zůstanou, jen nebudou mít název ani barvu.`, 'Odebrat', true)) return;
-          cfg.list.splice(i, 1); save(); paint();
-        } }, '✕'))));
-    });
-  };
-  paint();
-  return h('div', {},
-    h('p', { class: 'help', style: { maxWidth: '900px' } }, 'Informace pro muzikanty – ladění, akordy, tabulatury, rytmus. Zapisují se do textu písně řádkem ', h('code', {}, '%G …'), ' nebo blokem ', h('code', {}, '%%G … %%'), '. Ve čtečce se nikdy nezobrazí; v náhledu je ukáže přepínač „Pro muzikanty“ a lze je vytisknout. Akordy ', h('code', {}, '[Am]'), ' jsou samostatná vrstva.'),
-    h('table', { class: 'tbl' }, h('thead', {}, h('tr', {}, ['Kód', 'Název', 'Barva', 'Zápis v textu', ''].map(x => h('th', {}, x)))), tbody),
-    h('div', { class: 'row', style: { marginTop: '14px' } },
-      h('button', { class: 'btn primary nogrow', onclick: () => {
-        const used = new Set(cfg.list.map(s => s.code));
-        let code = 'X'; for (const c of 'SVTHPAELMNOR') if (!used.has(c)) { code = c; break; }
-        cfg.list.push({ code, name: 'Nový nástroj', color: presets[cfg.list.length % presets.length] });
-        save(); paint();
-      } }, '＋ Přidat nástroj')));
-}
-
-async function renameInstrumentCode(oldC, newC) {
-  const re = new RegExp(`^(\\s*%%?(?:[A-Za-z0-9]+\\+)*)${oldC}(?=[+\\s]|$)`, 'gm');
-  let n = 0;
-  for (const s of Store.songs.values()) {
-    const t = (s.text || '').replace(re, `$1${newC}`);
-    if (t !== s.text) { s.text = t; await Store.put('songs', s); n++; }
-  }
-  return n;
-}
-
 /* ===== Nastavení: vlevo kategorie, vpravo vždy jen jedna (v telefonu nejdřív seznam) ===== */
 const SET_SECTIONS = [
   ['band', '☁ Kapela a synchronizace'],
   ['device', '📱 Toto zařízení'],
   ['screens', '🖥 Obrazovky kapely'],
   ['reader', '▶ Čtečka a ovládání'],
-  ['instruments', '🎸 Nástroje'],
   ['backup', '💾 Záloha a import'],
   ['about', 'ⓘ O aplikaci'],
 ];
-const SET_ALIASES = { share: 'band', user: 'device', singers: 'instruments' };
+const SET_ALIASES = { share: 'band', user: 'device' };
 
 /* řádek nastavení: vlevo název a vysvětlení, vpravo ovládací prvek */
 const setRow = (title, help, ctl, cls = '') => h('div', { class: 'set-row ' + cls }, h('div', {}, h('b', {}, title), help ? h('span', { class: 'help' }, help) : null), ctl);
@@ -282,9 +228,6 @@ const SettingsView = {
     // v úzkém okně bez zvolené kategorie se ukáže jen seznam kategorií
     main.appendChild(h('div', { class: 'view set-view' + (known ? ' has-sec' : '') }, nav, c));
   },
-
-  /* ---------- Nástroje ---------- */
-  instruments() { return h('div', { class: 'set-sec' }, instrumentsSection()); },
 
   /* ---------- Kapela a synchronizace ---------- */
   band() {
@@ -442,14 +385,6 @@ const SettingsView = {
       roleSel.onchange = () => { applyDeviceRole(roleSel.value); toast('Uloženo: ' + roleName(roleSel.value), 'ok'); };
       const scrSel = h('select', { class: 'inp set-sel' }, [Screens.auto(), ...Screens.list()].map(sc => h('option', { value: sc.id, selected: sc.id === Screens.myId() }, Screens.label(sc))));
       scrSel.onchange = () => { Settings.set('screenId', scrSel.value); toast('Toto zařízení: ' + Screens.mine().name, 'ok'); paint(); };
-      const my = Settings.get('myView');
-      const view = Object.assign({ chords: false, inst: [] }, my || Screens.mine().view || {});
-      const saveView = () => Settings.set('myView', Object.assign({}, view));
-      const custom = h('div', { class: 'scr-view' },
-        h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: !!view.chords, onchange: e => { view.chords = e.target.checked; saveView(); } }), 'Akordy'),
-        ...Store.instruments().map(ins => h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: view.inst.includes(ins.code), onchange: e => {
-          view.inst = e.target.checked ? [...new Set([...view.inst, ins.code])] : view.inst.filter(c => c !== ins.code); saveView();
-        } }), h('span', { class: 'led', style: { background: ins.color } }), ins.name)));
       const singerSel = h('select', { class: 'inp set-sel' }, h('option', { value: '' }, '— nikdo / nezvýrazňovat —'),
         Store.allSingers().map(sg => h('option', { value: sg.code, selected: sg.code === S.mySinger }, sg.name)));
       singerSel.onchange = () => { Settings.set('mySinger', singerSel.value); Settings.set('highlightMine', !!singerSel.value); };
@@ -481,9 +416,6 @@ const SettingsView = {
         h('h3', {}, 'Zobrazení ve čtečce'),
         h('div', { class: 'set-rows' },
           setRow('Toto zařízení je obrazovka', 'Na webu a v telefonu se stránka přizpůsobí oknu. Obrazovku kapely zvol jen pro pevně umístěný displej.', scrSel),
-          setRow('Co vidím já', my ? 'Vlastní výběr jen pro toto zařízení.' : 'Jako obrazovka „' + Screens.mine().name + '“.',
-            segControl([['profile', 'Jako obrazovka'], ['custom', 'Vlastní']], my ? 'custom' : 'profile', v => { Settings.set('myView', v === 'custom' ? Object.assign({}, view) : null); paint(); })),
-          my ? h('div', { class: 'set-row sub' }, custom) : null,
           setRow('Zvýraznit moje řádky', 'Řádky ostatních zpěváků budou ztlumené (řádky „všichni“ zůstanou).', singerSel),
           setRow('Velikost písma (%)', 'Osobní zvětšení k velikosti obrazovky. Ve čtečce i klávesami + / −.', zoom),
           setRow('Otočit obraz čtečky', 'Jen když systém monitor sám neotáčí.', rotSel)));
@@ -492,7 +424,7 @@ const SettingsView = {
     return box;
   },
 
-  /* ---------- Obrazovky kapely (sdílené profily: rozměr, obsah, písmo) ---------- */
+  /* ---------- Obrazovky kapely (sdílené profily: rozměr, písmo) ---------- */
   screens(sub) {
     let edId = sub || Screens.editId();
     const scrTabs = h('div', { class: 'scr-tabs' });
@@ -523,9 +455,8 @@ const SettingsView = {
       const presetBox = h('div', { class: 'row', style: { marginTop: '8px' } });
       const orientBtns = {};
       const isPortrait = () => +hIn.value >= +wIn.value;
-      const view = Object.assign({ chords: false, inst: [] }, scr.view || {});
       const save = () => {
-        Object.assign(scr, { name: nameIn.value.trim() || scr.name, w: Math.max(320, +wIn.value | 0), h: Math.max(240, +hIn.value | 0), diag: +diag.value, dist: +dist.value, fontPct: Math.max(40, +fontIn.value || 100), view });
+        Object.assign(scr, { name: nameIn.value.trim() || scr.name, w: Math.max(320, +wIn.value | 0), h: Math.max(240, +hIn.value | 0), diag: +diag.value, dist: +dist.value, fontPct: Math.max(40, +fontIn.value || 100) });
         Screens.save(scr);
         paintRec();
       };
@@ -547,10 +478,6 @@ const SettingsView = {
       orientBtns.p = h('button', { class: 'btn nogrow', onclick: () => setOrient(true) }, 'Na výšku');
       orientBtns.l = h('button', { class: 'btn nogrow', onclick: () => setOrient(false) }, 'Na šířku');
       [nameIn, wIn, hIn, diag, dist, fontIn].forEach(i => i.addEventListener('change', () => { save(); paintOrient(); if (i === nameIn) paintScreens(); }));
-      const chordChk = h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: !!view.chords, onchange: e => { view.chords = e.target.checked; save(); } }), 'Akordy');
-      const instChks = Store.instruments().map(ins => h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: view.inst.includes(ins.code), onchange: e => {
-        view.inst = e.target.checked ? [...new Set([...view.inst, ins.code])] : view.inst.filter(c => c !== ins.code); save();
-      } }), h('span', { class: 'led', style: { background: ins.color } }), 'Poznámky: ' + ins.name));
       scrBox.append(
         h('div', { class: 'row' },
           h('label', { class: 'f', style: { flex: '2 1 220px' } }, h('span', {}, 'Název obrazovky'), nameIn),
@@ -567,9 +494,8 @@ const SettingsView = {
         h('div', { class: 'row', style: { marginTop: '10px', alignItems: 'center' } }, h('span', { class: 'nogrow help' }, 'Orientace:'), orientBtns.p, orientBtns.l),
         presetBox,
         h('p', {}, rec),
-        h('h3', {}, 'Co se na této obrazovce ukáže'),
-        h('div', { class: 'scr-view' }, h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: true, disabled: true }), 'Text písně'), chordChk, ...instChks),
-        h('div', { class: 'row', style: { marginTop: '10px', maxWidth: '360px' } }, h('label', { class: 'f' }, h('span', {}, 'Velikost písma oproti šabloně (%)'), fontIn)));
+        h('h3', {}, 'Písmo'),
+        h('div', { class: 'row', style: { maxWidth: '360px' } }, h('label', { class: 'f' }, h('span', {}, 'Velikost písma oproti šabloně (%)'), fontIn)));
       paintRec(); paintOrient();
     };
     paintScreens();

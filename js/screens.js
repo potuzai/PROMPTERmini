@@ -1,8 +1,8 @@
 'use strict';
 /* ===== Obrazovky kapely (sdílené profily) a osobní zobrazení zařízení =====
-   Píseň je jedna pro všechny. Profil obrazovky určuje rozměr stránky, co se na ní ukáže
-   (akordy, poznámky pro nástroje) a velikost písma. Každé zařízení si vybere svůj profil
-   a k němu si může nastavit vlastní věci (písmo, co vidí, zvýraznění svých řádků, soukromé poznámky). */
+   Píseň je jedna pro všechny. Profil obrazovky určuje rozměr stránky a velikost písma.
+   Každé zařízení si vybere svůj profil a k němu si může nastavit vlastní věci
+   (písmo, zvýraznění svých řádků, soukromé poznámky). */
 
 const Screens = {
   /* Hlavní čtečka: rozměr zůstává ve sdíleném „display“ (kvůli starším verzím) */
@@ -12,7 +12,7 @@ const Screens = {
       id: 'main', name: d.name || 'Hlavní čtečka',
       w: Settings.get('screenW'), h: Settings.get('screenH'),
       diag: Settings.get('diagonal') || 24, dist: Settings.get('distance') || 2.5,
-      view: Object.assign({ chords: false, inst: [] }, d.view || {}), fontPct: d.fontPct || 100,
+      fontPct: d.fontPct || 100,
     };
   },
   others() { return ((typeof Store !== 'undefined' && Store.config && Store.config.get('screens')) || { list: [] }).list || []; },
@@ -26,7 +26,7 @@ const Screens = {
   auto() {
     const iw = Math.max(1, window.innerWidth), ih = Math.max(1, window.innerHeight);
     const k = 1080 / Math.min(iw, ih);
-    return { id: 'auto', name: 'Podle okna', w: Math.round(iw * k), h: Math.round(ih * k), diag: 0, dist: 0, view: { chords: false, inst: [] }, fontPct: 100 };
+    return { id: 'auto', name: 'Podle okna', w: Math.round(iw * k), h: Math.round(ih * k), diag: 0, dist: 0, fontPct: 100 };
   },
   /* obrazovka tohoto zařízení: program = hlavní čtečka, web = podle okna (dokud si ji člověk nezvolí) */
   myId() { return Settings.get('screenId') || (window.native ? 'main' : 'auto'); },
@@ -41,8 +41,8 @@ const Screens = {
       Settings.set('screenW', Math.max(320, scr.w | 0)); Settings.set('screenH', Math.max(240, scr.h | 0));
       Settings.set('diagonal', +scr.diag || 24); Settings.set('distance', +scr.dist || 2.5);
       const old = Store.config.get('display') || {};
-      const d = Object.assign({ id: 'display', portraitMigrated: true }, old, { name: scr.name, view: scr.view, fontPct: scr.fontPct });
-      if (JSON.stringify([old.name, old.view, old.fontPct]) !== JSON.stringify([d.name, d.view, d.fontPct])) await Store.put('config', d, { silent: true });
+      const d = Object.assign({ id: 'display', portraitMigrated: true }, old, { name: scr.name, fontPct: scr.fontPct });
+      if (JSON.stringify([old.name, old.fontPct]) !== JSON.stringify([d.name, d.fontPct])) await Store.put('config', d, { silent: true });
       return;
     }
     const list = this.others().map(s => s.id === scr.id ? Object.assign({}, scr) : s);
@@ -50,7 +50,7 @@ const Screens = {
     if (JSON.stringify(list) !== JSON.stringify(this.others())) await Store.put('config', { id: 'screens', list });
   },
   async add(base) {
-    const scr = Object.assign({ id: 's' + uid(), name: 'Nová obrazovka', w: 1080, h: 1920, diag: 11, dist: 0.8, view: { chords: true, inst: [] }, fontPct: 100 }, base || {});
+    const scr = Object.assign({ id: 's' + uid(), name: 'Nová obrazovka', w: 1080, h: 1920, diag: 11, dist: 0.8, fontPct: 100 }, base || {});
     await this.save(scr);
     return scr;
   },
@@ -60,15 +60,6 @@ const Screens = {
     if (Settings.get('screenId') === id) Settings.set('screenId', '');
   },
 
-  /* Co se na obrazovce ukáže: profil, případně přepsaný osobním nastavením zařízení.
-     Vrací vrstvy pro Render.layout (null = jen text, jako klasická čtečka). */
-  view(scr, personal) {
-    let v = scr.view || {};
-    const my = personal && Settings.get('myView');
-    if (my) v = my;
-    const inst = {}; (v.inst || []).forEach(c => { inst[c] = true; });
-    return v.chords || (v.inst || []).length ? { chords: !!v.chords, inst } : null;
-  },
   /* Velikost písma: profil × osobní zvětšení */
   fontScale(scr, personal) { return (scr.fontPct || 100) / 100 * (personal ? (Settings.get('readerZoom') || 1) : 1); },
   label(scr) { return scr.id === 'auto' ? 'Podle okna (přizpůsobí se displeji)' : `${scr.name} · ${scr.w}×${scr.h}`; },

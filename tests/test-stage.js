@@ -16,12 +16,9 @@ const SHOTS = process.env.SHOTS || '/tmp/claude-0/shots';
   await klasickaSablona(p);
   const src = () => p.evaluate(() => SongsView.editor.src);
   const key = async (k, n = 1) => { for (let i = 0; i < n; i++) { await p.keyboard.press(k); await sleep(60); } };
-  // nabídky v editoru: ⋯ (volby písně), lišta nad stránkou (＋ Vložit, Řádek, Pro muzikanty)
+  // nabídka ⋯ v pravém panelu (volby písně)
   const pick = async (btn, label) => { await p.click(btn); await p.click(`.menu > div:has-text("${label}")`); };
-  const songMenu = async label => {
-    if (label === 'Ukázat akordy') return pick('.ed-side .ed-mus', 'akordy a poznámky');
-    if (label === 'Zdrojový text') return pick('.ed-side button[title^="Další volby písně"]', 'Zdrojový text');
-  };
+  const songMenu = label => pick('.ed-side button[title^="Další volby písně"]', label);
   const curText = () => p.evaluate(() => { const e = document.querySelector('.edit-stage .is-cur'); return e ? e.textContent : ''; });
 
   // nová píseň: prázdná stránka, vložení textu
@@ -37,7 +34,7 @@ const SHOTS = process.env.SHOTS || '/tmp/claude-0/shots';
   await p.keyboard.press('Control+V');
   await sleep(400);
   const s1 = await src();
-  assert(s1.includes('## Sloka 1') && s1.includes('>> Refrén') && s1.includes('[Am]'), 'vložení textu s vyčištěním');
+  assert(s1.includes('## Sloka 1') && s1.includes('>> Refrén') && !s1.includes('Am'), 'vložení textu s vyčištěním (akordy pryč)');
   assert(await p.isVisible('.edit-stage .st-head:has-text("Stránková")'), 'na stránce je záhlaví s názvem písně');
   assert(!(await p.evaluate(() => document.querySelector('.edit-stage').textContent.includes('Am'))), 'akordy nejsou ve čtečce vidět');
 
@@ -136,7 +133,7 @@ const SHOTS = process.env.SHOTS || '/tmp/claude-0/shots';
   await p.click('.ed-tools .sw >> nth=0'); await sleep(150);
   assert(/^@V refrén druhý/m.test(await src()), 'opětovný klik zpěváka odebere');
   assert(!(await p.isVisible('.ed-tools button:has-text("Vložit")')), 'v liště není nabídka Vložit');
-  await p.click('.ed-side button:has-text("Nová stránka")');
+  await p.evaluate(() => SongsView.editor.se.insertLines([SongsView.editor.breakLine()], { before: true }));   // pravé tlačítko › Vložit › Novou stránku
   await sleep(200);
   assert(/---\n@V refrén druhý/.test(await src()), 'nová stránka před vybraný řádek');
   assert(/2/.test(await p.textContent('.page-lbl')) && (await p.textContent('.page-lbl')).includes('/2'), 'stránky: počet v panelu');
@@ -154,12 +151,6 @@ const SHOTS = process.env.SHOTS || '/tmp/claude-0/shots';
   assert((await curText()).includes('Refrén první'), 'posunutý řádek zůstane vybraný');
   await key('Alt+ArrowUp');
   assert(await src() === before2, 'Alt+↑ ho vrátí nahoru');
-
-  // pro muzikanty: akordy jen v pohledu Pro muzikanty
-  await songMenu('Ukázat akordy'); await sleep(250);
-  assert(await p.evaluate(() => document.querySelector('.edit-stage').textContent.includes('Am')), 'pohled Pro muzikanty ukazuje akordy');
-  await songMenu('Ukázat akordy'); await sleep(200);
-  assert(!(await p.evaluate(() => document.querySelector('.edit-stage').textContent.includes('Am'))), 'zpět na pohled čtečky');
 
   // playlist: pozice x/y v záhlaví
   await p.keyboard.press('Control+S'); await sleep(200);

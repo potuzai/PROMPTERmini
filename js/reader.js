@@ -93,13 +93,13 @@ const Reader = {
     return tpl;
   },
 
-  /* Stránkování pro obrazovku tohoto zařízení: její rozměr, konce stránek a co na ní má být */
+  /* Stránkování pro obrazovku tohoto zařízení: její rozměr a konce stránek */
   layoutFor(song, tpl) {
     const scr = Screens.mine();
     const W = scr.w, H = scr.h;
-    const mus = Screens.view(scr, true), opts = screenOpts(scr, song.id, true);
-    const key = [song.id, JSON.stringify(tpl), W + 'x' + H, song.updatedAt || '', JSON.stringify(mus), JSON.stringify(opts)].join('|');
-    if (!this.cache.has(key)) this.cache.set(key, Render.layout(song, tpl, W, H, mus, opts));
+    const opts = screenOpts(scr, song.id, true);
+    const key = [song.id, JSON.stringify(tpl), W + 'x' + H, song.updatedAt || '', JSON.stringify(opts)].join('|');
+    if (!this.cache.has(key)) this.cache.set(key, Render.layout(song, tpl, W, H, opts));
     return this.cache.get(key);
   },
 

@@ -59,16 +59,6 @@ const Render = {
 
   blockEl(b, tpl, singerMap) {
     if (b.type === 'gap') return h('div', { class: 'b-gap' });
-    if (b.type === 'mus' || b.type === 'musblock') {
-      const im = Store.instrumentMap();
-      const ins = b.inst.map(c => im[c]).filter(Boolean);
-      const color = ins[0] ? ins[0].color : '#9aa0a6';
-      const tag = h('span', { class: 'mtag' }, ins.map(x => x.name).join(' + ') || b.inst.join('+'));
-      if (b.type === 'mus') return h('div', { class: 'b-mus', 'data-src': b.src, style: { '--ic': color } }, tag, h('span', { html: ' ' + (hasChords(b.text) ? chordedHtml(b.text, singerMap) : inlineHtml(b.text, singerMap)) }));
-      return h('div', { class: 'b-musblock', 'data-src': b.src, style: { '--ic': color } },
-        h('div', {}, tag, b.title ? ' ' + b.title : ''), h('pre', {}, b.lines.join('\n')));
-    }
-    if (b.type === 'chords') return h('div', { class: 'b-line b-chordline', 'data-src': b.src, style: { '--chc': CHORD_COLOR }, html: chordedHtml(b.text, singerMap) });
     if (b.type === 'break') return h('div', { class: 'b-gap' });
     if (b.type === 'section') {
       // předehra, mezihra, sólo: pokyn pro kapelu, vidět vždy (i když se nadpisy sekcí neukazují)
@@ -102,8 +92,7 @@ const Render = {
       if (B.length) { el.style.setProperty('--tint', blend(B)); el.classList.add('bgt'); }
       el.classList.add('has-sg');
     }
-    let inner = b.showChords ? chordedHtml(b.text, singerMap) : (inlineHtml(b.chords ? stripChords(b.text) : b.text, singerMap) || '&nbsp;');
-    if (b.showChords) el.classList.add('has-chords');
+    let inner = inlineHtml(b.chords ? stripChords(b.text) : b.text, singerMap) || '&nbsp;';
     // počet opakování sekce hned u jejího prvního řádku
     if (b.secCount > 1) inner = `<span class="rep-n" style="color:${tpl.instrColor || '#ff0000'}">${b.secCount}×</span> ` + inner;
     el.innerHTML = inner;
@@ -120,14 +109,14 @@ const Render = {
     return el;
   },
 
-  /* Spočítá rozdělení písně na stránky. mus = vrstvy pro muzikanty (null = čtečka: nic z nich)
+  /* Spočítá rozdělení písně na stránky.
      opts.screen = pro kterou obrazovku (platí jen její konce stránek), opts.note = soukromá poznámka,
      opts.mine = kód zpěváka, jehož řádky se zvýrazní (ostatní ztlumené) */
-  layout(song, tpl, W, H, mus = null, opts = {}) {
+  layout(song, tpl, W, H, opts = {}) {
     const parsed = parseSong(song.text);
     const singerMap = Store.singerMap(song.style && Array.isArray(song.style.singers) ? song : tpl);   // píseň > šablona > kapela
     const scr = opts.screen || 'main';
-    let blocks = filterForView(parsed.blocks.filter(b => b.type !== 'break' || b.screen === scr), mus);
+    let blocks = filterForView(parsed.blocks.filter(b => b.type !== 'break' || b.screen === scr));
     while (blocks.length && blocks[0].type === 'break') blocks.shift();
     if (opts.note) blocks = [{ type: 'note', text: opts.note, private: true, src: -1 }, ...blocks];
     const cols = Math.max(1, tpl.columns | 0);
@@ -351,7 +340,7 @@ function miniPage(box, song, info) {
   const W = scr.w, H = scr.h;
   const tpl = applySongStyle(Store.template((song && song.templateId) || Settings.get('defaultTemplate')), song);
   tpl.fontSize = Math.round(tpl.fontSize * Screens.fontScale(scr, false));
-  const lay = Render.layout(song, tpl, W, H, Screens.view(scr, true), screenOpts(scr, song.id, true));
+  const lay = Render.layout(song, tpl, W, H, screenOpts(scr, song.id, true));
   const st = Render.makeStage(tpl, W, H);
   box.innerHTML = '';
   box.style.aspectRatio = W + ' / ' + H;

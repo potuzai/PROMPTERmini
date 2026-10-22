@@ -224,7 +224,7 @@ const App = {
     if (SongsView.editor && SongsView.editor.ro) SongsView.editor.ro.disconnect();
     SongsView.editor = null;
     const views = { songs: SongsView, playlists: PlaylistsView, templates: TemplatesView, settings: SettingsView };
-    if (view === 'singers') { location.replace('#/settings/instruments'); return; }   // dřív stránka Obsazení
+    if (view === 'singers') { location.replace('#/templates'); return; }   // dřív stránka Obsazení (zpěváci jsou teď v šablonách)
     (views[view] || PlaylistsView).render(main, param);
     this.here = location.href;
     // první spuštění: program (čtečka) → průvodce zařízením; web → jen uvítání a připojení ke kapele

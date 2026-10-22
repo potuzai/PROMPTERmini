@@ -102,10 +102,8 @@ class StageEditor {
     const tpl = ed.lookTpl(song);
     const fz = Screens.fontScale(scr, own);
     if (fz !== 1) tpl.fontSize = Math.round(tpl.fontSize * fz);
-    // náhled přesně pro zvolenou obrazovku (její konce stránek a vrstvy); „Ukázat akordy“ přidá vše pro muzikanty
-    const mus = musViewOpts() || Screens.view(scr, own);
-    this.wrap.classList.toggle('mus-on', !!(mus && mus.chords));
-    const lay = Render.layout(Object.assign({}, song, { text }), tpl, W, H, mus, screenOpts(scr, ed.id, own));
+    // náhled přesně pro zvolenou obrazovku (její konce stránek)
+    const lay = Render.layout(Object.assign({}, song, { text }), tpl, W, H, screenOpts(scr, ed.id, own));
     this.lay = lay;
     this.tpl = tpl;
     this.targets = this.buildTargets(lay, tpl);
@@ -218,7 +216,7 @@ class StageEditor {
   }
 
   describe(t) {
-    const names = { line: 'Řádek', chords: 'Akordy', section: 'Nadpis sekce', note: 'Poznámka', repeat: 'Opakování', mus: 'Pro muzikanty', musblock: 'Blok pro muzikanty' };
+    const names = { line: 'Řádek', section: 'Nadpis sekce', note: 'Poznámka', repeat: 'Opakování' };
     const who = this.singersOf(t);
     const sm = this.ed.singerMap();
     const w = who.own.length ? who.own.map(c => (sm[c] || { name: c }).name).join(' + ') : who.inh.length ? who.inh.map(c => (sm[c] || { name: c }).name).join(' + ') + ' (sekce)' : '';
@@ -367,7 +365,7 @@ class StageEditor {
   }
 
   /* ---------- Psaní ---------- */
-  editable(t) { return t && ['line', 'chords', 'section', 'note', 'mus'].includes(t.kind); }
+  editable(t) { return t && ['line', 'section', 'note'].includes(t.kind); }
   /* t = cíl (null = nový řádek za vybraným / na konec); caret = 'start' | 'end' | číslo; ch = první napsaný znak */
   startEdit(t, caret = 'end', ch) {
     this.closeMenu();
@@ -388,13 +386,8 @@ class StageEditor {
     this.editing = { line, caret, ch };
     this.render();
   }
-  /* index řádku zdroje za cílem (za blokem %%…%% až za jeho konec) */
-  afterTarget(t) {
-    const ls = this.lines();
-    let i = t.line + 1;
-    if (t.kind === 'musblock') { while (i < ls.length && ls[i].trim() !== '%%') i++; i++; }
-    return Math.min(i, ls.length);
-  }
+  /* index řádku zdroje za cílem */
+  afterTarget(t) { return Math.min(t.line + 1, this.lines().length); }
   makeEditable() {
     const t = this.targets.find(x => x.line === this.editing.line && x.kind !== 'repeat');
     const el = t && this.elsOf(t)[0];
@@ -547,7 +540,7 @@ class StageEditor {
       ls.splice(i, 1);
       this.ed.src = ls.join('\n'); this.ed.changed(); this.pushHist();
       const kind = info[i - 1] && info[i - 1].kind;
-      this.editing = ['line', 'chords', 'section', 'note', 'mus'].includes(kind) ? { line: i - 1, caret: 'end' } : null;
+      this.editing = ['line', 'section', 'note'].includes(kind) ? { line: i - 1, caret: 'end' } : null;
       this.curLine = i - 1;
       return this.render();
     }
@@ -634,7 +627,7 @@ class StageEditor {
   /* ---------- Akce s vybranými řádky ---------- */
   srcLinesOf(targets) {
     const set = new Set();
-    for (const t of targets) if (t.kind !== 'repeat' && t.kind !== 'musblock') set.add(t.line);
+    for (const t of targets) if (t.kind !== 'repeat') set.add(t.line);
     return [...set];
   }
   singersOf(t) {
@@ -748,7 +741,7 @@ class StageEditor {
   cycleSinger(d) {
     const t = this.cur();
     if (!t) return;
-    if (!['line', 'chords', 'section'].includes(t.kind)) { toast('Zpěváka jde nastavit u řádku nebo u nadpisu sekce.', 'warn', 1800); return; }
+    if (!['line', 'section'].includes(t.kind)) { toast('Zpěváka jde nastavit u řádku nebo u nadpisu sekce.', 'warn', 1800); return; }
     const codes = this.ed.singers().map(s => s.code);
     const own = this.singersOf(t).own;
     const i = own.length === 1 ? codes.indexOf(own[0]) : -1;
@@ -763,10 +756,7 @@ class StageEditor {
     if (!targets.length) return;
     const ls = this.lines();
     const del = new Set();
-    for (const t of targets) {
-      del.add(t.line);
-      if (t.kind === 'musblock') { let j = t.line + 1; while (j < ls.length && ls[j].trim() !== '%%') del.add(j++); del.add(j); }
-    }
+    for (const t of targets) del.add(t.line);
     this.curLine = Math.min(...del);
     this.curKey = null;
     this.anchorKey = null;
@@ -781,7 +771,7 @@ class StageEditor {
     if (!targets.length) return;
     const ls = this.lines();
     let start = Math.min(...targets.map(t => t.line));
-    let end = Math.max(...targets.map(t => t.kind === 'musblock' ? this.afterTarget(t) - 1 : t.line));
+    let end = Math.max(...targets.map(t => t.line));
     if (d < 0 ? start === 0 : end >= ls.length - 1) return;
     const curLine = this.cur().line, anchor = this.anchorKey != null && this.targets.find(t => t.key === this.anchorKey);
     const anchorLine = anchor ? anchor.line : null;
@@ -896,26 +886,7 @@ class StageEditor {
     try { el.appendChild(r.extractContents()); r.insertNode(el); } catch (e) { return; }
     selectContents(el);
   }
-  insertChord(name) {
-    if (this.editing && this.editEl) {
-      const sel = window.getSelection();
-      if (sel.rangeCount && this.editEl.contains(sel.anchorNode)) {
-        const r = sel.getRangeAt(0);
-        r.collapse(true);
-        const ch = h('span', { class: 'vchord', contenteditable: 'false', 'data-ch': name });
-        r.insertNode(ch);
-        r.setStartAfter(ch); r.collapse(true); sel.removeAllRanges(); sel.addRange(r);
-        this.syncEdit(); this.pushHist();
-        return;
-      }
-    }
-    const t = this.cur();
-    if (!t || !['line', 'chords'].includes(t.kind)) return toast('Vyber řádek s textem.', 'warn');
-    const ls = this.lines();
-    const { prefix, body } = splitLine(ls[t.line], 'line');
-    ls[t.line] = prefix + '[' + name + ']' + body;
-    this.commit(ls.join('\n'));
-  }
+
 
   /* ---------- Nabídka (OK / pravé tlačítko) ---------- */
   openMenu(x, y) {
@@ -1021,7 +992,6 @@ function splitLine(src, kind) {
   let m;
   if (kind === 'section' && t.startsWith('##')) { const sec = parseSectionLine(t); return { prefix: '## ', body: sec.name, suffix: formatSectionLine(sec).slice(('## ' + sec.name).length) }; }
   if (kind === 'note' && (m = RE_NOTE.exec(t))) return { prefix: '// ', body: m[1], suffix: '' };
-  if (kind === 'mus' && (m = RE_MUS.exec(t))) return { prefix: '%' + m[1] + ' ', body: m[2], suffix: '' };
   if ((m = RE_SINGER.exec(t))) return { prefix: '@' + m[1] + ' ', body: m[2], suffix: '' };
   return { prefix: '', body: t, suffix: '' };
 }
@@ -1068,7 +1038,7 @@ function outerMark(b, re) {
 }
 function formatLine(src, kind, val) {
   const info = parseSong(src).lines[0] || {};
-  if (!['line', 'chords', 'note', 'section', 'mus'].includes(info.kind)) return src;
+  if (!['line', 'note', 'section'].includes(info.kind)) return src;
   const sp = splitLine(src, info.kind);
   let b = sp.body;
   if (kind === 'bold') b = /^\*\*[\s\S]*\*\*$/.test(b) ? b.slice(2, -2) : '**' + b + '**';
@@ -1100,7 +1070,7 @@ function formatLine(src, kind, val) {
   return sp.prefix + b + sp.suffix;
 }
 
-/* Řádek se značkami → HTML pro psaní (akordy jako nepsatelné značky nad textem) */
+/* Řádek se značkami → HTML pro psaní (starší akordy [Am] zůstanou jako neviditelné značky, aby se psaním neztratily) */
 function veInline(body, smap) {
   const chords = [];
   const solo = hasChords(body) && stripChords(body) === '';

@@ -155,7 +155,6 @@ code { font-family: var(--mono); font-size: 12.5px; background: var(--well); bor
 .ed-pages { display: flex; align-items: center; gap: 6px; }
 .ed-pages .page-lbl { flex: 1; text-align: center; color: var(--text); font-size: 14px; }
 .ed-pages .tl { font-size: 18px; }
-.ed-side .ed-break, .ed-side .ed-mus { align-self: stretch; justify-content: center; }
 .ed-save { display: flex; flex-direction: column; gap: 8px; }
 .ed-save-row { display: flex; gap: 6px; }
 .ed-save-row .btn:first-child, .ed-save > .btn { flex: 1; justify-content: center; }
@@ -179,12 +178,7 @@ kbd { font: 600 11px/1 var(--mono); padding: 3px 5px; border: 1px solid var(--li
 .edit-stage .is-edit::selection, .edit-stage .is-edit *::selection { background: rgba(70,130,255,.55); }
 .edit-stage .is-edit:empty::before { content: "\200b"; }
 /* akordy při psaní: nad slovy jen v pohledu Pro muzikanty */
-.vchord { position: relative; display: inline-block; width: 0; height: 1em; vertical-align: baseline; user-select: none; cursor: pointer; }
-.vchord::after { content: attr(data-ch); position: absolute; left: 0; bottom: 1.1em; font: 700 .55em/1 var(--mono); letter-spacing: 0; text-transform: none; color: var(--chc, #6fc3ff); white-space: nowrap; }
-.vchord.solo { width: auto; height: auto; }
-.vchord.solo::after { position: static; display: inline-block; margin-right: .4em; }
-.se-wrap:not(.mus-on) .vchord::after { display: none; }
-.se-wrap.mus-on .is-edit:has(.vchord) { padding-top: .9em; }
+.vchord { display: inline-block; width: 0; height: 1em; vertical-align: baseline; user-select: none; }   /* starší akord [Am] – neviditelný, psaním se neztratí */
 /* nabídka OK (ovladatelná šipkami) */
 .line-menu { position: absolute; z-index: 30; min-width: 250px; max-width: 340px; background: var(--panel2); border: 1px solid var(--line2); box-shadow: 0 10px 34px rgba(0,0,0,.75); font-size: 15px; user-select: none; }
 .lm-head { padding: 8px 12px; font: 600 11px var(--label); color: var(--dim); border-bottom: 1px solid var(--line); cursor: default; }
@@ -399,7 +393,6 @@ table.tbl { border-collapse: collapse; width: 100%; background: var(--panel); bo
 .menu { position: fixed; background: var(--panel); border: 1px solid var(--line2); border-radius: var(--rc); box-shadow: var(--shadow); padding: 4px; z-index: 1500; min-width: 200px; max-height: 60vh; overflow-y: auto; box-shadow: 0 12px 30px rgba(0,0,0,.6); }
 .menu div { padding: 7px 12px; border-radius: var(--r); cursor: pointer; }
 .menu div:hover { background: var(--hover); color: var(--text); box-shadow: inset 3px 0 0 var(--acc); }
-.menu-layers { padding: 6px 4px; }
 .menu-form { width: 340px; padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 10px; }
 .menu-form .menu-head { padding: 0; }
 .menu-form div, .menu-form div:hover { padding: 0; cursor: default; background: none; box-shadow: none; }
@@ -424,7 +417,6 @@ table.tbl { border-collapse: collapse; width: 100%; background: var(--panel); bo
 .sw-opt { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 30px; cursor: pointer; }   /* volba s přepínačem (text vlevo, přepínač vpravo) */   /* stejné odsazení i při najetí myší (okno neposkakuje) */
 .menu-chk { padding: 6px 10px !important; }
 .led { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
-.print-mus { padding-left: 24px; }
 /* nápověda „Jak psát text písně“ */
 .help-guide { display: flex; flex-direction: column; gap: 14px; }
 .help-step { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 300px); gap: 16px; align-items: start; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
@@ -574,7 +566,6 @@ input[type=checkbox].switch:focus-visible { outline: 2px solid var(--acc-hi); ou
 .wz-steps { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: center; margin: 22px 0 26px; font-size: 13.5px; color: var(--dim); }
 .wz-step { display: flex; align-items: center; gap: 9px; }
 .wz-step.on { color: var(--text); font-weight: 600; }
-.wz-step.skip { opacity: .4; }
 .wz-num { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--line2); background: var(--well); font-size: 13px; }
 .wz-step.on .wz-num { background: var(--acc); border-color: var(--acc); color: #fff; }
 .wz-step.done .wz-num { background: var(--ok); border-color: var(--ok); color: #fff; }
@@ -685,16 +676,6 @@ input[type=checkbox].switch:focus-visible { outline: 2px solid var(--acc-hi); ou
 .rep-n { font-weight: 700; }
 .sz { line-height: 1.1; }
 /* vrstvy pro muzikanty (jen náhled „Pro muzikanty“ – čtečka je nikdy nevykreslí) */
-.cw { display: inline-flex; flex-direction: column; vertical-align: bottom; }
-.cw .ch { font-family: "Roboto Condensed", Arial, sans-serif; font-size: .58em; font-weight: 700; line-height: 1.05; color: var(--chc, #ff5a4f); padding-right: .35em; white-space: nowrap; }
-.cw .cl { white-space: pre; }
-.b-chordline .cw .ch { font-size: .7em; }
-.b-chordline .cl { display: none; }
-.b-mus, .b-musblock { position: relative; margin: .15em 0; padding: .2em .4em .2em .55em; border-left: .14em dashed var(--ic); background: color-mix(in srgb, var(--ic) 10%, transparent);
-  font-size: .5em; font-weight: 400; line-height: 1.35; text-transform: none; letter-spacing: 0; color: color-mix(in srgb, var(--ic) 55%, #fff); }
-.stage .mtag, .pr-mtag { display: inline-block; font-family: "Roboto Condensed", Arial, sans-serif; font-weight: 700; font-size: .8em; text-transform: uppercase; letter-spacing: .06em; color: #000; background: var(--ic); padding: 0 .4em; margin-right: .3em; }
-.b-musblock pre { margin: .25em 0 0; font-family: "Roboto Mono", Consolas, monospace; font-size: .92em; line-height: 1.25; white-space: pre; overflow: hidden; color: #f1f1f1; }
-.with-bar .b-mus, .with-bar .b-musblock { margin-left: calc(var(--bar) / .5 + .6em); }
 
 /* ===== Čtečka ===== */
 #reader { position: fixed; inset: 0; background: #000; z-index: 500; overflow: hidden; user-select: none; }
@@ -813,13 +794,6 @@ input[type=checkbox].switch:focus-visible { outline: 2px solid var(--acc-hi); ou
 .pr-bw .pr-line.has-sg .pr-who, .pr-legend .pr-who { display: inline-block; font-family: "Roboto Condensed", Arial, sans-serif; font-size: .68em; font-weight: 700; text-transform: uppercase; border: .75pt solid #000; padding: 0 3pt; margin-right: 5pt; vertical-align: .12em; }
 .pr-color .pr-legend .pr-leg { border-left: 8pt solid var(--bar); padding-left: 4pt; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 .pr-color .pr-legend .pr-who { border: 0; padding: 0; margin: 0; }
-.pr-txt.with-chords, .pr-chords { line-height: 1.15; }
-.pr .cw .ch { color: #b3261e; font-size: .78em; }
-.pr-bw .cw .ch { color: #000; }
-.pr-mus, .pr-musblock { margin: 2pt 0 3pt; padding: 2pt 5pt; border-left: 1.5pt dashed #666; font-size: .82em; color: #222; break-inside: avoid; }
-.pr-mtag { color: #fff; background: var(--ic); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-.pr-bw .pr-mtag { color: #000; background: none; border: .75pt solid #000; }
-.pr-musblock pre { margin: 2pt 0 0; font-family: "Roboto Mono", monospace; font-size: .95em; line-height: 1.2; white-space: pre; }
 .pr-foot { margin-top: 14pt; font-size: 8pt; color: #888; }
 
 /* ===== Mobil a úzká okna (výjimečné úpravy v telefonu) ===== */

@@ -13,9 +13,9 @@ Aplikace pro psaní, úpravy a zobrazování textů písní na čtečce (prompte
 1. Rozbal `PROMPTER-mini-Windows-64bit.zip` třeba do `C:\PROMPTER mini` (pro starší 32bitová Windows použij `-32bit`).
 2. Spusť `PROMPTER mini.exe`. Při prvním spuštění Windows může ukázat „Systém Windows ochránil váš počítač“. Klikni na **Další informace → Přesto spustit**.
 3. Při prvním spuštění programu se objeví **průvodce nastavením zařízení** (ovládá se i jen šipkami a OK):
-   - **K čemu zařízení slouží**: čtečka na pódiu, počítač pro úpravy, obojí na jednom, nebo muzikant (mobil, tablet). Čtečka pak po zapnutí rovnou otevře poslední playlist.
+   - **K čemu zařízení slouží**: čtečka na pódiu, počítač pro úpravy, nebo obojí na jednom. Čtečka pak po zapnutí rovnou otevře poslední playlist.
    - **Orientace monitoru** (na výšku / na šířku) a otočení obrazu, když ho Windows neotáčí.
-   - **Obrazovka kapely**: zda je to hlavní čtečka, jiná už nadefinovaná obrazovka, nebo nová (např. „Tablet – kytara“).
+   - **Obrazovka kapely**: zda je to hlavní čtečka, jiná už nadefinovaná obrazovka, nebo nová (např. „Tablet“).
    - **Velikost displeje**: rozlišení (předvolby 21,5″–43″ nebo **Z této obrazovky**), úhlopříčka a vzdálenost zpěváka. Z nich průvodce doporučí velikost písma.
    - **Vzhled aplikace** (tmavý, světlý, podle systému), volitelně **PIN** a připojení ke kapele.
 4. Vše jde později změnit v **Nastavení › Toto zařízení** (tam je i **Průvodce nastavením → Spustit**). V **Nastavení › Čtečka a ovládání**:
@@ -61,7 +61,7 @@ Monitor čtečky během běhu programu neusne. Program se po případném pádu 
 
 ### Ukládání
 
-Písně, playlisty i šablony se ukládají **ručně**: tlačítkem **💾 Uložit** nebo **Ctrl+S**. Neuložené změny ukazuje nápis „Neuloženo“ a zvýrazněné tlačítko Uložit. Když odcházíš s neuloženými změnami (jiná záložka, zpět, čtečka, zavření okna), aplikace se zeptá: **Uložit**, **Uložit jako…** (vznikne nová píseň / playlist / šablona, původní zůstane beze změny), **Zahodit**, nebo **Zůstat**. Nastavení, Obsazení (zpěváci a nástroje) a sekce „Oblíbené“ se ukládají hned.
+Písně, playlisty i šablony se ukládají **ručně**: tlačítkem **💾 Uložit** nebo **Ctrl+S**. Neuložené změny ukazuje nápis „Neuloženo“ a zvýrazněné tlačítko Uložit. Když odcházíš s neuloženými změnami (jiná záložka, zpět, čtečka, zavření okna), aplikace se zeptá: **Uložit**, **Uložit jako…** (vznikne nová píseň / playlist / šablona, původní zůstane beze změny), **Zahodit**, nebo **Zůstat**. Nastavení a sekce „Oblíbené“ se ukládají hned.
 
 ### Psaní textu
 
@@ -85,7 +85,7 @@ Myší jako v textovém editoru: klik do řádku = psaní na tom místě, tažen
 
 **Levý panel:** údaje o písni (interpret, název, ladění, BPM, délka, šablona), struktura písně – jediné místo pro sekce: **＋ Sekce** (u vybraného řádku, nebo přesně z řádků označených tažením), **↻** zopakovat sekci, u každé sekce **⋯** přejmenovat, typ (sloka, refrén, mezičást, předehra, mezihra, sólo…), počet opakování, vlastní barva písma, smazat (klik na sekci ji vybere) a moje poznámky (jen na tomto zařízení).
 
-**Lišta nad stránkou** patří vybranému řádku: kdo zpívá, písmo písně, B, I, velikost (A−, px, A+), Aa – VELKÁ / malá, zpět / znovu a vpravo **Pro muzikanty**. V pravém panelu je stránkování, **＋ Nová stránka od řádku**, obrazovka náhledu, playlist (pořadí a další píseň jako ve čtečce) a listuje se stránkami.
+**Lišta nad stránkou** patří vybranému řádku: vlevo písmo písně, B, I, Aa (VELKÁ / malá), velikost (− px +), řádkování (− ↕ +), zpět / znovu, vpravo zpěváci a jejich označení jen pro tuto píseň (barva, přidání, odebrání). V pravém panelu je stránkování (novou stránku vytvoříš prázdnými řádky Enterem, nebo pravým tlačítkem › Vložit › Novou stránku), obrazovka náhledu, playlist (pořadí a další píseň jako ve čtečce) a listuje se stránkami.
 
 **Vzhled aplikace** (tmavý, světlý, podle systému), volitelně **PIN** a připojení ke kapele.
 4. Vše jde později změnit v **Nastavení › Toto zařízení** (tam je i **Průvodce nastavením → Spustit**). V **Nastavení › Čtečka a ovládání**:
@@ -131,7 +131,7 @@ Monitor čtečky během běhu programu neusne. Program se po případném pádu 
 
 ### Ukládání
 
-Písně, playlisty i šablony se ukládají **ručně**: tlačítkem **💾 Uložit** nebo **Ctrl+S**. Neuložené změny ukazuje nápis „Neuloženo“ a zvýrazněné tlačítko Uložit. Když odcházíš s neuloženými změnami (jiná záložka, zpět, čtečka, zavření okna), aplikace se zeptá: **Uložit**, **Uložit jako…** (vznikne nová píseň / playlist / šablona, původní zůstane beze změny), **Zahodit**, nebo **Zůstat**. Nastavení, Obsazení (zpěváci a nástroje) a sekce „Oblíbené“ se ukládají hned.
+Písně, playlisty i šablony se ukládají **ručně**: tlačítkem **💾 Uložit** nebo **Ctrl+S**. Neuložené změny ukazuje nápis „Neuloženo“ a zvýrazněné tlačítko Uložit. Když odcházíš s neuloženými změnami (jiná záložka, zpět, čtečka, zavření okna), aplikace se zeptá: **Uložit**, **Uložit jako…** (vznikne nová píseň / playlist / šablona, původní zůstane beze změny), **Zahodit**, nebo **Zůstat**. Nastavení a sekce „Oblíbené“ se ukládají hned.
 
 ### Psaní textu
 
@@ -151,7 +151,7 @@ V editoru je nahoře název a údaje písně (klikem je upravíš), **Uložit ja
 
 Myší: klik vybere řádek, druhý klik začne psaní, pravé tlačítko otevře nabídku. Shift + klik nebo Shift + ↓ vybere víc řádků najednou.
 
-**Levý sloupec:** struktura písně (sekce, opakování a konce stránek – klik na sekci ji vybere), zpěváci s klávesovými zkratkami (klik přiřadí vybraným řádkům), celá píseň (písmo písně, vyčištění, zdrojový text), pro muzikanty a dole Údaje…, Do playlistu, Uložit a Další (export, smazání).
+**Levý sloupec:** struktura písně (sekce, opakování a konce stránek – klik na sekci ji vybere), zpěváci s klávesovými zkratkami (klik přiřadí vybraným řádkům), celá píseň (písmo písně, vyčištění, zdrojový text) a dole Údaje…, Do playlistu, Uložit a Další (export, smazání).
 
 **Pravý sloupec** patří vybranému řádku: kdo zpívá, písmo (B, I, A−, A+, VELKÁ / malá), vložit (řádek, sekci, opakování, novou stránku, poznámku, mezeru, text ze schránky), řádek (upravit, nahoru / dolů, smazat), zpět / znovu a nápověda.
 
@@ -176,34 +176,22 @@ Pokročilí můžou přes **⋯ › Zdrojový text…** upravit text tak, jak se
 | `**tučně**` `*kurzíva*` | zvýraznění |
 | `---` | nová stránka |
 
-**Pro muzikanty.** Tyto informace se ve čtečce nikdy nezobrazí. Uvidíš je v náhledu po přepnutí na **Pro muzikanty** (**Pro muzikanty › Které vrstvy ukázat…** určí, co se ukáže) a v tisku playlistu.
-
-| Zápis | Význam |
-|---|---|
-| `[Am]Zpívám [C]ptákům` | akordy nad slovy |
-| `[G] [D] [Em]` | samostatný řádek akordů (intro, mezihra) |
-| `%G Ladění Drop D, capo 2` | informace pro kytaru (G = zkratka nástroje) |
-| `%G+B stop na 4` | informace pro více nástrojů |
-| `%%G Tabulatura intro` … `%%` | blok (tabulatura), mezery zůstanou přesně |
-
-Nástroje (kytara, basa, bicí, klávesy…) a jejich zkratky a barvy nastavíš v záložce **Obsazení**. Když vložíš text z webu s akordy nad řádky, akordy se samy převedou do textu a tabulatury se zabalí do bloku pro kytaru.
+Starší zápisy pro muzikanty (akordy `[Am]`, `%G …`, bloky `%%G … %%`) se nikde nezobrazují; **⋯ › Vyčistit text** je z písně smaže. Akordy z textu vloženého z webu se odstraní samy.
 
 **Barva textu** může být podle zpěváka, nebo **podle části písně** (šablona *Barvy podle částí písně*: sloka bílá, refrén žlutý, mezičást zelená; zpěváka pak ukazuje jen barevný pruh). Část se pozná podle názvu sekce: „Refrén…“, „Mezičást / Bridge / Předrefrén…“, ostatní je sloka.
 
-Zpěváky (jména, barvy) upravíš v záložce **Obsazení**. Vzhled stránky (písmo, velikost, barvy, okraje, zarovnání, sloupce, zmenšení dlouhých písní, zrcadlení) nastavíš v záložce **Šablony**. Šablonu přiřadíš písni (Údaje… → Šablona písně). Formátování drží každá píseň sama, playlist ho nemění – rozměr stránky určuje jen nastavení monitoru.
+**Zpěváky** určuje šablona: v záložce **Šablony › Zpěváci** je přidáš, odebereš, změníš barvu (klik na tečku) a nastavíš, jak se označí (proužek vlevo / vpravo, podklad, barva písma). Platí pro všechny písně s touto šablonou; jednu píseň jde nastavit jinak v editoru (ikona vedle zpěváků). Vzhled stránky (písmo, velikost, barvy, okraje, zarovnání, sloupce, zmenšení dlouhých písní, zrcadlení) nastavíš v záložce **Šablony**. Šablonu přiřadíš písni (Údaje… → Šablona písně). Formátování drží každá píseň sama, playlist ho nemění – rozměr stránky určuje jen nastavení monitoru.
 
 ### Obrazovky kapely a osobní zobrazení
 
-Píseň se píše **jen jednou** a sdílí se. Kapela si ale může nadefinovat víc **obrazovek** (Nastavení › Obrazovky kapely), třeba *Hlavní čtečka 24″ na výšku*, *Tablet – kytara*, *Mobil – basa*. Každá obrazovka má:
+Píseň se píše **jen jednou** a sdílí se. Kapela si ale může nadefinovat víc **obrazovek** (Nastavení › Obrazovky kapely), třeba *Hlavní čtečka 24″ na výšku*, *Tablet*, *Mobil*. Každá obrazovka má:
 
 - svůj rozměr a orientaci,
-- co se na ní ukáže: text, akordy, poznámky pro vybrané nástroje,
 - velikost písma oproti šabloně,
 - **vlastní konce stránek**: tlačítko *Nová stránka* v editoru vloží konec jen pro obrazovku, pro kterou se právě díváš (zápis `---` = hlavní čtečka, `--- id` = jiná obrazovka). Ostatní obrazovky stránkují samy.
 
 Obrazovky se sdílí s celou kapelou. **Každé zařízení si vybere, kterou obrazovkou je** (Nastavení › Toto zařízení), a k tomu si může nastavit jen pro sebe:
 
-- **co vidím** (jako obrazovka, nebo vlastní výběr akordů a nástrojů),
 - **zvýraznit moje řádky** – zvolíš, kdo jsi, a řádky ostatních zpěváků se ztlumí (řádky „všichni“ zůstanou),
 - **velikost písma** (i ve čtečce klávesami + / −),
 - **soukromé poznámky** k písni – v editoru vlevo *Moje poznámky*. Vidíš je jen ty na svém zařízení, ve čtečce nahoře na stránce; do kapely se neposílají.
