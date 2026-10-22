@@ -7,7 +7,7 @@ function songSingers(s) {
   return [...codes].filter(c => sm[c]).map(c => sm[c]);
 }
 // volby stránky, které jde u písně nastavit jinak než v šabloně (Stránka písně v pravém panelu)
-const PAGE_KEYS = ['barWidth', 'padX', 'padY', 'columns', 'colGap', 'fit', 'minScale', 'showHeader', 'showFooter', 'headerSize', 'showNotes', 'mirror'];
+const PAGE_KEYS = ['padX', 'padY', 'columns', 'colGap', 'fit', 'minScale', 'showHeader', 'showFooter', 'headerSize', 'showNotes', 'mirror'];
 // volby sekcí písně (Struktura v levém panelu)
 const SECTION_KEYS = ['showSections', 'sectionScale', 'sectionColor', 'stanzaGap', 'textBy', 'verseColor', 'chorusColor', 'bridgeColor', 'instrColor'];
 const SongsView = {
@@ -563,7 +563,6 @@ class SongEditor {
   /* Nastavení stránky jen pro tuto píseň – stejné volby jako v šabloně (výchozí hodnoty = šablona) */
   pagePopover(anchor) {
     this.settingsPopover(anchor, 'Stránka této písně', PAGE_KEYS, [
-      ['Zpěváci', [['barWidth', 'Šířka proužku', 'px']]],
       ['Rozvržení', [['padX', 'Okraj vlevo a vpravo', 'px'], ['padY', 'Okraj nahoře a dole', 'px'], ['columns', 'Sloupce'], ['colGap', 'Mezera mezi sloupci', 'px'],
         ['fit', 'Dlouhá píseň', null, [['shrink', 'zmenšit písmo'], ['paginate', 'na více stránek']]], ['minScale', 'Nejmenší zmenšení', '%']]],
       ['Zobrazení', [['showHeader', 'Záhlaví'], ['showFooter', 'Zápatí'], ['headerSize', 'Velikost záhlaví a zápatí', 'px'], ['showNotes', 'Poznámky (//)'], ['mirror', 'Zrcadlení']]],
@@ -1069,15 +1068,24 @@ class SongEditor {
       return { color: (...a) => { ops.color(...a); paint(); }, add: async () => { if (await ops.add()) this.singerPopover(anchor); }, remove: async sg => { if (await ops.remove(sg)) this.singerPopover(anchor); } };
     })(), this.singers());
     const reset = h('button', { class: 'btn small nogrow', style: { alignSelf: 'flex-start' }, title: 'Zrušit nastavení zpěváků jen pro tuto píseň – zpěváci i jejich označení podle šablony', onclick: () => {
-      if (this.style) { const st = Object.assign({}, this.style); delete st.singers; this.style = st; }
+      if (this.style) { const st = Object.assign({}, this.style); delete st.singers; delete st.barWidth; this.style = st; }
       apply({}); this.makeSingerBtns(); this.singerPopover(anchor);
     } }, 'Vrátit výchozí');
+    // šířka proužku zpěváka (jen pro tuto píseň)
+    const bwVal = h('span', {});
+    const bwStep = d => { const f = TPL_FIELDS.find(x => x.k === 'barWidth'); this.setSong('barWidth', Math.max(f.min, Math.min(f.max, this.lookTpl().barWidth + d))); paint(); };
+    const bw = h('div', { class: 'pg-row' }, h('span', { class: 'pg-l' }, 'Šířka proužku'),
+      h('div', { class: 'pg-step' },
+        h('button', { class: 'tl tl-step', onmousedown: e => e.preventDefault(), onclick: () => bwStep(-1) }, '−'), bwVal,
+        h('button', { class: 'tl tl-step', onmousedown: e => e.preventDefault(), onclick: () => bwStep(1) }, '+')));
     const paint = () => {
       tbl.repaint();
-      reset.style.display = Object.keys(own()).length || (this.style && this.style.singers) ? '' : 'none';
+      bwVal.textContent = this.lookTpl().barWidth + ' px';
+      bw.classList.toggle('own', !!(this.style && this.style.barWidth !== undefined));
+      reset.style.display = Object.keys(own()).length || (this.style && (this.style.singers || this.style.barWidth !== undefined)) ? '' : 'none';
     };
     paint();
-    const m = h('div', { class: 'menu menu-form menu-singer' }, h('div', { class: 'menu-head' }, 'Označení zpěváků v této písni'), tbl, reset);
+    const m = h('div', { class: 'menu menu-form menu-singer menu-page' }, h('div', { class: 'menu-head' }, 'Označení zpěváků v této písni'), tbl, bw, reset);
     placePopover(m, anchor);
   }
 
