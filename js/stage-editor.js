@@ -816,19 +816,21 @@ class StageEditor {
   }
   /* velikost písma v místě kurzoru / vybraného řádku (v procentech) */
   sizeAt() {
-    if (this.editing && this.editEl) {
-      const sel = window.getSelection();
-      if (sel.rangeCount && this.editEl.contains(sel.anchorNode)) {
-        const host = (sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentNode).closest('.sz');
-        if (host && this.editEl.contains(host)) return +host.dataset.p || 100;
-      }
-    }
+    // označená slova: jejich skutečná velikost (všechny vnořené velikosti dohromady), jinak velikost celého řádku
+    const sel = window.getSelection();
+    if (this.editing && this.editEl && sel.rangeCount && !sel.isCollapsed && this.editEl.contains(sel.anchorNode)) return Math.round(this.szChain(sel.anchorNode));
     const t = this.cur();
     if (!t) return 100;
     const src = this.lines()[t.line] || '';
     const info = parseSong(src).lines[0] || {};
     const m = /^\{([+-]{1,2}|\d{2,3}%):[\s\S]*\}$/.exec(splitLine(src, info.kind || 'line').body);
     return m ? szPct(m[1]) : 100;
+  }
+  /* součin velikostí všech značek {N%:…} od uzlu až k psanému řádku (v %) */
+  szChain(node) {
+    let p = 100;
+    for (let n = node && node.nodeType === 1 ? node : node && node.parentNode; n && n !== this.editEl; n = n.parentNode) if (n.classList && n.classList.contains('sz')) p *= (+n.dataset.p || 100) / 100;
+    return p;
   }
   toggleTag(tag) {
     const sel = window.getSelection();
@@ -841,17 +843,22 @@ class StageEditor {
     selectContents(el);
   }
   /* velikost označených slov: fn(stará procenta) → nová procenta (100 % = značku zrušit) */
+  /* velikost označených slov: fn(skutečná velikost v %) → nová skutečná velikost (vzhledem k písmu řádku) */
   sizeSel(fn) {
     const sel = window.getSelection();
-    const host = (sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentNode).closest('.sz');
+    const anc = sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentNode;
+    const host = anc.closest('.sz');
     const set = (el, p) => { el.dataset.p = p; el.style.fontSize = p / 100 + 'em'; };
-    if (host && this.editEl.contains(host)) {
-      const p = szClamp(fn(+host.dataset.p || 100));
-      if (p === 100) host.replaceWith(...host.childNodes); else set(host, p);
+    // změnit existující úsek jen tehdy, když je označený celý (jinak by se změnil celý obalený řádek)
+    if (host && this.editEl.contains(host) && host.textContent.replace(/\u200b/g, '').trim() === sel.toString().trim()) {
+      const outer = this.szChain(host.parentNode);   // velikost kolem (např. celý řádek 90 %)
+      const p = szClamp(fn(outer * (+host.dataset.p || 100) / 100) / outer * 100);
+      if (Math.abs(p - 100) < 1) host.replaceWith(...host.childNodes); else set(host, p);
       return;
     }
-    const p = szClamp(fn(100));
-    if (p === 100) return;
+    const outer = this.szChain(anc);
+    const p = szClamp(fn(outer) / outer * 100);
+    if (Math.abs(p - 100) < 1) return;
     const r = sel.getRangeAt(0);
     const el = h('span', { class: 'sz' });
     set(el, p);
