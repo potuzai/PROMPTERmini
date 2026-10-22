@@ -17,7 +17,7 @@ const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode
   };
   const A = await mk();
   // A: sample song neexistuje, protože je nastaven repo -> vytvoř píseň
-  await A.evaluate(async () => { await Store.put('songs', { id: 'song1', title: 'Píseň Jedna', artist: '', key: '', tempo: '', tags: [], text: '@J ahoj\n@T čau' }); });
+  await A.evaluate(async () => { await Store.put('songs', { id: 'song1', title: 'Píseň Jedna', artist: '', key: '', tempo: '', text: '@J ahoj\n@T čau' }); });
   const r1 = await A.evaluate(() => Sync.run());
   console.log('A sync1', JSON.stringify(r1));
   let st = await (await fetch('http://localhost:8124/__state')).json();

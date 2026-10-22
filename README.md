@@ -65,7 +65,7 @@ Písně, playlisty i šablony se ukládají **ručně**: tlačítkem **💾 Ulo�
 
 ### Psaní textu
 
-**Seznam písní** zabírá dvě třetiny okna (interpret, název, ladění a BPM, kdo zpívá, štítky), vpravo je náhled vybrané písně: první stránka, tlačítka **Upravit** a **▶ Čtečka** a playlisty, ve kterých píseň je (i s pořadím). Klik = náhled, dvojklik nebo Enter = editor, šipky ↑↓ vybírají.
+**Seznam písní** zabírá dvě třetiny okna (interpret, název, ladění a BPM, kdo zpívá), vpravo je náhled vybrané písně: první stránka, tlačítka **Upravit** a **▶ Čtečka** a playlisty, ve kterých píseň je (i s pořadím). Klik = náhled, dvojklik nebo Enter = editor, šipky ↑↓ vybírají.
 
 V editoru je nahoře název a údaje písně (klikem je upravíš), **Uložit jako…** a **▶ Čtečka**. Uprostřed je přesně stránka čtečky: celý rozměr monitoru včetně záhlaví (název, interpret, ladění, BPM a pořadí v playlistu). Text se upravuje přímo v ní, bez značek.
 
@@ -83,7 +83,7 @@ Myší jako v textovém editoru: klik do řádku = psaní na tom místě, tažen
 
 **Nahoře:** název písně, **💾 Uložit** a **⋯** (uložit jako, přidat do playlistu, písmo této písně, vyčistit text, zdrojový text, export .txt, nápověda, smazat píseň), vpravo **▶ Čtečka**.
 
-**Levý panel:** údaje o písni (interpret, ladění, BPM, délka, štítky, šablona), struktura písně – jediné místo pro sekce: **＋ Sekce** (u vybraného řádku, nebo přesně z řádků označených tažením), **↻** zopakovat sekci, u každé sekce **⋯** přejmenovat, typ (sloka, refrén, mezičást, předehra, mezihra, sólo…), počet opakování, vlastní barva písma, smazat (klik na sekci ji vybere) a moje poznámky (jen na tomto zařízení).
+**Levý panel:** údaje o písni (interpret, název, ladění, BPM, délka, šablona), struktura písně – jediné místo pro sekce: **＋ Sekce** (u vybraného řádku, nebo přesně z řádků označených tažením), **↻** zopakovat sekci, u každé sekce **⋯** přejmenovat, typ (sloka, refrén, mezičást, předehra, mezihra, sólo…), počet opakování, vlastní barva písma, smazat (klik na sekci ji vybere) a moje poznámky (jen na tomto zařízení).
 
 **Lišta nad stránkou** patří vybranému řádku: kdo zpívá, písmo písně, B, I, velikost (A−, px, A+), Aa – VELKÁ / malá, zpět / znovu a vpravo **Pro muzikanty**. V pravém panelu je stránkování, **＋ Nová stránka od řádku**, obrazovka náhledu, playlist (pořadí a další píseň jako ve čtečce) a listuje se stránkami.
 
@@ -135,7 +135,7 @@ Písně, playlisty i šablony se ukládají **ručně**: tlačítkem **💾 Ulo�
 
 ### Psaní textu
 
-**Seznam písní** zabírá dvě třetiny okna (interpret, název, ladění a BPM, kdo zpívá, štítky), vpravo je náhled vybrané písně: první stránka, tlačítka **Upravit** a **▶ Čtečka** a playlisty, ve kterých píseň je (i s pořadím). Klik = náhled, dvojklik nebo Enter = editor, šipky ↑↓ vybírají.
+**Seznam písní** zabírá dvě třetiny okna (interpret, název, ladění a BPM, kdo zpívá), vpravo je náhled vybrané písně: první stránka, tlačítka **Upravit** a **▶ Čtečka** a playlisty, ve kterých píseň je (i s pořadím). Klik = náhled, dvojklik nebo Enter = editor, šipky ↑↓ vybírají.
 
 V editoru je nahoře název a údaje písně (klikem je upravíš), **Uložit jako…** a **▶ Čtečka**. Uprostřed je přesně stránka čtečky: celý rozměr monitoru včetně záhlaví (název, interpret, ladění, BPM a pořadí v playlistu). Text se upravuje přímo v ní, bez značek.
 

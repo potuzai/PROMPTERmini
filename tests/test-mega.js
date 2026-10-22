@@ -83,7 +83,7 @@ async function browserMember(browser) {
   const invite = await A.w.inputValue('.modal textarea');
   assert(invite.includes('kapela@test.cz') && invite.includes('https://') && !invite.includes('heslo123'), 'pozvánka: adresa aplikace a e-mail kapely, bez hesla');
   await A.w.click('.modal button:has-text("Zavřít")');
-  await A.w.evaluate(async () => { await Store.put('songs', { id: 'zluty', title: 'Žlutý pes', artist: '', key: 'C', tempo: '', tags: [], text: '@J Žlutý pes' }); await Sync.run(); });
+  await A.w.evaluate(async () => { await Store.put('songs', { id: 'zluty', title: 'Žlutý pes', artist: '', key: 'C', tempo: '', text: '@J Žlutý pes' }); await Sync.run(); });
 
   /* ----- Člen: průvodce → Přihlásit ke kapele ----- */
   const B = await launch('Jana', {});

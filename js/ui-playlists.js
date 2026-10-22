@@ -383,12 +383,10 @@ const PlaylistsView = {
       pos.addEventListener('keydown', e => { if (e.key === 'Enter' && hits[sel]) { e.preventDefault(); add(hits[sel]); } });
       return [h('div', { class: 'qa' }, inp, drop), pos];
     };
-    const pickDialog = async () => {   // okno s hledáním, filtrem štítku a zaškrtáváním
+    const pickDialog = async () => {   // okno s hledáním a zaškrtáváním
       const chosen = new Set();   // v pořadí, jak se písně označovaly – tak se i přidají
       const ord = new Map();      // id → štítek s pořadím označení
       const q = h('input', { class: 'inp', type: 'search', placeholder: 'Hledat název nebo kapelu…' });
-      const tags = [...new Set([...Store.songs.values()].flatMap(s => s.tags || []))].sort((a, b) => a.localeCompare(b, 'cs'));
-      const tagSel = h('select', { class: 'inp' }, h('option', { value: '' }, 'Všechny štítky'), tags.map(t => h('option', { value: t }, t)));
       const hideIn = h('input', { type: 'checkbox' });
       const fromPos = h('input', { class: 'inp pos-inp', type: 'number', min: '1', placeholder: 'konec', title: 'Vybrané písně se vloží za sebou od tohoto pořadí, ostatní se posunou' });
       const box = h('div', { class: 'pick-list' });
@@ -400,7 +398,6 @@ const PlaylistsView = {
         for (const s of Store.sortedSongs()) {
           const inPl = rows.includes(s.id);
           if (hideIn.checked && inPl) continue;
-          if (tagSel.value && !(s.tags || []).includes(tagSel.value)) continue;
           if (nq && !normalizeForSearch([s.title, s.artist].join(' ')).includes(nq)) continue;
           const cb = h('input', { type: 'checkbox', checked: chosen.has(s.id), onchange: () => { cb.checked ? chosen.add(s.id) : chosen.delete(s.id); count(); } });
           const badge = h('span', { class: 'pick-ord' });
@@ -418,10 +415,10 @@ const PlaylistsView = {
         for (const [id, el] of ord) { const n = order.indexOf(id) + 1; el.textContent = n ? String(n) : ''; el.classList.toggle('on', n > 0); }
         if (okBtn) okBtn.textContent = chosen.size ? `Přidat vybrané (${chosen.size})` : 'Přidat vybrané';
       };
-      q.oninput = paint; tagSel.onchange = paint; hideIn.onchange = paint;
+      q.oninput = paint; hideIn.onchange = paint;
       paint();
       const ok = await modal({ title: 'Vybrat písně do playlistu', wide: true,
-        body: h('div', { class: 'pick-dlg' }, h('div', { class: 'row' }, q, tagSel, h('label', { class: 'chk' }, hideIn, 'Skrýt písně, které už v playlistu jsou')), box,
+        body: h('div', { class: 'pick-dlg' }, h('div', { class: 'row' }, q, h('label', { class: 'chk' }, hideIn, 'Skrýt písně, které už v playlistu jsou')), box,
           h('label', { class: 'pick-pos' }, 'Vložit od pořadí', fromPos, h('span', { class: 'help' }, 'prázdné = na konec (nad čáru přídavků); ostatní písně se posunou'))),
         buttons: [{ label: 'Zrušit', value: false }, { label: 'Přidat vybrané', value: true, primary: true }],
         onOpen: b => { okBtn = b.querySelector('.modal-buttons .primary'); setTimeout(() => q.focus(), 40); } });

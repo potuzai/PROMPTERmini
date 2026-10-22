@@ -26,7 +26,7 @@ async function launch(name) {
   const A = await launch('Petr');
   const B = await launch('Jana');
   assert(await A.w.evaluate(() => Sync.mode()) === 'folder', 'režim sdílené složky aktivní');
-  await A.w.evaluate(async () => { await Store.put('songs', { id: 'p1', title: 'Žluťoučký kůň', artist: '', key: '', tempo: '', tags: [], text: '@J úpěl ďábelské ódy' }); await Sync.run(); });
+  await A.w.evaluate(async () => { await Store.put('songs', { id: 'p1', title: 'Žluťoučký kůň', artist: '', key: '', tempo: '', text: '@J úpěl ďábelské ódy' }); await Sync.run(); });
   assert(fs.existsSync(path.join(SHARED, 'songs', 'p1.json')), 'píseň zapsána do sdílené složky');
   assert(fs.readFileSync(path.join(SHARED, 'songs', 'p1.json'), 'utf8').includes('ďábelské'), 'čeština v souboru v pořádku');
   assert(fs.existsSync(path.join(SHARED, 'CTI-ME.txt')), 'vysvětlující soubor ve složce');

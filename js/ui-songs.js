@@ -34,7 +34,7 @@ const SongsView = {
           searchInp,
           h('button', { class: 'btn sl-push', title: 'Importovat písně z .txt souborů', onclick: () => importTxtFiles() }, '⇪ Import'),
           sortSel),
-        h('div', { class: 'sl-row sl-cols' }, h('span', {}, 'Interpret'), h('span', {}, 'Název'), h('span', {}, 'Ladění · BPM'), h('span', {}, 'Zpívá'), h('span', {}, 'Štítky')),
+        h('div', { class: 'sl-row sl-cols' }, h('span', {}, 'Interpret'), h('span', {}, 'Název'), h('span', {}, 'Ladění · BPM'), h('span', {}, 'Zpívá')),
         list, count),
       prev));
     const paintPrev = s => {
@@ -67,7 +67,7 @@ const SongsView = {
     const paintList = () => {
       const q = normalizeForSearch(this.search);
       list.innerHTML = '';
-      const songs = Store.sortedSongs(sortSel.value).filter(s => !q || normalizeForSearch([s.title, s.artist, (s.tags || []).join(' '), s.text].join(' ')).includes(q));
+      const songs = Store.sortedSongs(sortSel.value).filter(s => !q || normalizeForSearch([s.title, s.artist, s.text].join(' ')).includes(q));
       for (const s of songs) {
         list.appendChild(h('div', { class: 'item sl-row', 'data-id': s.id, title: 'Klik = náhled, dvojklik = upravit',
           onclick: () => isMobile() ? (location.hash = '#/songs/' + s.id) : select(s.id),
@@ -75,8 +75,7 @@ const SongsView = {
           h('span', { class: 'sl-artist' }, s.artist || '—'),
           h('b', { class: 'sl-title' }, s.title || '(bez názvu)'),
           h('span', { class: 'sl-key' }, s.key ? keyBadge(s.key) : null, s.key && s.tempo ? ' · ' : '', s.tempo ? s.tempo + ' BPM' : ''),
-          h('span', { class: 'sl-dots' }, songSingers(s).map(g => h('i', { title: g.name, style: { background: g.color } }))),
-          h('span', { class: 'sl-tags' }, (s.tags || []).map(t => h('span', { class: 'tag' }, t)))));
+          h('span', { class: 'sl-dots' }, songSingers(s).map(g => h('i', { title: g.name, style: { background: g.color } })))));
       }
       if (!songs.length) list.appendChild(h('div', { class: 'help', style: { padding: '16px 22px' } }, q ? 'Nic nenalezeno.' : 'Zatím žádné písně. Vytvoř novou nebo importuj .txt soubory.'));
       count.textContent = q ? `${songs.length} z ${Store.songs.size} písní` : 'Klik = náhled · dvojklik = upravit · Enter = upravit';
@@ -143,7 +142,6 @@ class SongEditor {
     this.inKey = h('input', { class: 'inp', value: song.key || '', placeholder: 'C, Am…' });
     this.inTempo = h('input', { class: 'inp', value: song.tempo || '', placeholder: '120' });
     this.inDur = h('input', { class: 'inp', value: song.duration || '', placeholder: '3:45' });
-    this.inTags = h('input', { class: 'inp', value: (song.tags || []).join(', '), placeholder: 'rock, pomalá…' });
     this.inTpl = h('select', { class: 'inp' }, h('option', { value: '' }, '— výchozí —'),
       [...Store.templates.values()].map(t => h('option', { value: t.id, selected: t.id === song.templateId }, t.name)));
     // jak by píseň vypadala v playlistu (pořadí x/y, další píseň)
@@ -180,7 +178,6 @@ class SongEditor {
         f('Interpret', this.inArtist),
         f('Název písně', this.inTitle),
         h('div', { class: 'ep-row3' }, f('Ladění', this.inKey), f('BPM', this.inTempo), f('Délka', this.inDur)),
-        f('Štítky', this.inTags),
         f('Šablona', this.inTpl)),
       h('div', { class: 'ep-group' }, h('div', { class: 'ep-lbl ep-lbl-row' }, h('span', {}, 'Struktura'),
         h('button', { class: 'btn small nogrow', title: 'Nová sekce u vybraného řádku – označené řádky (tažením myší) budou celá sekce', onclick: () => this.addSection() }, '＋ Sekce'),
@@ -257,7 +254,7 @@ class SongEditor {
 
     const onMeta = () => { this.markDirty(); this.schedulePreview(); };
     this.privNote.addEventListener('input', () => { PrivateNotes.set(this.id, this.privNote.value); this.schedulePreview(); });
-    [this.inTitle, this.inArtist, this.inKey, this.inTempo, this.inDur, this.inTags].forEach(i => i.addEventListener('input', onMeta));
+    [this.inTitle, this.inArtist, this.inKey, this.inTempo, this.inDur].forEach(i => i.addEventListener('input', onMeta));
     this.inTpl.addEventListener('change', onMeta);
     this.inTpl.addEventListener('change', () => this.paintFont());
     this.paintFont();
@@ -532,23 +529,24 @@ class SongEditor {
   /* ----- Ukládání ----- */
   collect() {
     const old = Store.songs.get(this.id) || {};
-    return Object.assign({}, old, {
+    const o = Object.assign({}, old, {
       id: this.id,
       title: this.inTitle.value.trim() || 'Bez názvu',
       artist: this.inArtist.value.trim(),
       key: this.inKey.value.trim(),
       tempo: this.inTempo.value.trim(),
       duration: this.inDur.value.trim(),
-      tags: this.inTags.value.split(',').map(t => t.trim()).filter(Boolean),
       templateId: this.inTpl.value,
       text: this.src,
       style: this.style === undefined ? (old.style || null) : this.style,
     });
+    delete o.tags;   // štítky se už nepoužívají
+    return o;
   }
   // „neuloženo“ = jiný stav než při posledním uložení (úprava tam a zpět nic nemění)
   snap() {
     const o = this.collect();
-    return JSON.stringify([o.title, o.artist, o.key, o.tempo, o.duration, o.tags, o.templateId, o.text, o.style || null]);
+    return JSON.stringify([o.title, o.artist, o.key, o.tempo, o.duration, o.templateId, o.text, o.style || null]);
   }
   markDirty() {
     this.dirty = this.snap() !== this.base;
@@ -800,6 +798,12 @@ class SongEditor {
           const color = presets.find(c => !list.some(x => (x.color || '').toLowerCase() === c.toLowerCase())) || presets[list.length % presets.length];
           list.push({ code, name: name.trim(), color, bold: false, italic: false });
         });
+        this.makeSingerBtns(); this.se.render();
+        this.singerPopover(anchor);
+      },
+      remove: async sg => {
+        if (!await confirmDlg(`Odebrat zpěváka „${sg.name}“? Platí pro všechny písně – řádky s @${sg.code} zůstanou bez označení.`, 'Odebrat', true)) return;
+        await this.saveSingers(list => { const i = list.findIndex(x => x.code === sg.code); if (i >= 0) list.splice(i, 1); });
         this.makeSingerBtns(); this.se.render();
         this.singerPopover(anchor);
       },

@@ -277,8 +277,8 @@ function singerShowOf(tpl, code) {
 /* Tabulka přepínačů: řádky = zpěváci, sloupce = druhy označení. get(kód, klíč) → bool, set(kód, klíč, bool) */
 function singerShowTable(get, set, edit) {
   const sgs = Store.singers();
-  const tbl = h('div', { class: 'sgs-tbl', style: { gridTemplateColumns: `minmax(90px, 1fr) repeat(${SINGER_SHOW.length}, auto)` } },
-    h('span'), SINGER_SHOW.map(([, short, long]) => h('span', { class: 'sgs-h', title: long }, short)));
+  const tbl = h('div', { class: 'sgs-tbl', style: { gridTemplateColumns: `minmax(90px, 1fr) repeat(${SINGER_SHOW.length + (edit ? 1 : 0)}, auto)` } },
+    h('span'), SINGER_SHOW.map(([, short, long]) => h('span', { class: 'sgs-h', title: long }, short)), edit ? h('span') : null);
   for (const sg of sgs) {
     // s edit: klik na tečku = změna barvy zpěváka (platí pro celou kapelu)
     const dot = h('i', { style: { background: sg.color } });
@@ -292,6 +292,7 @@ function singerShowTable(get, set, edit) {
       const inp = h('input', { type: 'checkbox', class: 'switch', title: `${sg.name}: ${long.toLowerCase()}`, checked: !!get(sg.code, k), onchange: () => set(sg.code, k, inp.checked) });
       tbl.append(h('label', { class: 'sgs-c' }, inp));
     }
+    if (edit) tbl.append(h('button', { class: 'sgs-del', title: `Odebrat zpěváka ${sg.name} (ze všech písní)`, onclick: () => edit.remove(sg) }, '✕'));
   }
   if (edit) tbl.append(h('button', { class: 'btn small nogrow sgs-add', onclick: () => edit.add() }, '＋ Přidat zpěváka'));
   tbl.repaint = () => { let i = 0; const inps = tbl.querySelectorAll('input.switch'); for (const sg of sgs) for (const [k] of SINGER_SHOW) inps[i++].checked = !!get(sg.code, k); };
