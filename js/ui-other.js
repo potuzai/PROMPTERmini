@@ -20,7 +20,7 @@ const TPL_FIELDS = [
     help: 'Podle části písně: sekce s „refrén“ v názvu mají barvu refrénu, „mezičást / bridge / předrefrén“ barvu mezičásti, ostatní barvu sloky. Zpěváka pak ukazuje jen pruh.' },
   { k: 'verseColor', l: 'Sloka', t: 'color' }, { k: 'chorusColor', l: 'Refrén', t: 'color' }, { k: 'bridgeColor', l: 'Mezičást', t: 'color' },
   { k: 'instrColor', l: 'Předehra, mezihra, sólo a počet opakování', t: 'color' },
-  { g: 'Označení zpěváků', help: 'Jak se který zpěvák na stránce označí – jde kombinovat. Platí pro všechny písně s touto šablonou; v editoru písně (ikona nastavení vedle zpěváků) jde nastavit jinak jen pro jednu píseň.' },
+  { g: 'Zpěváci', help: 'Kdo zpívá, jakou barvou (klik na tečku) a jak se na stránce označí – jde kombinovat. Platí pro všechny písně s touto šablonou; v editoru písně (ikona vedle zpěváků) jde nastavit jinak jen pro jednu píseň.' },
   { k: 'singerShow', t: 'singers' },
   { k: 'barWidth', l: 'Šířka proužku (px)', t: 'range', min: 4, max: 40, step: 1 },
   { g: 'Rozvržení stránky' },
@@ -120,11 +120,17 @@ const TemplatesView = {
       let ctl;
       const v = t[f.k];
       if (f.t === 'singers') {
-        ctl = singerShowTable((code, k) => singerShowOf(t, code)[k], (code, k, val) => {
-          t.singerShow = Object.assign({}, t.singerShow);
-          t.singerShow[code] = Object.assign(singerShowOf(t, code), { [k]: val });
-          upd();
-        });
+        // zpěváci šablony: kdo, jakou barvou a jak se označí (přidání / odebrání / barva jen v této šabloně)
+        ctl = h('div');
+        const paintSg = () => {
+          const ops = singerListOps(() => Store.singers(t), list => { t.singers = list; upd(); }, 'z této šablony');
+          ctl.replaceChildren(singerShowTable((code, k) => singerShowOf(t, code)[k], (code, k, val) => {
+            t.singerShow = Object.assign({}, t.singerShow);
+            t.singerShow[code] = Object.assign(singerShowOf(t, code), { [k]: val });
+            upd();
+          }, { color: ops.color, add: async () => { if (await ops.add()) paintSg(); }, remove: async sg => { if (await ops.remove(sg)) paintSg(); } }, Store.singers(t)));
+        };
+        paintSg();
       } else if (f.t === 'check') {
         ctl = h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: !!v, onchange: e => { t[f.k] = e.target.checked; upd(); } }), f.l);
       } else if (f.t === 'select') {
@@ -184,65 +190,7 @@ const TemplatesView = {
   },
 };
 
-/* ===== Zpěváci ===== */
-const SingersView = {
-  render(main) {
-    const content = h('div', { class: 'content' });
-    main.appendChild(h('div', { class: 'view' }, content));
-    const cfg = clone(Store.config.get('singers') || { id: 'singers', list: DEFAULT_SINGERS });
-    const save = debounce(() => Store.put('config', cfg), 500);
-    const tbody = h('tbody');
-    const paint = () => {
-      tbody.innerHTML = '';
-      cfg.list.forEach((s, i) => {
-        const code = h('input', { class: 'inp', value: s.code, maxlength: 3, style: { width: '70px', textTransform: 'uppercase', fontWeight: 700 } });
-        const name = h('input', { class: 'inp', value: s.name });
-        const color = h('input', { type: 'color', value: s.color });
-        const sample = h('div', { class: 'sg-sample' });
-        const paintSample = () => { sample.textContent = s.name + ' zpívá tento řádek'; sample.style.color = s.color; sample.style.borderColor = s.color; sample.style.fontWeight = s.bold ? 900 : 700; sample.style.fontStyle = s.italic ? 'italic' : 'normal'; };
-        paintSample();
-        code.onchange = async () => {
-          const nc = code.value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-          if (!nc || cfg.list.some((x, j) => j !== i && x.code === nc)) { toast('Zkratka musí být jedinečná (písmena/číslice).', 'err'); code.value = s.code; return; }
-          const old = s.code;
-          s.code = nc; save();
-          const n = await renameSingerCode(old, nc);
-          if (n) toast(`Zkratka změněna i v ${n} písních`, 'ok');
-        };
-        name.oninput = () => { s.name = name.value; paintSample(); save(); };
-        color.oninput = () => { s.color = color.value; paintSample(); save(); };
-        tbody.appendChild(h('tr', {},
-          h('td', {}, h('kbd', {}, 'Alt+' + (i + 1))),
-          h('td', {}, code), h('td', {}, name), h('td', {}, color),
-          h('td', {}, h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: s.bold, onchange: e => { s.bold = e.target.checked; paintSample(); save(); } }), 'tučně'),
-            h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: s.italic, onchange: e => { s.italic = e.target.checked; paintSample(); save(); } }), 'kurzíva')),
-          h('td', {}, sample),
-          h('td', {},
-            h('button', { class: 'btn small icon', title: 'Nahoru', onclick: () => { if (i > 0) { cfg.list.splice(i - 1, 0, cfg.list.splice(i, 1)[0]); save(); paint(); } } }, '↑'),
-            h('button', { class: 'btn small icon danger', title: 'Odebrat', onclick: async () => {
-              if (!await confirmDlg(`Odebrat „${s.name}“? Řádky s @${s.code} zůstanou bez barvy.`, 'Odebrat', true)) return;
-              cfg.list.splice(i, 1); save(); paint();
-            } }, '✕'))));
-      });
-    };
-    paint();
-    const presets = ['#ffd23f', '#4fc3f7', '#7CFC9A', '#ff7eb6', '#ff9f43', '#b388ff', '#ff5252', '#ffffff'];
-    content.append(
-      h('h2', {}, 'Zpěváci'),
-      h('p', { class: 'help', style: { maxWidth: '800px' } }, 'Každý zpěvák má zkratku (používá se v textu jako ', h('code', {}, '@J'), '), jméno a barvu. Jména si klidně přepiš na skutečná. Pořadí určuje klávesovou zkratku v editoru. Vzhled označení (barva textu, pruh, podbarvení) se nastavuje v šabloně.'),
-      h('table', { class: 'tbl' }, h('thead', {}, h('tr', {}, ['Zkratka v ed.', 'Kód', 'Jméno', 'Barva', 'Styl', 'Ukázka', ''].map(x => h('th', {}, x)))), tbody),
-      h('div', { class: 'row', style: { marginTop: '14px', maxWidth: '900px' } },
-        h('button', { class: 'btn primary nogrow', onclick: () => {
-          const used = new Set(cfg.list.map(s => s.code));
-          let code = 'A'; for (const c of 'ABCDEFGHKLMNOPRSUZ') if (!used.has(c)) { code = c; break; }
-          cfg.list.push({ code, name: 'Nový zpěvák', color: presets[cfg.list.length % presets.length], bold: false, italic: false });
-          save(); paint();
-        } }, '＋ Přidat zpěváka')),
-      instrumentsSection());
-  },
-};
-
-/* Nástroje – stejný princip jako zpěváci, informace jen pro muzikanty */
+/* Nástroje – informace jen pro muzikanty (Nastavení › Nástroje) */
 function instrumentsSection() {
   const cfg = clone(Store.config.get('instruments') || { id: 'instruments', list: DEFAULT_INSTRUMENTS });
   const save = debounce(() => Store.put('config', cfg), 500);
@@ -273,8 +221,7 @@ function instrumentsSection() {
     });
   };
   paint();
-  return h('div', { style: { marginTop: '28px' } },
-    h('h2', {}, 'Nástroje'),
+  return h('div', {},
     h('p', { class: 'help', style: { maxWidth: '900px' } }, 'Informace pro muzikanty – ladění, akordy, tabulatury, rytmus. Zapisují se do textu písně řádkem ', h('code', {}, '%G …'), ' nebo blokem ', h('code', {}, '%%G … %%'), '. Ve čtečce se nikdy nezobrazí; v náhledu je ukáže přepínač „Pro muzikanty“ a lze je vytisknout. Akordy ', h('code', {}, '[Am]'), ' jsou samostatná vrstva.'),
     h('table', { class: 'tbl' }, h('thead', {}, h('tr', {}, ['Kód', 'Název', 'Barva', 'Zápis v textu', ''].map(x => h('th', {}, x)))), tbody),
     h('div', { class: 'row', style: { marginTop: '14px' } },
@@ -296,26 +243,17 @@ async function renameInstrumentCode(oldC, newC) {
   return n;
 }
 
-async function renameSingerCode(oldC, newC) {
-  const re = new RegExp(`([@+{])${oldC}(?=[+\\s:}]|$)`, 'gm');
-  let n = 0;
-  for (const s of Store.songs.values()) {
-    const t = (s.text || '').split('\n').map(l => /^\s*(@|##|.*\{)/.test(l) ? l.replace(re, `$1${newC}`) : l).join('\n');
-    if (t !== s.text) { s.text = t; await Store.put('songs', s); n++; }
-  }
-  return n;
-}
-
 /* ===== Nastavení: vlevo kategorie, vpravo vždy jen jedna (v telefonu nejdřív seznam) ===== */
 const SET_SECTIONS = [
   ['band', '☁ Kapela a synchronizace'],
   ['device', '📱 Toto zařízení'],
   ['screens', '🖥 Obrazovky kapely'],
   ['reader', '▶ Čtečka a ovládání'],
+  ['instruments', '🎸 Nástroje'],
   ['backup', '💾 Záloha a import'],
   ['about', 'ⓘ O aplikaci'],
 ];
-const SET_ALIASES = { share: 'band', user: 'device' };
+const SET_ALIASES = { share: 'band', user: 'device', singers: 'instruments' };
 
 /* řádek nastavení: vlevo název a vysvětlení, vpravo ovládací prvek */
 const setRow = (title, help, ctl, cls = '') => h('div', { class: 'set-row ' + cls }, h('div', {}, h('b', {}, title), help ? h('span', { class: 'help' }, help) : null), ctl);
@@ -344,6 +282,9 @@ const SettingsView = {
     // v úzkém okně bez zvolené kategorie se ukáže jen seznam kategorií
     main.appendChild(h('div', { class: 'view set-view' + (known ? ' has-sec' : '') }, nav, c));
   },
+
+  /* ---------- Nástroje ---------- */
+  instruments() { return h('div', { class: 'set-sec' }, instrumentsSection()); },
 
   /* ---------- Kapela a synchronizace ---------- */
   band() {
@@ -510,7 +451,7 @@ const SettingsView = {
           view.inst = e.target.checked ? [...new Set([...view.inst, ins.code])] : view.inst.filter(c => c !== ins.code); saveView();
         } }), h('span', { class: 'led', style: { background: ins.color } }), ins.name)));
       const singerSel = h('select', { class: 'inp set-sel' }, h('option', { value: '' }, '— nikdo / nezvýrazňovat —'),
-        Store.singers().map(sg => h('option', { value: sg.code, selected: sg.code === S.mySinger }, sg.name)));
+        Store.allSingers().map(sg => h('option', { value: sg.code, selected: sg.code === S.mySinger }, sg.name)));
       singerSel.onchange = () => { Settings.set('mySinger', singerSel.value); Settings.set('highlightMine', !!singerSel.value); };
       const zoom = h('input', { class: 'inp set-num', type: 'number', min: 50, max: 200, step: 5, value: Math.round((S.readerZoom || 1) * 100) });
       zoom.onchange = () => Settings.set('readerZoom', Math.max(0.5, Math.min(2, (+zoom.value || 100) / 100)));

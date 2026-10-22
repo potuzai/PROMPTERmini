@@ -161,7 +161,7 @@ const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode
   await p.keyboard.press('Escape'); await p.waitForTimeout(300);
   assert(!(await p.evaluate(() => Reader.isOpen())), 'Esc zavře čtečku');
   // PIN
-  await p.evaluate(() => { Settings.set('pinHash', sha1Bytes(utf8.enc('prompter:1234'))); sessionStorage.removeItem('unlocked'); location.hash = '#/singers'; });
+  await p.evaluate(() => { Settings.set('pinHash', sha1Bytes(utf8.enc('prompter:1234'))); sessionStorage.removeItem('unlocked'); location.hash = '#/settings/instruments'; });
   await p.waitForTimeout(300);
   assert(await p.isVisible('.modal'), 'PIN je vyžadován');
   await p.fill('.modal input', '1234'); await p.keyboard.press('Enter'); await p.waitForTimeout(300);

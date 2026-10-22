@@ -185,19 +185,19 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   assert(await p.isVisible('.pl-list'), 'zpět na seznam playlistů');
   await p.evaluate(async () => { await Store.remove('playlists', 'plA'); await Store.remove('playlists', 'plZ'); });
 
-  /* ---------- Zpěváci ---------- */
-  await p.evaluate(() => { location.hash = '#/singers'; });
-  await sleep(400);
-  await p.click('button:has-text("Přidat zpěváka")');
-  await sleep(700);
-  assert(await p.evaluate(() => Store.singers().length) === 4, 'přidání zpěváka');
-  await p.evaluate(async id => { const s = Store.songs.get(id); s.text = '@J+T duet\n## Sekce @J\n{J:x} y'; await Store.put('songs', s); }, hid);
-  const codeInp = p.locator('table.tbl tbody tr >> nth=0 >> input.inp >> nth=0');
-  await codeInp.fill('P'); await codeInp.press('Tab');
-  await sleep(900);
-  const t2 = await p.evaluate(id => Store.songs.get(id).text, hid);
-  assert(t2 === '@P+T duet\n## Sekce @P\n{P:x} y', 'změna zkratky zpěváka se promítne do písní');
-  assert(await p.evaluate(() => Store.singers()[0].code) === 'P', 'zkratka uložena');
+  /* ---------- Zpěváci v šabloně (stránka Obsazení už není) ---------- */
+  await p.evaluate(() => { location.hash = '#/templates/default'; });
+  await sleep(500);
+  await p.click('.tpl-form button:has-text("Přidat zpěváka")'); await sleep(200);
+  await p.fill('.modal input', 'Pepa'); await p.keyboard.press('Enter'); await sleep(300);
+  assert(await p.locator('.tpl-form .sgs-n').count() === 4, 'přidaný zpěvák je v tabulce šablony');
+  await p.click('.tpl-form button:has-text("Uložit") >> nth=0'); await sleep(300);
+  assert(await p.evaluate(() => (Store.templates.get('default').singers || []).map(s => s.code).join(',')) === 'J,T,V,P', 'zpěvák uložen do šablony');
+  assert(await p.evaluate(() => Store.singers().length) === 3, 'společný seznam kapely se nezměnil');
+  assert(await p.evaluate(() => Store.singers({ text: '', templateId: 'default' }).length) === 4, 'píseň se šablonou má jejího zpěváka');
+  await p.evaluate(async () => { const t = Store.templates.get('default'); delete t.singers; await Store.put('templates', t); });
+  await p.evaluate(() => { location.hash = '#/settings/instruments'; }); await sleep(300);
+  assert(!(await p.isVisible('#topbar .tab:has-text("Obsazení")')), 'stránka Obsazení v menu není');
 
   /* ---------- Šablony ---------- */
   await p.evaluate(() => { location.hash = '#/templates/default'; });
@@ -433,10 +433,10 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   await p.mouse.click(5, 5);
   await more('Ukázat akordy'); await sleep(300);
   assert(!(await p.isVisible('.se-wrap .b-mus')), 'zpět na pohled čtečky');
-  // stránka Obsazení – nástroje
+  // Nastavení › Nástroje (dřív stránka Obsazení – stará adresa sem přesměruje)
   await p.evaluate(() => { location.hash = '#/singers'; }); await sleep(400);
-  assert(await p.isVisible('h2:has-text("Nástroje")') && await p.isVisible('table.tbl >> nth=1'), 'tabulka nástrojů v Obsazení');
-  const icode = p.locator('table.tbl >> nth=1 >> tbody tr >> nth=0 >> input.inp >> nth=0');
+  assert(await p.isVisible('.set-head h1:has-text("Nástroje")') && await p.isVisible('table.tbl'), 'tabulka nástrojů v Nastavení');
+  const icode = p.locator('table.tbl >> tbody tr >> nth=0 >> input.inp >> nth=0');
   await icode.fill('Q'); await icode.press('Tab'); await sleep(900);
   assert((await p.evaluate(() => Store.songs.get('musx').text)).includes('%Q Capo 2') && (await p.evaluate(() => Store.songs.get('musx').text)).includes('%%Q Tab'), 'změna zkratky nástroje se promítne do písní');
 

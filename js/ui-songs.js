@@ -411,13 +411,11 @@ class SongEditor {
     if (this.se) this.paintSingers();
   }
   /* zpěváci jsou společní pro kapelu: barva a přidání se uloží do obsazení */
-  // zpěváci této písně (vlastní seznam v style.singers, jinak zpěváci kapely z Obsazení)
-  singers() { return Store.singers({ style: this.style }); }
+  // zpěváci této písně (vlastní seznam v style.singers, jinak podle šablony)
+  singers() { return Store.singers(this.lookTpl()); }
   singerMap() { const m = {}; for (const s of this.singers()) m[s.code.toUpperCase()] = s; return m; }
   /* barva, přidání a odebrání zpěváka platí jen pro tuto píseň */
-  setSongSingers(fn) {
-    const list = clone(this.singers());
-    fn(list);
+  setSongSingers(list) {
     this.style = Object.assign({}, this.style || {}, { singers: list });
     this.markDirty(); this.makeSingerBtns(); this.se.render();
   }
@@ -797,34 +795,14 @@ class SongEditor {
       if (v === singerShowOf(base, code)[k]) delete o[k]; else o[k] = v;   // stejné jako šablona = bez výjimky
       sg[code] = o;
       apply(sg);
-    }, {
-      color: async (code, color, done) => {
-        const b = this.sgButtons[this.singers().findIndex(s => s.code === code)];
-        if (b) b.style.setProperty('--c', color);
-        if (!done) return;
-        this.setSongSingers(list => { const s = list.find(x => x.code === code); if (s) s.color = color; });
-        paint();
-      },
-      add: async () => {
-        const name = await promptDlg('Jméno nového zpěváka', '');
-        if (!name || !name.trim()) return;
-        this.setSongSingers(list => {
-          const used = new Set(list.map(s => s.code));
-          const first = name.trim().normalize('NFD').replace(/[^A-Za-z0-9]/g, '').charAt(0).toUpperCase();
-          const code = [first, ...'ABCDEFGHKLMNOPRSUZ123456789'].find(c => c && !used.has(c));
-          const presets = ['#ffd23f', '#4fc3f7', '#7CFC9A', '#ff7eb6', '#ff9f43', '#b388ff', '#ff5252', '#ffffff'];
-          const color = presets.find(c => !list.some(x => (x.color || '').toLowerCase() === c.toLowerCase())) || presets[list.length % presets.length];
-          list.push({ code, name: name.trim(), color, bold: false, italic: false });
-        });
-        this.singerPopover(anchor);
-      },
-      remove: async sg => {
-        if (!await confirmDlg(`Odebrat zpěváka „${sg.name}“ z této písně? Řádky s @${sg.code} zůstanou bez označení.`, 'Odebrat', true)) return;
-        this.setSongSingers(list => { const i = list.findIndex(x => x.code === sg.code); if (i >= 0) list.splice(i, 1); });
-        this.singerPopover(anchor);
-      },
-    }, this.singers());
-    const reset = h('button', { class: 'btn small nogrow', style: { alignSelf: 'flex-start' }, title: 'Zrušit nastavení zpěváků jen pro tuto píseň: označení podle šablony, zpěváci podle Obsazení', onclick: () => {
+    }, (() => {
+      const ops = singerListOps(() => this.singers(), list => this.setSongSingers(list), 'z této písně', (code, color) => {
+        const btn = this.sgButtons[this.singers().findIndex(s => s.code === code)];
+        if (btn) btn.style.setProperty('--c', color);
+      });
+      return { color: (...a) => { ops.color(...a); paint(); }, add: async () => { if (await ops.add()) this.singerPopover(anchor); }, remove: async sg => { if (await ops.remove(sg)) this.singerPopover(anchor); } };
+    })(), this.singers());
+    const reset = h('button', { class: 'btn small nogrow', style: { alignSelf: 'flex-start' }, title: 'Zrušit nastavení zpěváků jen pro tuto píseň – zpěváci i jejich označení podle šablony', onclick: () => {
       if (this.style) { const st = Object.assign({}, this.style); delete st.singers; this.style = st; }
       apply({}); this.makeSingerBtns(); this.singerPopover(anchor);
     } }, 'Vrátit výchozí');
@@ -999,7 +977,7 @@ function showMarkupHelp() {
       h('ul', {},
         h('li', {}, 'Změny se ukládají tlačítkem ', b('Uložit'), ' (nebo ', k('Ctrl'), '+', k('S'), '). Při odchodu s neuloženými změnami se aplikace zeptá: uložit, uložit jako, zahodit, nebo zůstat.'),
         h('li', {}, 'Krok zpět: ', k('Ctrl'), '+', k('Z'), '.'),
-        h('li', {}, 'Zpěváky a jejich barvy upravíš v záložce ', b('Obsazení'), ', vzhled stránky v ', b('Šablonách'), '.'))),
+        h('li', {}, 'Zpěváky, jejich barvy a označení i vzhled stránky upravíš v ', b('Šablonách'), ' (pro jednu píseň v editoru přes ikonu u zpěváků).'))),
     h('details', { class: 'help-adv' }, h('summary', {}, 'Pro pokročilé: co znamenají značky v textu'),
       h('p', { class: 'help' }, 'Tlačítka vkládají do textu tyto značky. Můžeš je psát i ručně.'),
       h('div', { class: 'cheat' }, [

@@ -125,7 +125,7 @@ const Render = {
      opts.mine = kód zpěváka, jehož řádky se zvýrazní (ostatní ztlumené) */
   layout(song, tpl, W, H, mus = null, opts = {}) {
     const parsed = parseSong(song.text);
-    const singerMap = Store.singerMap(song);
+    const singerMap = Store.singerMap(song.style && Array.isArray(song.style.singers) ? song : tpl);   // píseň > šablona > kapela
     const scr = opts.screen || 'main';
     let blocks = filterForView(parsed.blocks.filter(b => b.type !== 'break' || b.screen === scr), mus);
     while (blocks.length && blocks[0].type === 'break') blocks.shift();
@@ -276,6 +276,36 @@ function singerShowOf(tpl, code) {
   return Object.assign({ barL: !!tpl.singerBar, barR: !!tpl.singerBarRight, bg: !!tpl.singerBg, text: !!tpl.singerText }, (tpl.singerShow || {})[code]);
 }
 /* Tabulka přepínačů: řádky = zpěváci, sloupce = druhy označení. get(kód, klíč) → bool, set(kód, klíč, bool) */
+/* Úpravy seznamu zpěváků (píseň nebo šablona): barva, přidání, odebrání.
+   get() = současný seznam, set(list) = uložit nový, where = „z této písně“ / „z této šablony“, live(code, color) = náhled barvy při výběru */
+function singerListOps(get, set, where, live) {
+  const presets = ['#ffd23f', '#4fc3f7', '#7CFC9A', '#ff7eb6', '#ff9f43', '#b388ff', '#ff5252', '#ffffff'];
+  return {
+    color: (code, color, done) => {
+      if (live) live(code, color);
+      if (!done) return;
+      const list = clone(get()); const s = list.find(x => x.code === code);
+      if (s) { s.color = color; set(list); }
+    },
+    add: async () => {
+      const name = await promptDlg('Jméno nového zpěváka', '');
+      if (!name || !name.trim()) return false;
+      const list = clone(get());
+      const used = new Set(list.map(s => s.code));
+      const first = name.trim().normalize('NFD').replace(/[^A-Za-z0-9]/g, '').charAt(0).toUpperCase();
+      const code = [first, ...'ABCDEFGHKLMNOPRSUZ123456789'].find(c => c && !used.has(c));
+      const color = presets.find(c => !list.some(x => (x.color || '').toLowerCase() === c.toLowerCase())) || presets[list.length % presets.length];
+      list.push({ code, name: name.trim(), color, bold: false, italic: false });
+      set(list);
+      return true;
+    },
+    remove: async sg => {
+      if (!await confirmDlg(`Odebrat zpěváka „${sg.name}“ ${where}? Řádky s @${sg.code} zůstanou bez označení.`, 'Odebrat', true)) return false;
+      set(clone(get()).filter(x => x.code !== sg.code));
+      return true;
+    },
+  };
+}
 function singerShowTable(get, set, edit, sgs = Store.singers()) {
   const tbl = h('div', { class: 'sgs-tbl', style: { gridTemplateColumns: `minmax(90px, 1fr) repeat(${SINGER_SHOW.length + (edit ? 1 : 0)}, auto)` } },
     h('span'), SINGER_SHOW.map(([, short, long]) => h('span', { class: 'sgs-h', title: long }, short)), edit ? h('span') : null);

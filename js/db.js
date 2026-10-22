@@ -243,10 +243,23 @@ const Store = {
 
   async saveMeta() { await Backend.put('meta', this.meta); },
 
-  // zpěváci kapely; píseň (style.singers) nebo šablona s ní spojená (singers) může mít vlastní seznam
+  /* Zpěváci: píseň (style.singers) > šablona (singers) > původní společný seznam kapely.
+     src = píseň (podle její šablony), šablona, nebo nic */
   singers(src) {
-    const own = src && (src.singers || (src.style && src.style.singers));
-    return Array.isArray(own) ? own : (this.config.get('singers') || { list: DEFAULT_SINGERS }).list;
+    if (src && src.style && Array.isArray(src.style.singers)) return src.style.singers;
+    if (src && Array.isArray(src.singers)) return src.singers;
+    if (src && typeof src.text === 'string') {
+      const t = this.template(src.templateId || Settings.get('defaultTemplate'));
+      if (t && Array.isArray(t.singers)) return t.singers;
+    }
+    return (this.config.get('singers') || { list: DEFAULT_SINGERS }).list;
+  },
+  // všichni zpěváci ze všech šablon (např. volba „můj zpěvák“ pro zvýraznění ve čtečce)
+  allSingers() {
+    const m = new Map();
+    for (const s of this.singers()) m.set(s.code, s);
+    for (const t of this.templates.values()) for (const s of (Array.isArray(t.singers) ? t.singers : [])) if (!m.has(s.code)) m.set(s.code, s);
+    return [...m.values()];
   },
   singerMap(src) { const m = {}; for (const s of this.singers(src)) m[s.code.toUpperCase()] = s; return m; },
   instruments() { return (this.config.get('instruments') || { list: DEFAULT_INSTRUMENTS }).list; },

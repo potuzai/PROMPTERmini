@@ -139,7 +139,7 @@ const App = {
 
   /* Boční lišta vlevo (návrh 20): sekce aplikace, čtečka, nastavení, stav synchronizace */
   buildTopbar() {
-    const tabs = [['playlists', '📋 Playlisty'], ['songs', '🎵 Písně'], ['templates', '🎨 Šablony'], ['singers', '🎤 Obsazení']];
+    const tabs = [['playlists', '📋 Playlisty'], ['songs', '🎵 Písně'], ['templates', '🎨 Šablony']];
     this.tabEls = {};
     const tab = (k, l) => (this.tabEls[k] = h('button', { class: 'tab', title: l.replace(/^\S+ /, ''), onclick: () => this.nav(k) }, l));
     const bar = h('nav', { id: 'topbar' },
@@ -223,7 +223,8 @@ const App = {
     SongsView.paintList = null; PlaylistsView.paintSide = null; TemplatesView.paintSide = null; SettingsView.onSync = null;
     if (SongsView.editor && SongsView.editor.ro) SongsView.editor.ro.disconnect();
     SongsView.editor = null;
-    const views = { songs: SongsView, playlists: PlaylistsView, templates: TemplatesView, singers: SingersView, settings: SettingsView };
+    const views = { songs: SongsView, playlists: PlaylistsView, templates: TemplatesView, settings: SettingsView };
+    if (view === 'singers') { location.replace('#/settings/instruments'); return; }   // dřív stránka Obsazení
     (views[view] || PlaylistsView).render(main, param);
     this.here = location.href;
     // první spuštění: program (čtečka) → průvodce zařízením; web → jen uvítání a připojení ke kapele
