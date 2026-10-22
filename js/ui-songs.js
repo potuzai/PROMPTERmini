@@ -241,10 +241,10 @@ class SongEditor {
           this.pageLbl,
           h('button', { class: 'tl', title: 'Další stránka (PgDn)', onclick: () => this.se.turnPage(1) }, '›')),
         h('button', { class: 'btn small ed-break', title: 'Na zvolené obrazovce začít od vybraného řádku novou stránku (ostatní obrazovky stránkují samy)', onclick: () => this.se.insertLines([this.breakLine()], { before: true }) }, '＋ Nová stránka od řádku')),
+      h('div', { class: 'grow' }),
       sgrp('Náhled',
         h('label', { class: 'f' }, h('span', {}, 'Obrazovka'), this.scrSel),
         h('label', { class: 'f' }, h('span', {}, 'Jako v playlistu'), this.inPl)),
-      h('div', { class: 'grow' }),
       h('div', { class: 'ed-save' }, this.savedInd, h('div', { class: 'ed-save-row' }, this.saveBtn, moreBtn), readerBtn));
     const ed = h('div', { class: 'song-editor' },
       h('div', { class: 'ed-body' }, this.leftPanel,
