@@ -818,6 +818,7 @@ class StageEditor {
         else if (kind === 'kc-on' || kind === 'kc-off') this.keepCaseSel(sel.getRangeAt(0), kind === 'kc-on');
         else if (kind === 'ls') this.lsSel(val);
         else if (kind === 'color') this.colorSel(val);
+        else if (kind === 'font') this.fontSelWrap(val);
         this.syncEdit(); this.pushHist(); this.ed.onSelChange();
         return;
       }
@@ -893,6 +894,34 @@ class StageEditor {
   }
   /* velikost označených slov: fn(stará procenta) → nová procenta (100 % = značku zrušit) */
   /* velikost označených slov: fn(skutečná velikost v %) → nová skutečná velikost (vzhledem k písmu řádku) */
+  /* písmo označených slov; '' = zrušit (platí písmo řádku / písně) */
+  fontSelWrap(f) {
+    const sel = window.getSelection();
+    const anc = sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentNode;
+    const host = anc.closest('.ff');
+    const set = el => { el.dataset.ff = f; el.style.fontFamily = `"${f}", sans-serif`; };
+    if (host && this.editEl.contains(host) && host.textContent.replace(/\u200b/g, '').trim() === sel.toString().trim()) {
+      if (!f) host.replaceWith(...host.childNodes); else set(host);
+      return;
+    }
+    const r = sel.getRangeAt(0);
+    const fr = r.extractContents();
+    for (const x of [...fr.querySelectorAll('.ff')]) x.replaceWith(...x.childNodes);
+    if (!f) { r.insertNode(fr); return; }
+    const el = h('span', { class: 'ff' }, fr);
+    set(el);
+    r.insertNode(el);
+    selectContents(el);
+  }
+  /* písmo v místě výběru / řádku s kurzorem ('' = nemá vlastní) */
+  fontAt() {
+    const sel = window.getSelection();
+    if (this.editing && this.editEl && sel.rangeCount && this.editEl.contains(sel.anchorNode)) {
+      const n = sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentNode, host = n.closest('.ff');
+      if (host && this.editEl.contains(host)) return host.dataset.ff;
+    }
+    return this.lineOuter().ff || '';
+  }
   /* barva označených slov; '' = barvu zrušit (platí barva řádku / zpěváka / sekce) */
   colorSel(c) {
     const sel = window.getSelection();
@@ -1056,15 +1085,18 @@ function selectContents(el) {
   const r = document.createRange(); r.selectNodeContents(el);
   const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
 }
-/* odstraní značky barvy {#rrggbb:…} (text uvnitř zůstane) */
-function stripColor(s) {
-  for (let i; (i = s.search(/\{#[0-9a-fA-F]{6}:/)) >= 0;) {
+/* odstraní značky daného druhu (text uvnitř zůstane); re = začátek značky, např. /\{#[0-9a-fA-F]{6}:/ */
+function stripMark(s, re) {
+  for (let m; (m = re.exec(s));) {
+    const i = m.index;
     let d = 0, j = i;
     for (; j < s.length; j++) { if (s[j] === '{') d++; else if (s[j] === '}' && --d === 0) break; }
-    s = s.slice(0, i) + s.slice(i + 9, j) + s.slice(j + 1);
+    s = s.slice(0, i) + s.slice(i + m[0].length, j) + s.slice(j + 1);
   }
   return s;
 }
+/* odstraní značky barvy {#rrggbb:…} */
+function stripColor(s) { return stripMark(s, /\{#[0-9a-fA-F]{6}:/); }
 /* patří řádek i do sekce s textem? (nad ním je nadpis sekce bez konce „##“, nové stránky či opakování) */
 function inSection(ls, i) {
   for (let j = i; j >= 0; j--) {
@@ -1125,7 +1157,7 @@ function outerMark(b, re) {
   return { mark: m[1], inner: b.slice(m[0].length, -1) };
 }
 /* zarovnání {⇤:…} a mezera pod řádkem {⤓0.5:…} obalují celý řádek jako nejvnější značky */
-const RE_AL_START = /^\{([⇤↔⇥]):/, RE_SP_START = /^\{⤓(\d(?:\.\d{1,2})?):/, RE_LS_START = /^\{⇿(-?\d(?:\.\d{1,3})?):/, RE_TC_START = /^\{(#[0-9a-fA-F]{6}):/;
+const RE_AL_START = /^\{([⇤↔⇥]):/, RE_SP_START = /^\{⤓(\d(?:\.\d{1,2})?):/, RE_LS_START = /^\{⇿(-?\d(?:\.\d{1,3})?):/, RE_TC_START = /^\{(#[0-9a-fA-F]{6}):/, RE_FF_START = /^\{ƒ([^:{}]+):/;
 function peelOuter(b) {
   const w = {};
   for (let m, more = true; more;) {
@@ -1134,10 +1166,12 @@ function peelOuter(b) {
     else if (!w.sp && (m = outerMark(b, RE_SP_START))) { w.sp = m.mark; b = m.inner; more = true; }
     else if (w.ls == null && (m = outerMark(b, RE_LS_START))) { w.ls = m.mark; b = m.inner; more = true; }
     else if (!w.tc && (m = outerMark(b, RE_TC_START))) { w.tc = m.mark; b = m.inner; more = true; }
+    else if (!w.ff && (m = outerMark(b, RE_FF_START))) { w.ff = m.mark; b = m.inner; more = true; }
   }
   return { w, b };
 }
 function wrapOuter(b, w) {
+  if (w.ff) b = `{ƒ${w.ff}:${b}}`;
   if (w.tc) b = `{${w.tc}:${b}}`;
   if (w.ls != null && +w.ls) b = `{⇿${w.ls}:${b}}`;
   if (w.sp) b = `{⤓${w.sp}:${b}}`;
@@ -1153,7 +1187,8 @@ function formatLine(src, kind, val) {
   if (kind === 'al') pe.w.al = val || '';   // '' = podle šablony
   else if (kind === 'sp') pe.w.sp = val || '';
   else if (kind === 'ls') pe.w.ls = +val ? String(val) : null;
-  else if (kind === 'color') { b = stripColor(b); pe.w.tc = val || null; }   // barva celého řádku nahradí ostatní barvy v něm
+  else if (kind === 'color') { b = stripColor(b); pe.w.tc = val || null; }
+  else if (kind === 'font') { b = stripMark(b, /\{ƒ[^:{}]+:/); pe.w.ff = val || null; }   // písmo celého řádku   // barva celého řádku nahradí ostatní barvy v něm
   if (kind === 'bold') b = /^\*\*[\s\S]*\*\*$/.test(b) ? b.slice(2, -2) : '**' + b + '**';
   else if (kind === 'italic') b = /^\*(?!\*)[\s\S]*\*$/.test(b) && !/^\*\*/.test(b) ? b.slice(1, -1) : '*' + b + '*';
   else if (kind === 'bigger' || kind === 'smaller' || kind === 'size') {
@@ -1212,6 +1247,7 @@ function serializeInline(node) {
     else if (n.classList.contains('al') && n.dataset.al) out += '{' + n.dataset.al + ':' + inner + '}';
     else if (n.classList.contains('spb') && n.dataset.sp) out += '{⤓' + n.dataset.sp + ':' + inner + '}';
     else if (n.classList.contains('lsp') && n.dataset.ls) out += '{⇿' + n.dataset.ls + ':' + inner + '}';
+    else if (n.classList.contains('ff') && n.dataset.ff) out += '{ƒ' + n.dataset.ff + ':' + inner + '}';
     else if (tag === 'B' || tag === 'STRONG' || (n.style && (n.style.fontWeight === 'bold' || +n.style.fontWeight >= 600))) out += '**' + inner + '**';
     else if (tag === 'I' || tag === 'EM' || (n.style && n.style.fontStyle === 'italic')) out += '*' + inner + '*';
     else if (tag === 'U') out += '__' + inner + '__';

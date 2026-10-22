@@ -180,7 +180,8 @@ class SongEditor {
         f('Interpret', this.inArtist),
         f('Název písně', this.inTitle),
         h('div', { class: 'ep-row3' }, f('Ladění', this.inKey), f('BPM', this.inTempo), f('Délka', this.inDur)),
-        f('Šablona', this.inTpl)),
+        h('div', { class: 'f' }, h('span', {}, 'Šablona'), h('div', { class: 'tpl-row' }, this.inTpl,
+          h('button', { class: 'btn small icon nogrow', title: 'Uložit současné nastavení písně jako novou šablonu (písmo, velikost, barvy, zpěváci, stránka…)', onclick: () => this.saveAsTemplate() }, ic('save'))))),
       h('div', { class: 'ep-group' }, h('div', { class: 'ep-lbl ep-lbl-row' }, h('span', {}, 'Struktura'),
         h('button', { class: 'btn small nogrow', title: 'Nová sekce u vybraného řádku – označené řádky (tažením myší) budou celá sekce', onclick: () => this.addSection() }, '＋ Sekce'),
         h('button', { class: 'btn small nogrow', title: 'Zopakovat sekci (např. refrén) u vybraného řádku – ve čtečce se vypíše celá', onclick: e => this.insertRepeat(e.currentTarget) }, '↻')),
@@ -192,7 +193,7 @@ class SongEditor {
     const sep = () => h('span', { class: 'tl-sep' });
     // lišta nad stránkou: úpravy textu
     this.tools = h('div', { class: 'ed-tools' }, h('div', { class: 'ed-tools-text' },
-      this.fontSel = h('select', { class: 'tl tl-font', title: 'Písmo této písně (bez výběru platí písmo šablony; další volby v ⋯ › Písmo této písně…)', onchange: () => this.setFont(this.fontSel.value) }),
+      this.fontSel = h('select', { class: 'tl tl-font', title: 'Písmo označených slov, řádku, nebo bez výběru celé písně', onmousedown: () => this.keepSel(), onchange: () => this.setFont(this.fontSel.value) }),
       h('div', { class: 'tl-grp seg-row' },
         tool(h('b', {}, 'B'), 'Tučně (Ctrl+B) – označená slova, řádek, nebo bez výběru celá píseň', () => this.fmt('bold')),
         tool(h('i', {}, 'I'), 'Kurzíva (Ctrl+I) – označená slova, řádek, nebo bez výběru celá píseň', () => this.fmt('italic')),
@@ -397,22 +398,38 @@ class SongEditor {
     this.paintSp();
     this.paintAl();
     this.paintLs();
+    this.paintFont();
     if (this.pageSetInfo) {
       const n = PAGE_KEYS.filter(k => this.style && this.style[k] !== undefined).length;
       this.pageSetInfo.textContent = n ? `Vlastní nastavení (${n}), ostatní podle šablony` : 'Podle šablony';
     }
   }
   /* písmo písně v liště: „podle šablony“ nebo vlastní (ukládá se do písně jako u Písmo této písně…) */
+  /* označení v psaném řádku si zapamatuje, než fokus vezme výběr písma */
+  keepSel() {
+    const sel = window.getSelection();
+    this.keptRange = this.se.editEl && sel.rangeCount && this.se.editEl.contains(sel.anchorNode) ? sel.getRangeAt(0).cloneRange() : null;
+  }
   paintFont() {
-    if (!this.fontSel) return;
+    if (!this.fontSel || document.activeElement === this.fontSel) return;
     const base = Store.template(this.inTpl.value || Settings.get('defaultTemplate'));
-    const cur = (this.style && this.style.fontFamily) || '';
-    this.fontSel.replaceChildren(h('option', { value: '' }, base.fontFamily + ' (šablona)'),
+    const song = !this.se || this.songScope(), songFont = (this.style && this.style.fontFamily) || '';
+    const cur = song ? songFont : this.se.fontAt();
+    const def = song ? base.fontFamily + ' (šablona)' : (songFont || base.fontFamily) + ' (písně)';
+    this.fontSel.replaceChildren(h('option', { value: '' }, def),
       ...FONTS.map(f => h('option', { value: f, style: { fontFamily: `"${f}"` } }, f)));
     this.fontSel.value = cur;
-    this.fontSel.style.fontFamily = `"${cur || base.fontFamily}", sans-serif`;
+    this.fontSel.style.fontFamily = `"${cur || songFont || base.fontFamily}", sans-serif`;
   }
   setFont(f) {
+    if (!this.songScope()) {   // označená slova nebo řádek
+      const se = this.se;
+      if (this.keptRange && se.editEl) { se.editEl.focus({ preventScroll: true }); const s = window.getSelection(); s.removeAllRanges(); s.addRange(this.keptRange); }
+      this.keptRange = null;
+      se.format('font', f);
+      this.fontSel.blur(); this.paintFont();
+      return;
+    }
     const st = Object.assign({}, this.style || {});
     if (f) st.fontFamily = f; else delete st.fontFamily;
     this.style = Object.keys(st).length ? st : null;
@@ -653,6 +670,19 @@ class SongEditor {
     if (v === undefined || v === null || v === '' || v === this.baseTpl()[k]) delete st[k]; else st[k] = v;
     this.style = Object.keys(st).length ? st : null;
     this.markDirty(); this.se.pushHist(); this.paintFont(); this.se.render(); this.onSelChange();
+  }
+  /* nastavení písně (šablona + vlastní úpravy písně) uložit jako novou šablonu; píseň ji pak použije */
+  async saveAsTemplate() {
+    const name = await promptDlg('Název nové šablony', (this.inTitle.value.trim() || 'Píseň') + ' – šablona');
+    if (!name || !name.trim()) return;
+    const t = clone(applySongStyle(this.baseTpl(), { style: this.style }));
+    Object.assign(t, { id: uid(), name: name.trim() });
+    await Store.put('templates', t);
+    this.inTpl.appendChild(h('option', { value: t.id }, t.name));
+    this.inTpl.value = t.id;
+    this.style = null;   // vše je teď v šabloně
+    this.markDirty(); this.se.pushHist(); this.makeSingerBtns(); this.paintFont(); this.se.render(); this.onSelChange();
+    toast('Uloženo jako šablona „' + t.name + '“ – píseň ji teď používá', 'ok');
   }
   /* zpět / znovu vrátilo i nastavení písně */
   styleRestored() { this.makeSingerBtns(); this.paintFont(); }

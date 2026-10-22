@@ -449,6 +449,8 @@ details summary { color: var(--text); }
 .ep-meta .f { display: flex; flex-direction: column; gap: 3px; margin: 0; }
 .ep-meta .f > span { font-size: 12px; color: var(--faint); }
 .ep-meta .inp { min-height: 32px; padding: 4px 9px; font-size: 14px; }
+.ep-meta .tpl-row { display: flex; gap: 6px; }
+.ep-meta .tpl-row .inp { flex: 1; min-width: 0; }
 .ep-row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
 .ep-priv { resize: vertical; min-height: 52px; font-size: 13px; }
 .ep-struct { display: flex; flex-direction: column; gap: 1px; }

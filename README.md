@@ -172,6 +172,7 @@ Pokročilí můžou přes **⋯ › Zdrojový text…** upravit text tak, jak se
 | `{⇤:řádek}` `{↔:…}` `{⇥:…}` | zarovnání řádku vlevo / na střed / vpravo (v liště) |
 | `{⤓0.5:řádek}` | mezera pod řádkem (× výška písma, v liště) |
 | `{⇿0.05:slova}` | rozestup písmen (× výška písma, v liště v %) |
+| `{ƒArial:slova}` | jiné písmo části textu (v liště výběr písma) |
 | `@J text` | řádek zpívám já |
 | `@J+T text` | řádek zpíváme oba |
 | `{T:slovo}` | jiný zpěvák jen pro část řádku |
