@@ -164,9 +164,9 @@ const URL = 'http://localhost:8123/index.html';
     assert(await q.locator('.ep-struct .st-item').count() === 3 && await q.isVisible('.ep-struct .st-brk:has-text("Stránka 2")'), 'struktura: sekce, opakování a konec stránky');
     await q.click('.ep-struct .st-item:has-text("Refrén") >> nth=0'); await sleep(200);
     assert(await q.evaluate(() => SongsView.editor.se.cur().line) === 3 && await q.isVisible('.ep-struct .st-item.on:has-text("Refrén")'), 'klik na sekci označí její řádky na stránce');
-    await q.click('.ed-tools .sw:has-text("Ty")'); await sleep(300);
+    await q.click('.ed-side .sw:has-text("Ty")'); await sleep(300);
     assert((await q.evaluate(() => SongsView.editor.src)).includes('@T Holubí dům'), 'klik na zpěváka v liště ho přidá řádkům sekce');
-    await q.click('.ed-tools .sw:has-text("Ty")'); await sleep(300);
+    await q.click('.ed-side .sw:has-text("Ty")'); await sleep(300);
     assert((await q.evaluate(() => SongsView.editor.src)).includes('\nHolubí dům'), 'opětovný klik zpěváka ho z řádků odebere');
 
     /* ----- Čtečka: lišta, seznam, nabídka ----- */

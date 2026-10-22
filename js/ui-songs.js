@@ -187,7 +187,7 @@ class SongEditor {
 
     // Lišta nad stránkou: vše pro vybraný řádek
     const sep = () => h('span', { class: 'tl-sep' });
-    // lišta: vlevo úpravy textu, vpravo zpěváci
+    // lišta nad stránkou: úpravy textu
     this.tools = h('div', { class: 'ed-tools' }, h('div', { class: 'ed-tools-text' },
       this.fontSel = h('select', { class: 'tl tl-font', title: 'Písmo této písně (bez výběru platí písmo šablony; další volby v ⋯ › Písmo této písně…)', onchange: () => this.setFont(this.fontSel.value) }),
       h('div', { class: 'tl-grp seg-row' },
@@ -208,10 +208,10 @@ class SongEditor {
       sep(),
       h('div', { class: 'tl-grp' },
         tool('↶', 'Zpět (Ctrl+Z)', () => this.se.undo(-1)),
-        tool('↷', 'Znovu (Ctrl+Y)', () => this.se.undo(1))),
-      ),
-      this.sgRow = h('div', { class: 'tl-grp sw-row', title: 'Kdo zpívá vybraný řádek (všichni vypnutí = nikdo)' },
-        tool(ic('sliders'), 'Označení zpěváků: proužek vlevo / vpravo, podklad, barva písma – jen pro tuto píseň', e => this.singerPopover(e.currentTarget), 'tl-sgshow')));
+        tool('↷', 'Znovu (Ctrl+Y)', () => this.se.undo(1)))));
+    // zpěváci: nahoře v pravém panelu
+    this.sgRow = h('div', { class: 'sw-row', title: 'Kdo zpívá vybraný řádek (všichni vypnutí = nikdo)' });
+    const sgShowBtn = tool(ic('sliders'), 'Zpěváci a jejich označení jen pro tuto píseň: barva, přidání, odebrání, proužek vlevo / vpravo, podklad, barva písma', e => this.singerPopover(e.currentTarget), 'tl-sgshow');
     this.makeSingerBtns();
 
     this.stageWrap = h('div', { class: 'se-wrap' });
@@ -221,14 +221,15 @@ class SongEditor {
       this.screenId = this.scrSel.value; Settings.set('editScreen', this.screenId);
       this.structKey = null; this.se.followCur = true; this.se.render(); this.stageWrap.focus({ preventScroll: true });
     };
-    // Pravý panel pod lištou: stránkování, náhled (obrazovka, playlist), dole uložení a čtečka
+    // stránkování vpravo dole nad stránkou (jen když má píseň víc stránek)
+    this.pageNav = h('div', { class: 'ed-pages' },
+      h('button', { class: 'tl', title: 'Předchozí stránka (PgUp)', onclick: () => this.se.turnPage(-1) }, ic('up')),
+      this.pageLbl,
+      h('button', { class: 'tl', title: 'Další stránka (PgDn)', onclick: () => this.se.turnPage(1) }, ic('down')));
+    // Pravý panel pod lištou: zpěváci, náhled (obrazovka, playlist), dole uložení a čtečka
     const sgrp = (label, ...kids) => h('div', { class: 'ep-group' }, h('div', { class: 'ep-lbl' }, label), ...kids);
     this.pager = h('div', { class: 'ed-side' },
-      sgrp('Stránka',
-        h('div', { class: 'ed-pages' },
-          h('button', { class: 'tl', title: 'Předchozí stránka (PgUp)', onclick: () => this.se.turnPage(-1) }, '‹'),
-          this.pageLbl,
-          h('button', { class: 'tl', title: 'Další stránka (PgDn)', onclick: () => this.se.turnPage(1) }, '›'))),
+      h('div', { class: 'ep-group' }, h('div', { class: 'ep-lbl ep-lbl-row' }, h('span', {}, 'Zpěváci'), sgShowBtn), this.sgRow),
       h('div', { class: 'grow' }),
       sgrp('Náhled',
         h('label', { class: 'f' }, h('span', {}, 'Obrazovka'), this.scrSel),
@@ -236,7 +237,7 @@ class SongEditor {
       h('div', { class: 'ed-save' }, this.savedInd, h('div', { class: 'ed-save-row' }, this.saveBtn, moreBtn), readerBtn));
     const ed = h('div', { class: 'song-editor' },
       h('div', { class: 'ed-body' }, this.leftPanel,
-        h('div', { class: 'ed-center' }, this.tools, h('div', { class: 'ed-main' }, this.stageWrap, this.pager))));
+        h('div', { class: 'ed-center' }, this.tools, h('div', { class: 'ed-main' }, h('div', { class: 'ed-stagebox' }, this.stageWrap, this.pageNav), this.pager))));
     this.root.innerHTML = '';
     this.root.appendChild(ed);
 
@@ -338,8 +339,8 @@ class SongEditor {
   onStageRender(lay) {
     const n = lay.pages.length;
     this.paintStruct();
-    this.pageLbl.textContent = `${this.se.page + 1}/${n}` + (lay.k < 0.999 ? ` · ${Math.round(lay.k * 100)} %` : '');
-    this.pageLbl.title = lay.k < 0.999 ? 'Dlouhá píseň je zmenšená, aby se vešla na stránku' : '';
+    this.pageLbl.textContent = `${this.se.page + 1}/${n}`;
+    this.pageNav.style.display = n > 1 ? '' : 'none';
   }
   onSelChange() {
     if (!this.se) return;

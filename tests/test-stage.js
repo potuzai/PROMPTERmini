@@ -115,22 +115,22 @@ const SHOTS = process.env.SHOTS || '/tmp/claude-0/shots';
   // zpěvák jen pro slova: jde měnit opakovaně a zrušit
   await p.click('.edit-stage .b-line:has-text("refrén druhý")'); await p.click('.edit-stage .b-line:has-text("refrén druhý")'); await sleep(150);
   await p.evaluate(() => { const el = document.querySelector('.is-edit'); const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); let n; while ((n = w.nextNode())) { const i = n.data.indexOf('druhý'); if (i >= 0) { const r = document.createRange(); r.setStart(n, i); r.setEnd(n, i + 5); getSelection().removeAllRanges(); getSelection().addRange(r); return; } } });
-  await p.click('.ed-tools .sw >> nth=0'); await sleep(150);
+  await p.click('.ed-side .sw >> nth=0'); await sleep(150);
   assert(/refrén \{J:druhý\}/.test(await src()), 'zpěvák pro označené slovo');
-  await p.click('.ed-tools .sw >> nth=1'); await sleep(150);
+  await p.click('.ed-side .sw >> nth=1'); await sleep(150);
   assert(/refrén \{T:druhý\}/.test(await src()) && !/\{J:/.test(await src()), 'barvu slova jde změnit znovu (bez vnoření)');
-  assert(!(await p.isVisible('.ed-tools .sw.none')), 'tlačítko „nikdo“ v liště není');
-  await p.click('.ed-tools .sw >> nth=1'); await sleep(150);
+  assert(!(await p.isVisible('.ed-side .sw.none')), 'tlačítko „nikdo“ v liště není');
+  await p.click('.ed-side .sw >> nth=1'); await sleep(150);
   assert(/^refrén druhý$/m.test(await src()), 'opětovný klik na stejného zpěváka barvu slova zruší');
   await key('Escape');
 
   // lišta nad stránkou: zpěvák, nová stránka
-  await p.click('.ed-tools .sw >> nth=2');
+  await p.click('.ed-side .sw >> nth=2');
   assert(/^@V refrén druhý/m.test(await src()), 'tlačítko zpěváka v liště');
-  assert(await p.isVisible('.ed-tools .sw.on'), 'lišta ukazuje zpěváka vybraného řádku');
-  await p.click('.ed-tools .sw >> nth=0'); await sleep(150);
+  assert(await p.isVisible('.ed-side .sw.on'), 'lišta ukazuje zpěváka vybraného řádku');
+  await p.click('.ed-side .sw >> nth=0'); await sleep(150);
   assert(/^@V\+J refrén druhý/m.test(await src()), 'další zpěvák se přidá (přepínače)');
-  await p.click('.ed-tools .sw >> nth=0'); await sleep(150);
+  await p.click('.ed-side .sw >> nth=0'); await sleep(150);
   assert(/^@V refrén druhý/m.test(await src()), 'opětovný klik zpěváka odebere');
   assert(!(await p.isVisible('.ed-tools button:has-text("Vložit")')), 'v liště není nabídka Vložit');
   await p.evaluate(() => SongsView.editor.se.insertLines([SongsView.editor.breakLine()], { before: true }));   // pravé tlačítko › Vložit › Novou stránku
