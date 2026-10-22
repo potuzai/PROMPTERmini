@@ -107,8 +107,6 @@ const TemplatesView = {
     const nameInp = h('input', { class: 'inp', value: t.name });
     nameInp.oninput = () => { t.name = nameInp.value; markDirty(); };
     form.append(h('label', { class: 'f', style: { marginBottom: '10px' } }, h('span', {}, 'Název šablony'), nameInp),
-      h('div', { class: 'row', style: { marginBottom: '12px', alignItems: 'center' } }, saveBtn,
-        h('button', { class: 'btn nogrow', title: 'Uložit jako novou šablonu (původní zůstane beze změny)', onclick: () => saveAs() }, 'Uložit jako…'), savedInd),
       h('div', { class: 'row', style: { marginBottom: '12px' } },
         h('button', { class: 'btn', onclick: async () => { Settings.set('defaultTemplate', t.id); this.paintSide(); toast('Nastaveno jako výchozí šablona', 'ok'); } }, '★ Nastavit jako výchozí'),
         t.id !== 'default' ? h('button', { class: 'btn danger nogrow', onclick: () => this.del(t) }, '🗑') : null));
@@ -149,6 +147,9 @@ const TemplatesView = {
       }
       fs.appendChild(h('div', { style: { marginBottom: '8px' } }, ctl));
     }
+    // uložení až na konci seznamu voleb
+    form.appendChild(h('div', { class: 'row', style: { marginTop: '12px', alignItems: 'center' } }, saveBtn,
+      h('button', { class: 'btn nogrow', title: 'Uložit jako novou šablonu (původní zůstane beze změny)', onclick: () => saveAs() }, 'Uložit jako…'), savedInd));
 
     const prevWrap = h('div', { class: 'preview-wrap' });
     const songSel = h('select', { class: 'inp', style: { width: 'auto' } }, Store.sortedSongs().map(s => h('option', { value: s.id, selected: s.id === this.previewSong }, s.title)));
