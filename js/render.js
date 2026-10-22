@@ -268,7 +268,8 @@ function applySongStyle(tpl, song) {
 
 /* volby šablony, které jde přepsat jen pro jednu píseň (style písně) */
 const SONG_TPL_KEYS = ['letterSpacing', 'uppercase', 'italic', 'textColor', 'textBy', 'lineGap', 'barWidth', 'padX', 'padY', 'columns', 'colGap',
-  'fit', 'minScale', 'showHeader', 'showFooter', 'headerSize', 'showSections', 'sectionScale', 'showNotes', 'mirror'];
+  'fit', 'minScale', 'showHeader', 'showFooter', 'headerSize', 'showSections', 'sectionScale', 'showNotes', 'mirror',
+  'sectionColor', 'verseColor', 'chorusColor', 'bridgeColor', 'instrColor'];
 
 /* zarovnání řádku ve značce {⇤:…} / {↔:…} / {⇥:…} */
 const AL_CSS = { '⇤': 'left', '↔': 'center', '⇥': 'right' }, AL_MARK = { left: '⇤', center: '↔', right: '⇥' };
