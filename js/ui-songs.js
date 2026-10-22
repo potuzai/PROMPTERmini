@@ -1246,12 +1246,12 @@ async function pickSection(nextVerse) {
   const body = h('div', { class: 'ps-dlg' },
     types,
     h('div', { class: 'ps-row' },
-      h('label', { class: 'f', style: { flex: '1' } }, h('span', {}, 'Název'), inp),
+      h('label', { class: 'f' }, h('span', {}, 'Název'), inp),
       h('div', { class: 'f' }, h('span', {}, 'Opakování'), h('div', { class: 'pg-step' },
         h('button', { type: 'button', class: 'tl tl-step', onclick: () => step(-1) }, '−'),
         h('label', { class: 'pg-num' }, num, h('span', {}, '×')),
         h('button', { type: 'button', class: 'tl tl-step', onclick: () => step(1) }, '+')))),
-    h('p', { class: 'help' }, 'Pokyny (předehra, mezihra, sólo) nemají text a ukážou se vždy, např. „8× Předehra“. U sekcí s textem je počet opakování u prvního řádku.'));
+    h('p', { class: 'help' }, 'Pokyn pro kapelu nemá text, ukáže se jako „8× Předehra“. U sekce s textem je počet opakování u jejího prvního řádku.'));
   const ok = await modal({ title: 'Nová sekce', body, buttons: [{ label: 'Zrušit', value: false }, { label: 'Vložit', primary: true, value: true }] });
   return ok && inp.value.trim() ? { name: inp.value.trim(), count: count > 1 ? count : 0 } : null;
 }
