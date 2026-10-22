@@ -135,7 +135,8 @@ class SongEditor {
   /* Rozložení: vlevo jeden panel (údaje o písni, struktura, moje poznámky), uprostřed stránka čtečky
      (upravuje se přímo v ní) a nad ní jedna lišta pro vybraný řádek. Každá funkce je jen na jednom místě. */
   build(song) {
-    const tool = (label, title, onclick, cls = '') => h('button', { class: 'tl ' + cls, title, onclick }, label);
+    // tlačítka nástrojů si neberou fokus: označený text v psaném řádku zůstane označený i po úpravě
+    const tool = (label, title, onclick, cls = '') => h('button', { class: 'tl ' + cls, title, onclick, onmousedown: e => e.preventDefault() }, label);
     const f = (label, el, cls = '') => h('label', { class: 'f ' + cls }, h('span', {}, label), el);
 
     this.inTitle = h('input', { class: 'inp ep-title', value: song.title || '', placeholder: 'Název písně' });
@@ -469,7 +470,7 @@ class SongEditor {
   /* přepínače zpěváků v liště (před tlačítkem označení) */
   makeSingerBtns() {
     (this.sgButtons || []).forEach(b => b.remove());
-    this.sgButtons = this.singers().map((s, i) => h('button', { class: 'sw', style: { '--c': s.color }, title: `${s.name} – zapnout / vypnout (Alt+${i + 1}, na stránce ← →)`,
+    this.sgButtons = this.singers().map((s, i) => h('button', { class: 'sw', style: { '--c': s.color }, title: `${s.name} – zapnout / vypnout (Alt+${i + 1}, na stránce ← →)`, onmousedown: e => e.preventDefault(),
       onclick: () => this.se.toggleSinger(s.code) }, h('span', { class: 'sw-c' }), h('span', { class: 'sw-n' }, s.name)));
     this.sgRow.prepend(...this.sgButtons);
     if (this.se) this.paintSingers();
@@ -519,7 +520,7 @@ class SongEditor {
       this.lastColor = c || this.lastColor;
       this.colorBtn.style.setProperty('--tc', this.lastColor || '');
       if (song) return this.setSongColor(c);
-      if (keep && this.se.editEl) { const s = window.getSelection(); s.removeAllRanges(); s.addRange(keep); }
+      if (keep && this.se.editEl) { this.se.editEl.focus({ preventScroll: true }); const s = window.getSelection(); s.removeAllRanges(); s.addRange(keep); }
       this.se.format('color', c);
     };
     const sw = ['#ffffff', '#ffff00', '#ffd23f', '#ff9f43', '#ff5252', '#ff7eb6', '#b388ff', '#4fc3f7', '#7cfc9a', '#9e9e9e'];
