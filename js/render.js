@@ -65,13 +65,14 @@ const Render = {
     if (b.type === 'section') {
       // předehra, mezihra, sólo: pokyn pro kapelu, vidět vždy (i když se nadpisy sekcí neukazují)
       // nadpis jde formátovat jako text (písmo, velikost, zarovnání…)
-      const label = inlineHtml(b.label || b.text, singerMap);
+      // počet opakování je uvnitř formátování nadpisu (stejná velikost a styl)
+      const raw = b.label || b.text, cnt = b.count > 1 ? b.count + '×' : '';
       let el;
-      if (b.instr) el = h('div', { class: 'b-instr', 'data-src': b.src, style: { color: b.color || tpl.instrColor || '#ff0000' }, html: (b.count > 1 ? b.count + '× ' : '') + label });
+      if (b.instr) el = h('div', { class: 'b-instr', 'data-src': b.src, style: { color: b.color || tpl.instrColor || '#ff0000' }, html: inlineHtml(cnt ? insideMarks(raw, cnt + ' ') : raw, singerMap) });
       else {
         const sg = b.singers.map(c => singerMap[c]).filter(Boolean);
-        el = h('div', { class: 'b-sec' + (b.repeat ? ' rep' : ''), 'data-src': b.src, style: b.color ? { color: b.color } : {}, html: label },
-          b.count > 1 ? ' ' + b.count + '×' : '', sg.length ? h('span', { class: 'sec-sg' }, ' · ' + sg.map(s => s.name).join(' + ')) : null);
+        el = h('div', { class: 'b-sec' + (b.repeat ? ' rep' : ''), 'data-src': b.src, style: b.color ? { color: b.color } : {}, html: inlineHtml(cnt ? insideMarks(raw, ' ' + cnt, true) : raw, singerMap) },
+          sg.length ? h('span', { class: 'sec-sg' }, ' · ' + sg.map(s => s.name).join(' + ')) : null);
       }
       if (b.align) el.style.textAlign = AL_CSS[b.align];
       if (b.hidden) el.classList.add('sec-off');   // nadpis této sekce skrytý
@@ -275,6 +276,12 @@ const SONG_TPL_KEYS = ['letterSpacing', 'uppercase', 'italic', 'textColor', 'tex
   'fit', 'minScale', 'showHeader', 'showFooter', 'headerSize', 'showSections', 'sectionScale', 'showNotes', 'mirror',
   'sectionColor', 'verseColor', 'chorusColor', 'bridgeColor', 'instrColor'];
 
+/* vloží text dovnitř značek formátování (na začátek, nebo atEnd na konec): „{90%:**Mezihra**}“ → „{90%:**4× Mezihra**}“ */
+function insideMarks(s, add, atEnd) {
+  if (atEnd) { const m = /(?:\}|\*\*|\*|__)*$/.exec(s); return s.slice(0, m.index) + add + s.slice(m.index); }
+  const m = /^(?:\{[^:{}]*:|\*\*|\*|__)*/.exec(s);
+  return s.slice(0, m[0].length) + add + s.slice(m[0].length);
+}
 /* značky celého řádku: vlastní řádkování, zarovnání a mezera pod řádkem */
 function lineMarks(el) {
   const lh = el.querySelector('.lh');
