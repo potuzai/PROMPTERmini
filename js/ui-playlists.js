@@ -99,7 +99,7 @@ const PlaylistsView = {
           ready.length ? '' : 'Sem přetáhni oblíbený playlist (nebo v náhledu vpravo „☆ Oblíbený“). Zůstane tu, dokud ho nevrátíš.');
         dropZone(end, () => null);
         list.appendChild(end);
-        const other = h('div', { class: 'pl-sec' }, h('b', {}, 'Ostatní playlisty'));
+        const other = h('div', { class: 'pl-sec pl-sec-other' }, h('b', {}, 'OSTATNÍ PLAYLISTY'), pls.length ? h('span', {}, String(pls.length)) : null);
         dropZone(other, () => false);
         list.appendChild(other);
       }
