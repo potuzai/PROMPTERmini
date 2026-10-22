@@ -402,7 +402,8 @@ table.tbl { border-collapse: collapse; width: 100%; background: var(--panel); bo
 .menu div:hover { background: var(--hover); color: var(--text); box-shadow: inset 3px 0 0 var(--acc); }
 .menu-form { width: 340px; padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 10px; }
 .menu-form .menu-head { padding: 0; }
-.menu-form div, .menu-form div:hover { padding: 0; cursor: default; background: none; box-shadow: none; }
+.menu-form div { padding: 0; cursor: default; }
+.menu-form div:hover { background: none; box-shadow: none; }
 .btn.on { border-color: var(--acc-hi); box-shadow: inset 0 0 0 1px var(--acc-hi); }
 .menu .menu-head { font-family: var(--label); font-size: 11px; color: var(--dim); padding: 4px 10px 6px; cursor: default; }
 .menu .menu-head:hover { background: none; box-shadow: none; color: var(--dim); }
@@ -525,7 +526,8 @@ details summary { color: var(--text); }
 .ps-types { display: flex; flex-direction: column; gap: 10px; }
 /* úpravy sekce ve Struktuře: nahoře úpravy, pod tím typ a název, dole odebrání */
 .menu.sec-pop { width: 330px; padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 6px; max-height: 80vh; }
-.sec-pop div, .sec-pop div:hover { padding: 0; cursor: default; background: none; box-shadow: none; }
+.sec-pop div { padding: 0; cursor: default; }
+.sec-pop div:hover { background: none; box-shadow: none; }   /* při najetí myší se nic neposune */
 .sec-pop .menu-head { padding: 2px 2px 4px; }
 .sec-pop .menu-sep { margin: 4px 0; }
 .sp-act { display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px; border: 0; border-radius: var(--r); background: none; color: var(--text); font: 13.5px var(--font); text-align: left; cursor: pointer; }
