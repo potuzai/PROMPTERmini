@@ -107,6 +107,8 @@ const Render = {
     // počet opakování sekce hned u jejího prvního řádku
     if (b.secCount > 1) inner = `<span class="rep-n" style="color:${tpl.instrColor || '#ff0000'}">${b.secCount}×</span> ` + inner;
     el.innerHTML = inner;
+    const lh = el.querySelector('.lh');   // vlastní řádkování řádku
+    if (lh) el.style.lineHeight = lh.dataset.lh;
     // označená slova jiného zpěváka: stejné označení jako celé řádky (barva písma / podklad), proužky jen u řádků
     for (const w of el.querySelectorAll('.sg-in')) {
       const sg = singerMap[parseCodes(w.dataset.c)[0]];

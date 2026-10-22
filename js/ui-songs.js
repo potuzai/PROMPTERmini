@@ -217,6 +217,8 @@ class SongEditor {
         menuTool('Aa ▾', 'Velká / malá písmena', () => [
           { label: 'VELKÁ PÍSMENA', action: () => this.se.format('upper') },
           { label: 'malá písmena', action: () => this.se.format('lower') }])),
+      this.lhBox = h('label', { class: 'tl tl-size tl-lh', title: 'Řádkování řádku s kurzorem (nebo označených řádků) – výška řádku × písmo; napiš a potvrď Enterem, prázdné = podle písně' },
+        h('span', { class: 'tl-lh-ic' }, '↕'), this.lhInp = h('input', { type: 'text', inputmode: 'decimal', maxlength: 4, value: '' })),
       sep(),
       menuTool('＋ Vložit ▾', 'Vložit u vybraného řádku: poznámku, mezeru, novou stránku, text (nový řádek = Enter při psaní, sekce v panelu Struktura)', btn => [
         { label: 'Poznámka', action: () => this.se.insertLines(['// '], { edit: true }) },
@@ -287,6 +289,18 @@ class SongEditor {
       if (e.key === 'Enter') { e.preventDefault(); applySize(); (this.se.editEl || this.stageWrap).focus({ preventScroll: true }); }
       else if (e.key === 'Escape') { e.preventDefault(); keepRange = null; this.paintSize(); this.stageWrap.focus({ preventScroll: true }); }
       e.stopPropagation();
+    });
+    this.lhInp.addEventListener('focus', () => this.lhInp.select());
+    this.lhInp.addEventListener('keydown', e => {
+      e.stopPropagation();
+      if (e.key === 'Escape') { e.preventDefault(); this.paintLh(); this.stageWrap.focus({ preventScroll: true }); return; }
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      const v = parseFloat(this.lhInp.value.replace(',', '.'));
+      const def = this.lookTpl().lineHeight;
+      this.se.format('lh', !v || Math.abs(v - def) < 0.005 ? '' : String(Math.round(Math.max(0.8, Math.min(3, v)) * 100) / 100));
+      this.paintLh();
+      (this.se.editEl || this.stageWrap).focus({ preventScroll: true });
     });
     this.onDocSel = () => { if (this.se && this.se.editEl && document.activeElement !== this.sizeInp) { this.paintSize(); this.paintSingers(); } };
     document.addEventListener('selectionchange', this.onDocSel);
@@ -364,6 +378,7 @@ class SongEditor {
     this.paintStruct();
     this.paintSingers();
     this.paintSize();
+    this.paintLh();
   }
   /* písmo písně v liště: „podle šablony“ nebo vlastní (ukládá se do písně jako u Písmo této písně…) */
   paintFont() {
@@ -399,6 +414,13 @@ class SongEditor {
     const host = se.editEl && selSingerHost(window.getSelection(), se.editEl);
     if (host) own = parseCodes(host.dataset.c);
     this.sgButtons.forEach((b, i) => b.classList.toggle('on', own.includes((Store.singers()[i] || {}).code)));
+  }
+  /* řádkování řádku s kurzorem: vlastní, jinak písně / šablony (šedě) */
+  paintLh() {
+    if (!this.lhInp || !this.se || document.activeElement === this.lhInp) return;
+    const own = this.se.lineLh(), def = this.lookTpl().lineHeight;
+    this.lhInp.value = String(own != null ? own : Math.round(def * 100) / 100);
+    this.lhBox.classList.toggle('on', own != null);
   }
   setSizePx(px) {
     const base = this.se.linePx();

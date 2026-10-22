@@ -783,7 +783,7 @@ class StageEditor {
   format(kind, val) {
     if (this.editing && this.editEl) {
       const sel = window.getSelection();
-      const has = sel.rangeCount && !sel.isCollapsed && this.editEl.contains(sel.anchorNode);
+      const has = kind !== 'lh' && sel.rangeCount && !sel.isCollapsed && this.editEl.contains(sel.anchorNode);
       if (has) {
         if (kind === 'bold' || kind === 'italic') this.toggleTag(kind === 'bold' ? 'B' : 'I');
         else if (kind === 'bigger' || kind === 'smaller' || kind === 'size') this.sizeSel(p => sizeStep(p, kind, val));
@@ -823,8 +823,19 @@ class StageEditor {
     if (!t) return 100;
     const src = this.lines()[t.line] || '';
     const info = parseSong(src).lines[0] || {};
-    const m = /^\{([+-]{1,2}|\d{2,3}%):[\s\S]*\}$/.exec(splitLine(src, info.kind || 'line').body);
-    return m ? szPct(m[1]) : 100;
+    let b = splitLine(src, info.kind || 'line').body;
+    const lh = outerMark(b, RE_LH_START); if (lh) b = lh.inner;
+    const m = outerMark(b, /^\{([+-]{1,2}|\d{2,3}%):/);
+    return m ? szPct(m.mark) : 100;
+  }
+  /* řádkování řádku s kurzorem: vlastní ({↕1.4:…}), jinak null */
+  lineLh() {
+    const t = this.cur();
+    if (!t) return null;
+    const src = this.lines()[t.line] || '';
+    const info = parseSong(src).lines[0] || {};
+    const lh = outerMark(splitLine(src, info.kind || 'line').body, RE_LH_START);
+    return lh ? +lh.mark : null;
   }
   /* součin velikostí všech značek {N%:…} od uzlu až k psanému řádku (v %) */
   szChain(node) {
@@ -1017,6 +1028,15 @@ function sizeStep(p, kind, val) {
   return kind === 'bigger' ? Math.floor(p / 10) * 10 + 10 : Math.ceil(p / 10) * 10 - 10;
 }
 /* Formát celého řádku: tučně, kurzíva, velikost, VELKÁ, malá */
+/* značka, která obaluje celé tělo řádku ({88%:…}, {↕1.4:…}); vrací { mark, inner } nebo null */
+const RE_LH_START = /^\{↕(\d(?:\.\d{1,2})?):/;
+function outerMark(b, re) {
+  const m = re.exec(b);
+  if (!m || !b.endsWith('}')) return null;
+  let d = 0;
+  for (let i = 0; i < b.length; i++) { if (b[i] === '{') d++; else if (b[i] === '}') { d--; if (d === 0 && i < b.length - 1) return null; } }
+  return { mark: m[1], inner: b.slice(m[0].length, -1) };
+}
 function formatLine(src, kind, val) {
   const info = parseSong(src).lines[0] || {};
   if (!['line', 'chords', 'note', 'section', 'mus'].includes(info.kind)) return src;
@@ -1025,10 +1045,16 @@ function formatLine(src, kind, val) {
   if (kind === 'bold') b = /^\*\*[\s\S]*\*\*$/.test(b) ? b.slice(2, -2) : '**' + b + '**';
   else if (kind === 'italic') b = /^\*(?!\*)[\s\S]*\*$/.test(b) && !/^\*\*/.test(b) ? b.slice(1, -1) : '*' + b + '*';
   else if (kind === 'bigger' || kind === 'smaller' || kind === 'size') {
-    const m = /^\{([+-]{1,2}|\d{2,3}%):([\s\S]*)\}$/.exec(b);
-    const p = szClamp(sizeStep(m ? szPct(m[1]) : 100, kind, val));
-    if (m) b = m[2];
+    const lh = outerMark(b, RE_LH_START); if (lh) b = lh.inner;   // řádkování zůstane vnější značkou
+    const m = outerMark(b, /^\{([+-]{1,2}|\d{2,3}%):/);
+    const p = szClamp(sizeStep(m ? szPct(m.mark) : 100, kind, val));
+    if (m) b = m.inner;
     b = p === 100 ? b : `{${szMark(p)}:${b}}`;
+    if (lh) b = `{↕${lh.mark}:${b}}`;
+  } else if (kind === 'lh') {
+    // řádkování jednoho řádku: val = výška řádku (× písmo), prázdné = podle písně / šablony
+    const lh = outerMark(b, RE_LH_START); if (lh) b = lh.inner;
+    if (val) b = `{↕${val}:${b}}`;
   } else if (kind === 'upper' || kind === 'lower') {
     // jen text, ne značky ([Am], {T:…})
     b = b.split(/(\[[^\]]*\]|\{[^:}]*:|\})/).map((part, i) => i % 2 ? part : (kind === 'upper' ? part.toLocaleUpperCase('cs') : part.toLocaleLowerCase('cs'))).join('');
@@ -1060,6 +1086,7 @@ function serializeInline(node) {
     if (n.classList.contains('sg-in') && n.dataset.c) out += '{' + n.dataset.c + ':' + inner + '}';
     else if (n.classList.contains('sz') && n.dataset.p) out += '{' + szMark(+n.dataset.p) + ':' + inner + '}';
     else if (n.classList.contains('tc') && n.dataset.tc) out += '{' + n.dataset.tc + ':' + inner + '}';
+    else if (n.classList.contains('lh') && n.dataset.lh) out += '{↕' + n.dataset.lh + ':' + inner + '}';
     else if (tag === 'B' || tag === 'STRONG' || (n.style && (n.style.fontWeight === 'bold' || +n.style.fontWeight >= 600))) out += '**' + inner + '**';
     else if (tag === 'I' || tag === 'EM' || (n.style && n.style.fontStyle === 'italic')) out += '*' + inner + '*';
     else if (tag === 'U') out += '__' + inner + '__';

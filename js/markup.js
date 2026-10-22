@@ -8,7 +8,8 @@
   {KÓD:slova}             zpěvák uvnitř řádku
   **tučně**  *kurzíva*  __podtržení__
   {#ff0000:slova}         vlastní barva písma (třeba červené pokyny pro kapelu)
-  {130%:slova}            velikost písma v procentech (starší zápis {+:…} 125 %, {++:…} 155 %, {-:…} 80 %, {--:…} 65 %)
+  {130%:slova}            velikost písma v procentech
+  {↕1.4:řádek}            řádkování jednoho řádku (výška řádku × písmo) (starší zápis {+:…} 125 %, {++:…} 155 %, {-:…} 80 %, {--:…} 65 %)
   (prázdný řádek)         mezera mezi slokami
 
   Pro muzikanty (ve čtečce se NIKDY nezobrazí, jen v náhledu „Pro muzikanty“ a v tisku):
@@ -216,6 +217,8 @@ function inlineHtml(text, singerMap) {
     s = s.replace(RE_SZ_IN, (all, mark, inner) => { const p = szPct(mark); return `<span class="sz" data-p="${p}" style="font-size:${p / 100}em">${inner}</span>`; });
     s = s.replace(/\{(#[0-9a-fA-F]{6}):([^{}]*)\}/g, (all, c, inner) => `<span class="tc" data-tc="${c.toLowerCase()}" style="color:${c}">${inner}</span>`);
     s = s.replace(/\{([A-Za-z0-9+]+):([^{}]*)\}/g, singer);
+    // {↕1.4:…} řádkování řádku (výšku řádku nastaví vykreslení stránky)
+    s = s.replace(/\{↕(\d(?:\.\d{1,2})?):([^{}]*)\}/g, (all, v, inner) => `<span class="lh" data-lh="${v}">${inner}</span>`);
   }
   s = s.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
   s = s.replace(/__(.+?)__/g, '<u>$1</u>');

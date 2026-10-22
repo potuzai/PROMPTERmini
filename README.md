@@ -166,6 +166,7 @@ Pokročilí můžou přes **⋯ › Zdrojový text…** upravit text tak, jak se
 | `## Refrén 2× #ffff00` | sekce se opakuje 2× (ukáže se u prvního řádku), vlastní barva písma |
 | `## Předehra 8×` | předehra / mezihra / sólo – pokyn bez textu, na stránce vždy vidět |
 | `{#ff0000:slova}` | vlastní barva písma části textu |
+| `{↕1.4:řádek}` | řádkování jednoho řádku (v liště pole ↕) |
 | `@J text` | řádek zpívám já |
 | `@J+T text` | řádek zpíváme oba |
 | `{T:slovo}` | jiný zpěvák jen pro část řádku |
