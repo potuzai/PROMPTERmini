@@ -102,7 +102,7 @@ const URL = 'http://localhost:8123/index.html';
       const src = await r.evaluate(() => SongsView.editor.src);
       assert(src.includes('--- ' + tab.id) && src.split('\n').filter(l => l.trim() === '---').length === 1, 'nová stránka se vloží jen pro tuto obrazovku');
       assert(await r.evaluate(() => SongsView.editor.se.lay.pages.length) === 2, 'náhled tabletu má teď 2 stránky');
-      await r.selectOption('.ed-screen', 'main'); await sleep(300);
+      await r.evaluate(() => { const s = SongsView.editor.scrSel; s.value = 'main'; s.dispatchEvent(new Event('change')); }); await sleep(300);
       assert(await r.evaluate(() => SongsView.editor.se.lay.pages.length === 2 && !SongsView.editor.se.lay.blocks.some(b => b.type === 'mus')), 'přepnutí náhledu na hlavní čtečku: její stránky');
       // soukromá poznámka a zvýraznění mých řádků
       await r.fill('.ep-priv', 'nádech před refrénem'); await sleep(500);

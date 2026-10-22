@@ -259,9 +259,9 @@ class SongEditor {
       h('div', { class: 'ep-group' }, h('div', { class: 'ep-lbl ep-lbl-row' }, h('span', {}, 'Stránka písně'),
         this.pageSetBtn = tool(ic('sliders'), 'Rozvržení a zobrazení stránky jen pro tuto píseň: okraje, sloupce, mezery, dlouhá píseň, záhlaví a zápatí, nadpisy sekcí, poznámky, zrcadlení, proužek zpěváka', e => this.pagePopover(e.currentTarget), 'tl-sgshow'))),
       h('div', { class: 'grow' }),
-      sgrp('Náhled',
-        h('label', { class: 'f' }, h('span', {}, 'Obrazovka'), this.scrSel),
-        h('label', { class: 'f' }, h('span', {}, 'Jako v playlistu'), this.inPl)),
+      h('div', { class: 'ep-group' }, h('div', { class: 'ep-lbl ep-lbl-row' }, h('span', {}, 'Náhled'),
+        tool(ic('sliders'), 'Náhled stránky: pro kterou obrazovku a jako v kterém playlistu', e => this.previewPopover(e.currentTarget), 'tl-sgshow')),
+        this.pvInfo = h('div', { class: 'ep-info' })),
       h('div', { class: 'ed-save' }, this.savedInd, h('div', { class: 'ed-save-row' }, this.saveBtn, moreBtn), readerBtn));
     const ed = h('div', { class: 'song-editor' },
       h('div', { class: 'ed-body' }, this.leftPanel,
@@ -276,7 +276,9 @@ class SongEditor {
     this.inTpl.addEventListener('change', onMeta);
     this.inTpl.addEventListener('change', () => this.paintFont());
     this.paintFont();
-    this.inPl.addEventListener('change', () => this.se.render());
+    this.inPl.addEventListener('change', () => { this.se.render(); this.paintPvInfo(); });
+    this.scrSel.addEventListener('change', () => this.paintPvInfo());
+    this.paintPvInfo();
     this.inTitle.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === 'Escape') { e.preventDefault(); this.stageWrap.focus(); } });
     // tlačítka panelu a lišty nesmí vzít stránce výběr ani kurzor
     const keep = e => { if (e.target.closest('button') && this.stageWrap.contains(document.activeElement)) e.preventDefault(); };
@@ -372,6 +374,17 @@ class SongEditor {
 
 
   /* ----- Šablona a údaje pro stránku ----- */
+  /* náhled: výběr obrazovky a playlistu schovaný pod tlačítkem, pod nadpisem jen stručně aktuální výběr */
+  previewPopover(anchor) {
+    $$('.menu').forEach(m => m.remove());
+    placePopover(h('div', { class: 'menu menu-form' }, h('div', { class: 'menu-head' }, 'Náhled stránky'),
+      h('label', { class: 'f' }, h('span', {}, 'Obrazovka'), this.scrSel),
+      h('label', { class: 'f' }, h('span', {}, 'Jako v playlistu'), this.inPl)), anchor);
+  }
+  paintPvInfo() {
+    const sc = Screens.list().find(s => s.id === this.scrSel.value), pl = this.playlist();
+    this.pvInfo.replaceChildren(h('div', {}, sc ? Screens.label(sc) : ''), h('div', {}, pl ? 'Playlist: ' + pl.name : 'Samostatně, bez playlistu'));
+  }
   playlist() { return this.inPl && this.inPl.value ? Store.playlists.get(this.inPl.value) : null; }
   lookTpl(song) {
     const id = this.inTpl.value || Settings.get('defaultTemplate');

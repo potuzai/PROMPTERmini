@@ -476,6 +476,8 @@ details summary { color: var(--text); }
 .st-item.off .st-n { color: var(--faint); font-style: italic; }   /* nadpis sekce skrytý */
 .st-del:hover { color: var(--err); }
 .ep-lbl-row { display: flex; align-items: center; gap: 6px; }
+.ep-info { margin-top: -4px; font-size: 12.5px; line-height: 1.45; color: var(--dim); }
+.ep-info div { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ep-lbl-row > span { flex: 1; }
 .ep-lbl-row .btn { text-transform: none; letter-spacing: 0; font-weight: 500; }
 .ed-side .sw-row { display: flex; flex-wrap: wrap; gap: 6px; }   /* zpěváci v pravém panelu */
