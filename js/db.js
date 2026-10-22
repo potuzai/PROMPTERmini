@@ -22,8 +22,8 @@ const DEFAULT_TEMPLATE = {
   padX: 0, padY: 0, columns: 1, colGap: 30, stanzaGap: 0.1,
   // označení zpěváka: proužek vlevo / vpravo, podbarvení řádku, barva písma (libovolná kombinace; píseň může přepsat)
   singerText: false, singerBar: true, singerBarRight: false, singerBg: false, barWidth: 15,
-  // barva textu: 'singer' = podle zpěváka, 'section' = podle části písně (zpěvák jen pruhem)
-  textBy: 'section', verseColor: '#ffffff', chorusColor: '#ffff00', bridgeColor: '#33ff33',
+  // barva textu podle části písně (zpěvák ji přebije jen se zapnutým „Písmo“)
+  verseColor: '#ffffff', chorusColor: '#ffff00', bridgeColor: '#33ff33',
   instrColor: '#ff0000',   // předehra, mezihra, sólo a počet opakování sekce
   fit: 'shrink', minScale: 0.6,
   showHeader: true, showFooter: false, headerSize: 25, headerColor: '#9e9e9e',

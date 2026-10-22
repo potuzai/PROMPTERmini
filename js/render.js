@@ -84,9 +84,8 @@ const Render = {
     const sgs = b.singers.map(c => singerMap[c]).filter(Boolean);
     const el = h('div', { class: 'b-line', 'data-src': b.src });
     // barva písma: zpěvák (má-li zapnuté „Písmo“) > vlastní barva sekce > barva části písně ze šablony
-    const bySec = tpl.textBy === 'section';
     if (b.secColor) el.style.color = b.secColor;
-    else if (bySec) { const k = sectionKind(b.sec); if (k && k !== 'instr') el.style.color = tpl[k + 'Color'] || ''; }
+    else { const k = sectionKind(b.sec); if (k && k !== 'instr') el.style.color = tpl[k + 'Color'] || ''; }
     if (sgs.length) {
       // každý zpěvák má své označení (proužek vlevo / vpravo, podklad, barva písma)
       const sh = sgs.map(sg => [sg, singerShowOf(tpl, sg.code)]);
@@ -262,6 +261,7 @@ function applySongStyle(tpl, song) {
   if (st.align) t.align = st.align;
   // další volby šablony nastavené jen pro tuto píseň (stejné klíče jako šablona)
   for (const k of SONG_TPL_KEYS) if (st[k] !== undefined && st[k] !== null && st[k] !== '') t[k] = st[k];
+  if (st.textBy === 'singer' && st.textColor) t.verseColor = t.chorusColor = t.bridgeColor = st.textColor;   // starší barva celé písně
   if (Array.isArray(st.singers)) t.singers = st.singers;   // zpěváci jen pro tuto píseň
   // označení zpěváků jen pro tuto píseň (přepíše šablonu): { kód: { barL, barR, bg, text } }
   if (st.singer) {
@@ -272,7 +272,7 @@ function applySongStyle(tpl, song) {
 }
 
 /* volby šablony, které jde přepsat jen pro jednu píseň (style písně) */
-const SONG_TPL_KEYS = ['letterSpacing', 'uppercase', 'italic', 'textColor', 'textBy', 'lineGap', 'barWidth', 'padX', 'padY', 'columns', 'colGap',
+const SONG_TPL_KEYS = ['letterSpacing', 'uppercase', 'italic', 'textColor', 'lineGap', 'barWidth', 'padX', 'padY', 'columns', 'colGap',
   'fit', 'minScale', 'showHeader', 'showFooter', 'headerSize', 'showSections', 'sectionScale', 'showNotes', 'mirror',
   'sectionColor', 'verseColor', 'chorusColor', 'bridgeColor', 'instrColor'];
 

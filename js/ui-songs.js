@@ -9,7 +9,7 @@ function songSingers(s) {
 // volby stránky, které jde u písně nastavit jinak než v šabloně (Stránka písně v pravém panelu)
 const PAGE_KEYS = ['padX', 'padY', 'columns', 'colGap', 'fit', 'minScale', 'showHeader', 'showFooter', 'headerSize', 'showNotes', 'mirror'];
 // volby sekcí písně (Struktura v levém panelu)
-const SECTION_KEYS = ['showSections', 'sectionScale', 'sectionColor', 'stanzaGap', 'textBy', 'verseColor', 'chorusColor', 'bridgeColor', 'instrColor'];
+const SECTION_KEYS = ['showSections', 'sectionScale', 'sectionColor', 'stanzaGap', 'verseColor', 'chorusColor', 'bridgeColor', 'instrColor'];
 const SongsView = {
   search: '',
   editor: null,
@@ -573,8 +573,7 @@ class SongEditor {
     this.settingsPopover(anchor, 'Sekce této písně', SECTION_KEYS, [
       ['Nadpisy', [['showSections', 'Nadpisy sekcí'], ['sectionScale', 'Velikost nadpisů', '%'], ['sectionColor', 'Barva nadpisů']]],
       ['Mezery', [['stanzaGap', 'Mezera mezi slokami', '×']]],
-      ['Barva textu', [['textBy', 'Barva textu podle', null, [['singer', 'zpěváka'], ['section', 'části písně']]],
-        ['verseColor', 'Sloka'], ['chorusColor', 'Refrén'], ['bridgeColor', 'Mezičást'], ['instrColor', 'Předehra, mezihra, sólo']]],
+      ['Barva textu', [['verseColor', 'Sloka'], ['chorusColor', 'Refrén'], ['bridgeColor', 'Mezičást'], ['instrColor', 'Předehra, mezihra, sólo']]],
     ]);
   }
   /* okno s volbami šablony jen pro tuto píseň: skupiny, vlevo název, vpravo přepínač / výběr / barva / − hodnota + */
@@ -629,10 +628,10 @@ class SongEditor {
     });
     const st = Object.assign({}, this.style || {});
     if (c) {
-      st.textColor = c; st.textBy = 'singer';
+      st.textColor = st.verseColor = st.chorusColor = st.bridgeColor = c; delete st.textBy;   // celá píseň: i všechny části písně
       const tpl = this.lookTpl();
       for (const sg of this.singers()) if (singerShowOf(tpl, sg.code).text) st.singer = Object.assign({}, st.singer, { [sg.code]: Object.assign({}, (st.singer || {})[sg.code], { text: false }) });
-    } else { delete st.textColor; delete st.textBy; }
+    } else for (const k of ['textColor', 'textBy', 'verseColor', 'chorusColor', 'bridgeColor']) delete st[k];
     this.style = Object.keys(st).length ? st : null;
     se.commit(ls.join('\n'), { force: true });
   }
@@ -761,7 +760,7 @@ class SongEditor {
       else if (/^##\s*$/.test(t)) return;   // konec sekce
       else if (t.startsWith('##')) {
         const sec = parseSectionLine(t), kind = sectionKind(sec.name), c = sec.singers[0];
-        const color = sec.color || (kind === 'instr' ? tpl.instrColor : tpl.textBy === 'section' && kind ? tpl[kind + 'Color'] : '') || (c && sm[c] ? sm[c].color : '');
+        const color = sec.color || (kind === 'instr' ? tpl.instrColor : kind ? tpl[kind + 'Color'] : '') || (c && sm[c] ? sm[c].color : '');
         items.push({ line: i, name: sec.name || 'Sekce', count: sec.count, color, instr: kind === 'instr', hidden: sec.hidden });
       } else if ((m = RE_REPEAT.exec(t))) items.push({ line: i, name: '↻ ' + m[1], rep: true });
     });
