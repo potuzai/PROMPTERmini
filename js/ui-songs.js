@@ -808,16 +808,13 @@ class SongEditor {
         this.singerPopover(anchor);
       },
     });
-    const note = h('div', { class: 'help' });
-    const reset = h('button', { class: 'btn small nogrow', onclick: () => apply({}) }, 'Podle šablony');
+    const reset = h('button', { class: 'btn small nogrow', title: 'Zrušit nastavení jen pro tuto píseň', onclick: () => apply({}) }, 'Vrátit podle šablony');
     const paint = () => {
       tbl.repaint();
-      const n = Object.keys(own()).length;
-      note.textContent = n ? 'Jen pro tuto píseň – šablona „' + base.name + '“ má jiné nastavení.' : 'Podle šablony „' + base.name + '“.';
-      reset.style.display = n ? '' : 'none';
+      reset.style.display = Object.keys(own()).length ? '' : 'none';
     };
     paint();
-    const m = h('div', { class: 'menu menu-form menu-singer' }, h('div', { class: 'menu-head' }, 'Označení zpěváků v této písni'), tbl, note, reset);
+    const m = h('div', { class: 'menu menu-form menu-singer' }, h('div', { class: 'menu-head' }, 'Označení zpěváků v této písni'), tbl, reset);
     placePopover(m, anchor);
   }
 
