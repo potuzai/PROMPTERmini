@@ -437,6 +437,13 @@ class StageEditor {
     if (b) { if (end < caret) r.setStart(...b); else r.setEnd(...b); }
     sel.removeAllRanges(); sel.addRange(r);
   }
+  /* začátek (anchor) a konec (focus) označení v psaném řádku jako počet znaků */
+  selOffsets() {
+    const sel = window.getSelection();
+    if (!sel.rangeCount || !this.editEl || !this.editEl.contains(sel.anchorNode)) { const c = this.caretOffset(); return [c, c]; }
+    const off = (n, o) => { const r = document.createRange(); r.selectNodeContents(this.editEl); try { r.setEnd(n, o); } catch (e) { return 0; } return r.toString().replace(/​/g, '').length; };
+    return [off(sel.anchorNode, sel.anchorOffset), off(sel.focusNode, sel.focusOffset)];
+  }
   caretOffset() {
     const sel = window.getSelection();
     if (!sel.rangeCount || !this.editEl) return 0;
@@ -814,7 +821,11 @@ class StageEditor {
       if (has) {
         if (kind === 'bold' || kind === 'italic') this.toggleTag(kind === 'bold' ? 'B' : 'I');
         else if (kind === 'bigger' || kind === 'smaller' || kind === 'size') this.sizeSel(p => sizeStep(p, kind, val));
-        else if (kind === 'upper' || kind === 'lower') { document.execCommand('insertText', false, kind === 'upper' ? sel.toString().toLocaleUpperCase('cs') : sel.toString().toLocaleLowerCase('cs')); }
+        else if (kind === 'upper' || kind === 'lower') {
+          const [a, f] = this.selOffsets();
+          document.execCommand('insertText', false, kind === 'upper' ? sel.toString().toLocaleUpperCase('cs') : sel.toString().toLocaleLowerCase('cs'));
+          this.setCaret(Math.min(a, f), Math.max(a, f));   // text zůstane označený
+        }
         else if (kind === 'kc-on' || kind === 'kc-off') this.keepCaseSel(sel.getRangeAt(0), kind === 'kc-on');
         else if (kind === 'ls') this.lsSel(val);
         else if (kind === 'color') this.colorSel(val);
@@ -824,11 +835,11 @@ class StageEditor {
       }
       this.syncEdit();
       const line = this.editing.line;
-      const caret = this.caretOffset();
+      const [a, f] = this.selOffsets();   // označení v řádku zůstane i po překreslení
       const ls = this.lines();
       ls[line] = formatLine(ls[line], kind, val);
       this.ed.src = ls.join('\n'); this.ed.changed(); this.pushHist();
-      this.editing.caret = caret;
+      this.editing.caret = a; this.editing.selEnd = f !== a ? f : null;
       return this.render();
     }
     this.formatLines(kind, val);

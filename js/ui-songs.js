@@ -181,7 +181,12 @@ class SongEditor {
         f('Název písně', this.inTitle),
         h('div', { class: 'ep-row3' }, f('Ladění', this.inKey), f('BPM', this.inTempo), f('Délka', this.inDur)),
         h('div', { class: 'f' }, h('span', {}, 'Šablona'), h('div', { class: 'tpl-row' }, this.inTpl,
-          h('button', { class: 'btn small icon nogrow', title: 'Uložit současné nastavení písně jako novou šablonu (písmo, velikost, barvy, zpěváci, stránka…)', onclick: () => this.saveAsTemplate() }, ic('save'))))),
+          h('button', { class: 'btn small icon nogrow', title: 'Uložit nastavení písně do šablony (písmo, velikost, barvy, zpěváci, stránka…)', onclick: e => {
+            const cur = this.baseTpl();
+            popupMenu(e.currentTarget, [
+              { label: `Uložit do šablony „${cur.name}“`, hint: 'všem písním s ní', action: () => this.saveToTemplate() },
+              { label: 'Uložit jako novou šablonu…', action: () => this.saveAsTemplate() }]);
+          } }, ic('save'))))),
       h('div', { class: 'ep-group' }, h('div', { class: 'ep-lbl ep-lbl-row' }, h('span', {}, 'Struktura'),
         h('button', { class: 'btn small nogrow', title: 'Nová sekce u vybraného řádku – označené řádky (tažením myší) budou celá sekce', onclick: () => this.addSection() }, '＋ Sekce'),
         h('button', { class: 'btn small nogrow', title: 'Zopakovat sekci (např. refrén) u vybraného řádku – ve čtečce se vypíše celá', onclick: e => this.insertRepeat(e.currentTarget) }, '↻')),
@@ -670,6 +675,19 @@ class SongEditor {
     if (v === undefined || v === null || v === '' || v === this.baseTpl()[k]) delete st[k]; else st[k] = v;
     this.style = Object.keys(st).length ? st : null;
     this.markDirty(); this.se.pushHist(); this.paintFont(); this.se.render(); this.onSelChange();
+  }
+  /* uložit: vlastní nastavení písně se zapíše do její šablony (změní se všem písním s touto šablonou) */
+  async saveToTemplate() {
+    const base = this.baseTpl();
+    if (!this.style) return toast('Píseň nemá žádné vlastní nastavení – šablona zůstává stejná.', 'ok');
+    const n = [...Store.songs.values()].filter(s => (s.templateId || Settings.get('defaultTemplate')) === base.id && s.id !== this.id).length;
+    if (!await confirmDlg(`Uložit nastavení této písně do šablony „${base.name}“?` + (n ? ` Změní se tím i ${n} dalším písním s touto šablonou.` : ''), 'Uložit do šablony')) return;
+    const t = clone(applySongStyle(base, { style: this.style }));
+    Object.assign(t, { id: base.id, name: base.name });
+    await Store.put('templates', t);
+    this.style = null;
+    this.markDirty(); this.se.pushHist(); this.makeSingerBtns(); this.paintFont(); this.se.render(); this.onSelChange();
+    toast('Šablona „' + t.name + '“ uložena', 'ok');
   }
   /* nastavení písně (šablona + vlastní úpravy písně) uložit jako novou šablonu; píseň ji pak použije */
   async saveAsTemplate() {
