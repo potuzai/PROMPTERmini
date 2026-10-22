@@ -415,7 +415,7 @@ class SongEditor {
     const st = Object.assign({}, this.style || {});
     if (f) st.fontFamily = f; else delete st.fontFamily;
     this.style = Object.keys(st).length ? st : null;
-    this.markDirty(); this.se.render(); this.paintFont();
+    this.markDirty(); this.se.pushHist(); this.se.render(); this.paintFont();
     this.stageWrap.focus({ preventScroll: true });
   }
   /* Velikost písma v px na zvolené obrazovce. Ukládá se poměrem k písmu řádku ze šablony
@@ -452,8 +452,7 @@ class SongEditor {
       const st = Object.assign({}, this.style || {});
       if (this.baseTpl().uppercase) st.uppercase = false; else delete st.uppercase;
       this.style = Object.keys(st).length ? st : null;
-      this.markDirty();
-      return this.se.commit(ls.join('\n'));
+      return this.se.commit(ls.join('\n'), { force: true });
     }
     const se = this.se, sel = window.getSelection();
     let t;
@@ -482,7 +481,7 @@ class SongEditor {
   /* barva, přidání a odebrání zpěváka platí jen pro tuto píseň */
   setSongSingers(list) {
     this.style = Object.assign({}, this.style || {}, { singers: list });
-    this.markDirty(); this.makeSingerBtns(); this.se.render();
+    this.markDirty(); this.se.pushHist(); this.makeSingerBtns(); this.se.render();
   }
   paintSingers() {
     const se = this.se, t = se.cur();
@@ -575,7 +574,7 @@ class SongEditor {
     };
     const reset = h('button', { class: 'btn small nogrow', style: { alignSelf: 'flex-start' }, onclick: () => {
       const st = Object.assign({}, this.style || {}); PAGE_KEYS.forEach(k => delete st[k]);
-      this.style = Object.keys(st).length ? st : null; this.markDirty(); this.se.render(); this.onSelChange(); paint();
+      this.style = Object.keys(st).length ? st : null; this.markDirty(); this.se.pushHist(); this.se.render(); this.onSelChange(); paint();
     } }, 'Vše podle šablony');
     const m = h('div', { class: 'menu menu-form menu-page' }, h('div', { class: 'menu-head' }, 'Stránka této písně'),
       h('div', { class: 'help' }, 'Výchozí je šablona, změny platí jen pro tuto píseň (označené tečkou).'), box, reset);
@@ -597,8 +596,7 @@ class SongEditor {
       for (const sg of this.singers()) if (singerShowOf(tpl, sg.code).text) st.singer = Object.assign({}, st.singer, { [sg.code]: Object.assign({}, (st.singer || {})[sg.code], { text: false }) });
     } else { delete st.textColor; delete st.textBy; }
     this.style = Object.keys(st).length ? st : null;
-    this.markDirty();
-    se.commit(ls.join('\n'));
+    se.commit(ls.join('\n'), { force: true });
   }
   /* rozestup písmen: označená slova, řádek, nebo celá píseň (v liště v % výšky písma) */
   lsNow() {
@@ -653,8 +651,10 @@ class SongEditor {
     const st = Object.assign({}, this.style || {});
     if (v === undefined || v === null || v === '' || v === this.baseTpl()[k]) delete st[k]; else st[k] = v;
     this.style = Object.keys(st).length ? st : null;
-    this.markDirty(); this.paintFont(); this.se.render(); this.onSelChange();
+    this.markDirty(); this.se.pushHist(); this.paintFont(); this.se.render(); this.onSelChange();
   }
+  /* zpět / znovu vrátilo i nastavení písně */
+  styleRestored() { this.makeSingerBtns(); this.paintFont(); }
   fmt(kind) {
     if (!this.songScope()) return this.se.format(kind);
     const st = this.style || {};
@@ -939,7 +939,7 @@ class SongEditor {
       for (const [k, v] of Object.entries(st)) if (v !== '' && v != null && !(k === 'sizePct' && +v === 100)) clean[k] = v;
       this.style = Object.keys(clean).length ? clean : null;
       this.paintFont();
-      this.markDirty(); this.schedulePreview();
+      this.markDirty(); this.se.pushHist(); this.schedulePreview();
     };
     const f = (label, el) => h('label', { class: 'f' }, h('span', {}, label), el);
     const fontSel = h('select', { class: 'inp' }, h('option', { value: '' }, `dle šablony (${base.fontFamily})`), FONTS.map(x => h('option', { value: x, selected: st.fontFamily === x }, x)));
@@ -976,7 +976,7 @@ class SongEditor {
       const st = Object.assign({}, this.style || {});
       if (Object.keys(sg).length) st.singer = sg; else delete st.singer;
       this.style = Object.keys(st).length ? st : null;
-      this.markDirty(); this.se.render(); paint();
+      this.markDirty(); this.se.pushHist(); this.se.render(); paint();
     };
     const tbl = singerShowTable(eff, (code, k, v) => {
       const sg = own();
