@@ -152,7 +152,8 @@ code { font-family: var(--mono); font-size: 12.5px; background: var(--well); bor
 .ed-side .f { display: flex; flex-direction: column; gap: 3px; margin: 0; }
 .ed-side .f > span { font-size: 12px; color: var(--faint); }
 .ed-side select.inp { width: 100%; min-height: 32px; padding: 4px 8px; font-size: 13px; }
-.ed-stagebox { position: relative; flex: 1; min-width: 0; display: flex; }
+.ed-col { flex: 1; min-width: 0; display: flex; flex-direction: column; }   /* lišta + stránka; lišta je tak přesně nad stránkou */
+.ed-stagebox { position: relative; flex: 1; min-height: 0; min-width: 0; display: flex; }
 .ed-pages { position: absolute; right: 12px; bottom: 12px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px; border: 1px solid var(--line2); border-radius: var(--r); background: var(--panel); }   /* stránkování vpravo dole: ▲ číslo ▼ */
 .ed-pages .page-lbl { color: var(--text); font-size: 13px; font-variant-numeric: tabular-nums; }
 .ed-pages .tl { min-width: 30px; height: 26px; padding: 0; }
@@ -474,8 +475,9 @@ details summary { color: var(--text); }
 /* střed: lišta pro vybraný řádek, stránka, stránkování */
 .ed-center { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--desk); border-radius: var(--rc); overflow: hidden; }
 /* nástroje na střed nad stránkou (vpravo je odsazení o šířku pravého panelu), Muzikanti vždy vpravo nad panelem */
-.ed-tools { position: relative; flex: 0 0 auto; display: flex; justify-content: space-between; align-items: flex-start; gap: 6px 16px; padding: 8px; background: var(--panel); border-bottom: 1px solid var(--line); }
-.ed-tools-text { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; }
+.ed-tools { position: relative; flex: 0 0 auto; display: flex; justify-content: center; align-items: flex-start; gap: 6px 16px; padding: 8px 80px; background: var(--panel); border-bottom: 1px solid var(--line); }
+.ed-tools > .ed-undo { position: absolute; top: 8px; right: 8px; }
+.ed-tools-text { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px; min-width: 0; }
 .tl-grp { display: flex; align-items: center; gap: 3px; }
 .tl-sep { width: 1px; height: 22px; background: var(--line2); }
 .tl { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 30px; height: 32px; padding: 0 8px; border: 1px solid var(--line2); border-radius: var(--r); background: var(--well); color: var(--text); font: 13.5px var(--font); cursor: pointer; white-space: nowrap; }
@@ -861,6 +863,7 @@ input[type=checkbox].switch:focus-visible { outline: 2px solid var(--acc-hi); ou
   .ed-side { flex: 0 0 auto; border-left: 0; border-top: 1px solid var(--line); }
   .ed-side .grow { display: none; }
   .ed-tools { display: flex; overflow-x: auto; padding: 6px 8px; }   /* lišta v jednom řádku, posouvá se prstem */
+  .ed-tools > .ed-undo { position: static; }
   .ed-tools-text { flex-wrap: nowrap; }
   .ed-tools > *, .ed-tools-text > *, .ed-tools .tl, .ed-tools .sw { flex-shrink: 0; }
   .ep-group { margin-top: 16px; }

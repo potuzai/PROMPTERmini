@@ -205,10 +205,10 @@ class SongEditor {
         this.lhBox = h('label', { class: 'tl tl-size tl-lh', title: 'Řádkování řádku s kurzorem (nebo označených řádků) – výška řádku × písmo; napiš a potvrď Enterem, prázdné = podle písně' },
           ic('lineh', 'tl-lh-ic'), this.lhInp = h('input', { type: 'text', inputmode: 'decimal', maxlength: 4, value: '' })),
         tool('+', 'Větší řádkování (o 0,1)', () => this.stepLh(0.1), 'tl-step')),
-      sep(),
-      h('div', { class: 'tl-grp' },
+      ),
+      h('div', { class: 'tl-grp ed-undo' },   // zpět / znovu úplně vpravo
         tool('↶', 'Zpět (Ctrl+Z)', () => this.se.undo(-1)),
-        tool('↷', 'Znovu (Ctrl+Y)', () => this.se.undo(1)))));
+        tool('↷', 'Znovu (Ctrl+Y)', () => this.se.undo(1))));
     // zpěváci: nahoře v pravém panelu
     this.sgRow = h('div', { class: 'sw-row', title: 'Kdo zpívá vybraný řádek (všichni vypnutí = nikdo)' });
     const sgShowBtn = tool(ic('sliders'), 'Zpěváci a jejich označení jen pro tuto píseň: barva, přidání, odebrání, proužek vlevo / vpravo, podklad, barva písma', e => this.singerPopover(e.currentTarget), 'tl-sgshow');
@@ -237,7 +237,8 @@ class SongEditor {
       h('div', { class: 'ed-save' }, this.savedInd, h('div', { class: 'ed-save-row' }, this.saveBtn, moreBtn), readerBtn));
     const ed = h('div', { class: 'song-editor' },
       h('div', { class: 'ed-body' }, this.leftPanel,
-        h('div', { class: 'ed-center' }, this.tools, h('div', { class: 'ed-main' }, h('div', { class: 'ed-stagebox' }, this.stageWrap, this.pageNav), this.pager))));
+        h('div', { class: 'ed-center' }, h('div', { class: 'ed-main' },
+          h('div', { class: 'ed-col' }, this.tools, h('div', { class: 'ed-stagebox' }, this.stageWrap, this.pageNav)), this.pager))));   // lišta jen nad stránkou, pravý panel vedle
     this.root.innerHTML = '';
     this.root.appendChild(ed);
 
