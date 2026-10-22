@@ -95,7 +95,7 @@ body { display: flex; }
 .btn.big { min-height: 42px; padding: 9px 18px; font-size: 15px; }
 .btn.icon { padding: 4px 7px; }
 .btn:disabled { opacity: .4; cursor: default; }
-.inp, select.inp, textarea.inp { width: 100%; min-height: 32px; padding: 5px 10px; border-radius: var(--r); border: 1px solid var(--line2); border-bottom-color: var(--faint); background: var(--well); outline: none; }
+.inp, select.inp, textarea.inp { width: 100%; min-height: 32px; padding: 5px 10px; border-radius: var(--r); border: 1px solid var(--line2); background: var(--well); outline: none; }
 .inp:focus { border-bottom: 2px solid var(--acc); padding-bottom: 4px; }
 .inp::placeholder { color: var(--faint); }
 input[type=color] { width: 40px; height: 30px; padding: 2px; border: 1px solid var(--line); border-radius: var(--r); background: var(--well); cursor: pointer; }

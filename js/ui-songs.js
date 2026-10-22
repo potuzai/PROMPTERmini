@@ -2,7 +2,7 @@
 /* ===== Písně: seznam + editor ===== */
 // Zpěváci, kteří v písni zpívají (podle značek @kód a {kód:…} v textu)
 function songSingers(s) {
-  const sm = Store.singerMap(), codes = new Set();
+  const sm = Store.singerMap(s), codes = new Set();
   for (const m of String(s.text || '').matchAll(/(?:^|\n)\s*(?:##[^\n@]*)?@([A-Za-z0-9+]+)|\{(?!aa:)([A-Za-z0-9+]+):/g)) parseCodes(m[1] || m[2]).forEach(c => codes.add(c));
   return [...codes].filter(c => sm[c]).map(c => sm[c]);
 }
@@ -204,11 +204,11 @@ class SongEditor {
         tool(h('i', {}, 'I'), 'Kurzíva (Ctrl+I)', () => this.se.format('italic')),
         tool('Aa', 'VELKÁ / malá písmena – klik přepne označená slova nebo řádek', () => this.toggleCase()),
       ),
-      h('div', { class: 'tl-grp seg-row' },
-        tool('A−', 'Menší písmo (o 2 px)', () => this.stepSize(-2)),
+      h('div', { class: 'tl-grp seg-row tl-lh-grp' },
+        tool('−', 'Menší písmo (o 2 px)', () => this.stepSize(-2), 'tl-step'),
         this.sizeBox = h('label', { class: 'tl tl-size', title: 'Velikost písma označených slov nebo řádku v px na zvolené obrazovce – napiš a potvrď Enterem' },
           this.sizeInp = h('input', { type: 'text', inputmode: 'numeric', maxlength: 3, value: '' }), 'px'),
-        tool('A+', 'Větší písmo (o 2 px)', () => this.stepSize(2))),
+        tool('+', 'Větší písmo (o 2 px)', () => this.stepSize(2), 'tl-step')),
       h('div', { class: 'tl-grp seg-row tl-lh-grp' },
         tool('−', 'Menší řádkování (o 0,1)', () => this.stepLh(-0.1), 'tl-step'),
         this.lhBox = h('label', { class: 'tl tl-size tl-lh', title: 'Řádkování řádku s kurzorem (nebo označených řádků) – výška řádku × písmo; napiš a potvrď Enterem, prázdné = podle písně' },
@@ -405,23 +405,28 @@ class SongEditor {
   /* přepínače zpěváků v liště (před tlačítkem označení) */
   makeSingerBtns() {
     (this.sgButtons || []).forEach(b => b.remove());
-    this.sgButtons = Store.singers().map((s, i) => h('button', { class: 'sw', style: { '--c': s.color }, title: `${s.name} – zapnout / vypnout (Alt+${i + 1}, na stránce ← →)`,
+    this.sgButtons = this.singers().map((s, i) => h('button', { class: 'sw', style: { '--c': s.color }, title: `${s.name} – zapnout / vypnout (Alt+${i + 1}, na stránce ← →)`,
       onclick: () => this.se.toggleSinger(s.code) }, h('span', { class: 'sw-c' }), h('span', { class: 'sw-n' }, s.name)));
     this.sgRow.prepend(...this.sgButtons);
     if (this.se) this.paintSingers();
   }
   /* zpěváci jsou společní pro kapelu: barva a přidání se uloží do obsazení */
-  async saveSingers(fn) {
-    const cfg = clone(Store.config.get('singers') || { id: 'singers', list: DEFAULT_SINGERS });
-    fn(cfg.list);
-    await Store.put('config', cfg);
+  // zpěváci této písně (vlastní seznam v style.singers, jinak zpěváci kapely z Obsazení)
+  singers() { return Store.singers({ style: this.style }); }
+  singerMap() { const m = {}; for (const s of this.singers()) m[s.code.toUpperCase()] = s; return m; }
+  /* barva, přidání a odebrání zpěváka platí jen pro tuto píseň */
+  setSongSingers(fn) {
+    const list = clone(this.singers());
+    fn(list);
+    this.style = Object.assign({}, this.style || {}, { singers: list });
+    this.markDirty(); this.makeSingerBtns(); this.se.render();
   }
   paintSingers() {
     const se = this.se, t = se.cur();
     let own = t ? se.singersOf(t).own : [];
     const host = se.editEl && selSingerHost(window.getSelection(), se.editEl);
     if (host) own = parseCodes(host.dataset.c);
-    this.sgButtons.forEach((b, i) => b.classList.toggle('on', own.includes((Store.singers()[i] || {}).code)));
+    this.sgButtons.forEach((b, i) => b.classList.toggle('on', own.includes((this.singers()[i] || {}).code)));
   }
   /* řádkování řádku s kurzorem: vlastní, jinak písně / šablony (šedě) */
   paintLh() {
@@ -454,7 +459,7 @@ class SongEditor {
   /* Struktura písně vlevo: sekce, opakování, konce stránek – klik skočí na sekci */
   paintStruct() {
     if (!this.structBox || !this.se) return;
-    const sm = Store.singerMap(), tpl = this.lookTpl();
+    const sm = this.singerMap(), tpl = this.lookTpl();
     const items = [];
     this.src.split('\n').forEach((l, i) => {
       const t = l.trim();
@@ -587,7 +592,7 @@ class SongEditor {
     const se = this.se;
     const ls = se.lines();
     const singerItems = () => [
-      ...Store.singers().map(s => ({ label: s.name, color: s.color, active: se.singersOf(t).own.includes(s.code), action: () => se.assignSinger(s.code, 'force') })),
+      ...this.singers().map(s => ({ label: s.name, color: s.color, active: se.singersOf(t).own.includes(s.code), action: () => se.assignSinger(s.code, 'force') })),
       { label: 'Nikdo', action: () => se.assignSinger(null, 'clear') }];
     const formatItems = [
       { label: 'Tučně', hint: 'Ctrl+B', action: () => se.formatLines('bold') },
@@ -794,16 +799,16 @@ class SongEditor {
       apply(sg);
     }, {
       color: async (code, color, done) => {
-        const b = this.sgButtons[Store.singers().findIndex(s => s.code === code)];
+        const b = this.sgButtons[this.singers().findIndex(s => s.code === code)];
         if (b) b.style.setProperty('--c', color);
         if (!done) return;
-        await this.saveSingers(list => { const s = list.find(x => x.code === code); if (s) s.color = color; });
-        this.makeSingerBtns(); this.se.render();
+        this.setSongSingers(list => { const s = list.find(x => x.code === code); if (s) s.color = color; });
+        paint();
       },
       add: async () => {
         const name = await promptDlg('Jméno nového zpěváka', '');
         if (!name || !name.trim()) return;
-        await this.saveSingers(list => {
+        this.setSongSingers(list => {
           const used = new Set(list.map(s => s.code));
           const first = name.trim().normalize('NFD').replace(/[^A-Za-z0-9]/g, '').charAt(0).toUpperCase();
           const code = [first, ...'ABCDEFGHKLMNOPRSUZ123456789'].find(c => c && !used.has(c));
@@ -811,20 +816,21 @@ class SongEditor {
           const color = presets.find(c => !list.some(x => (x.color || '').toLowerCase() === c.toLowerCase())) || presets[list.length % presets.length];
           list.push({ code, name: name.trim(), color, bold: false, italic: false });
         });
-        this.makeSingerBtns(); this.se.render();
         this.singerPopover(anchor);
       },
       remove: async sg => {
-        if (!await confirmDlg(`Odebrat zpěváka „${sg.name}“? Platí pro všechny písně – řádky s @${sg.code} zůstanou bez označení.`, 'Odebrat', true)) return;
-        await this.saveSingers(list => { const i = list.findIndex(x => x.code === sg.code); if (i >= 0) list.splice(i, 1); });
-        this.makeSingerBtns(); this.se.render();
+        if (!await confirmDlg(`Odebrat zpěváka „${sg.name}“ z této písně? Řádky s @${sg.code} zůstanou bez označení.`, 'Odebrat', true)) return;
+        this.setSongSingers(list => { const i = list.findIndex(x => x.code === sg.code); if (i >= 0) list.splice(i, 1); });
         this.singerPopover(anchor);
       },
-    });
-    const reset = h('button', { class: 'btn small nogrow', title: 'Zrušit nastavení jen pro tuto píseň', onclick: () => apply({}) }, 'Vrátit podle šablony');
+    }, this.singers());
+    const reset = h('button', { class: 'btn small nogrow', style: { alignSelf: 'flex-start' }, title: 'Zrušit nastavení zpěváků jen pro tuto píseň: označení podle šablony, zpěváci podle Obsazení', onclick: () => {
+      if (this.style) { const st = Object.assign({}, this.style); delete st.singers; this.style = st; }
+      apply({}); this.makeSingerBtns(); this.singerPopover(anchor);
+    } }, 'Vrátit výchozí');
     const paint = () => {
       tbl.repaint();
-      reset.style.display = Object.keys(own()).length ? '' : 'none';
+      reset.style.display = Object.keys(own()).length || (this.style && this.style.singers) ? '' : 'none';
     };
     paint();
     const m = h('div', { class: 'menu menu-form menu-singer' }, h('div', { class: 'menu-head' }, 'Označení zpěváků v této písni'), tbl, reset);

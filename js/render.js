@@ -49,7 +49,7 @@ const Render = {
     s.setProperty('--hcolor', tpl.headerColor || tpl.sectionColor);
     st.classList.toggle('upper', !!tpl.uppercase);
     // místo pro proužky (aby řádky lícovaly), když je má aspoň jeden zpěvák
-    const shows = Store.singers().map(sg => singerShowOf(tpl, sg.code));
+    const shows = Store.singers(tpl).map(sg => singerShowOf(tpl, sg.code));
     st.classList.toggle('with-bar', shows.some(x => x.barL));
     st.classList.toggle('with-bar-r', shows.some(x => x.barR));
     st.classList.toggle('with-bg', shows.some(x => x.bg));
@@ -125,7 +125,7 @@ const Render = {
      opts.mine = kód zpěváka, jehož řádky se zvýrazní (ostatní ztlumené) */
   layout(song, tpl, W, H, mus = null, opts = {}) {
     const parsed = parseSong(song.text);
-    const singerMap = Store.singerMap();
+    const singerMap = Store.singerMap(song);
     const scr = opts.screen || 'main';
     let blocks = filterForView(parsed.blocks.filter(b => b.type !== 'break' || b.screen === scr), mus);
     while (blocks.length && blocks[0].type === 'break') blocks.shift();
@@ -260,6 +260,7 @@ function applySongStyle(tpl, song) {
   if (st.lineHeight) t.lineHeight = st.lineHeight;
   if (typeof st.stanzaGap === 'number') t.stanzaGap = st.stanzaGap;   // mezera mezi slokami (× výška písma)
   if (st.align) t.align = st.align;
+  if (Array.isArray(st.singers)) t.singers = st.singers;   // zpěváci jen pro tuto píseň
   // označení zpěváků jen pro tuto píseň (přepíše šablonu): { kód: { barL, barR, bg, text } }
   if (st.singer) {
     t.singerShow = Object.assign({}, tpl.singerShow);
@@ -275,8 +276,7 @@ function singerShowOf(tpl, code) {
   return Object.assign({ barL: !!tpl.singerBar, barR: !!tpl.singerBarRight, bg: !!tpl.singerBg, text: !!tpl.singerText }, (tpl.singerShow || {})[code]);
 }
 /* Tabulka přepínačů: řádky = zpěváci, sloupce = druhy označení. get(kód, klíč) → bool, set(kód, klíč, bool) */
-function singerShowTable(get, set, edit) {
-  const sgs = Store.singers();
+function singerShowTable(get, set, edit, sgs = Store.singers()) {
   const tbl = h('div', { class: 'sgs-tbl', style: { gridTemplateColumns: `minmax(90px, 1fr) repeat(${SINGER_SHOW.length + (edit ? 1 : 0)}, auto)` } },
     h('span'), SINGER_SHOW.map(([, short, long]) => h('span', { class: 'sgs-h', title: long }, short)), edit ? h('span') : null);
   for (const sg of sgs) {

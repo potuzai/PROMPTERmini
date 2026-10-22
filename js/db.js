@@ -243,8 +243,12 @@ const Store = {
 
   async saveMeta() { await Backend.put('meta', this.meta); },
 
-  singers() { return (this.config.get('singers') || { list: DEFAULT_SINGERS }).list; },
-  singerMap() { const m = {}; for (const s of this.singers()) m[s.code.toUpperCase()] = s; return m; },
+  // zpěváci kapely; píseň (style.singers) nebo šablona s ní spojená (singers) může mít vlastní seznam
+  singers(src) {
+    const own = src && (src.singers || (src.style && src.style.singers));
+    return Array.isArray(own) ? own : (this.config.get('singers') || { list: DEFAULT_SINGERS }).list;
+  },
+  singerMap(src) { const m = {}; for (const s of this.singers(src)) m[s.code.toUpperCase()] = s; return m; },
   instruments() { return (this.config.get('instruments') || { list: DEFAULT_INSTRUMENTS }).list; },
   instrumentMap() { const m = {}; for (const s of this.instruments()) m[s.code.toUpperCase()] = s; return m; },
 

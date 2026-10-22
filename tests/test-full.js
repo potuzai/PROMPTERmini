@@ -364,7 +364,7 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   const base = await p.evaluate(() => SongsView.editor.se.linePx());
   const px = () => p.inputValue('.tl-size input');
   assert(await px() === String(Math.round(base)), 'pole ukazuje velikost písma řádku v px');
-  await p.click('.ed-tools button:has-text("A+")'); await sleep(300);
+  await p.click('.ed-tools button[title^="Větší písmo"]'); await sleep(300);
   assert(/\{\d+%:velký\}/.test(await fsrc()) && await px() === String(Math.round(base) + 2), 'tlačítko A+ zvětší označený text o 2 px a pole ukáže novou velikost');
   await p.click('.tl-size input'); await p.keyboard.type(String(Math.round(base * 1.55))); await p.keyboard.press('Enter'); await sleep(300);
   assert((await fsrc()).includes('{++:velký}'), 'velikost napsaná v px (uloží se poměrem k písmu řádku, 155 % = starší zápis ++)');

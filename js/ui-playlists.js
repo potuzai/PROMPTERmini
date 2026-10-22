@@ -576,7 +576,7 @@ function printDocument(node) {
 function buildPrintPlaylist(pl, o) {
   const songs = pl.items.map(id => Store.songs.get(id)).filter(Boolean);
   const enc = plEncore(pl) >= 0 ? pl.items.slice(0, plEncore(pl)).filter(id => Store.songs.has(id)).length : -1;
-  const map = Store.singerMap();
+  const legendMap = Object.assign({}, Store.singerMap());   // + zpěváci jednotlivých písní
   const dateTxt = pl.date ? new Date(pl.date).toLocaleDateString('cs-CZ') : '';
   const doc = h('div', { class: 'pr ' + 'pr-size-' + o.size + (o.color ? ' pr-color' : ' pr-bw') + (+o.cols === 2 ? ' pr-cols2' : '') });
 
@@ -594,6 +594,8 @@ function buildPrintPlaylist(pl, o) {
   if (o.what !== 'list') {
     const used = new Set();
     const songEls = songs.map((s, i) => {
+      const map = Store.singerMap(s);
+      Object.assign(legendMap, map);
       const blocks = filterForView(parseSong(s.text).blocks, o.mus && o.mus.on ? o.mus : null);
       const im = Store.instrumentMap();
       const body = h('div', { class: 'pr-body' });
@@ -635,7 +637,7 @@ function buildPrintPlaylist(pl, o) {
           h('div', { class: 'pr-keys' }, [s.key ? 'ladění ' + s.key : '', s.tempo ? s.tempo + ' BPM' : ''].filter(Boolean).join(' · '))),
         body);
     });
-    const legend = h('div', { class: 'pr-legend' }, 'Zpěváci: ', [...used].map(c => map[c]).filter(Boolean).map(x =>
+    const legend = h('div', { class: 'pr-legend' }, 'Zpěváci: ', [...used].map(c => legendMap[c]).filter(Boolean).map(x =>
       h('span', { class: 'pr-leg', style: { '--bar': x.color } }, h('span', { class: 'pr-who' }, x.name))));
     const head = h('header', { class: 'pr-texts-head' + (o.what === 'both' ? ' pb-before' : '') }, h('h1', {}, (pl.name || 'Playlist') + ' – texty'), h('div', { class: 'pr-meta' }, dateTxt), used.size ? legend : null);
     doc.append(head, ...songEls);

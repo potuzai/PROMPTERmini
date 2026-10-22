@@ -220,7 +220,7 @@ class StageEditor {
   describe(t) {
     const names = { line: 'Řádek', chords: 'Akordy', section: 'Nadpis sekce', note: 'Poznámka', repeat: 'Opakování', mus: 'Pro muzikanty', musblock: 'Blok pro muzikanty' };
     const who = this.singersOf(t);
-    const sm = Store.singerMap();
+    const sm = this.ed.singerMap();
     const w = who.own.length ? who.own.map(c => (sm[c] || { name: c }).name).join(' + ') : who.inh.length ? who.inh.map(c => (sm[c] || { name: c }).name).join(' + ') + ' (sekce)' : '';
     return (names[t.kind] || 'Řádek') + (w ? ' · ' + w : '');
   }
@@ -401,7 +401,7 @@ class StageEditor {
     if (!el) { this.editing = null; return; }
     const src = this.lines()[t.line] || '';
     const { body } = splitLine(src, t.kind);
-    el.innerHTML = veInline(body, Store.singerMap()) || '';
+    el.innerHTML = veInline(body, this.ed.singerMap()) || '';
     if (!el.firstChild) el.appendChild(document.createTextNode(''));
     el.classList.add('is-edit');
     el.contentEditable = 'true';
@@ -708,7 +708,7 @@ class StageEditor {
   /* Zpěvák pro označená slova: stávající barvu nahradí (nevnořuje), code = null barvu zruší */
   wordSinger(r, code) {
     const el = this.editEl;
-    const color = code ? (Store.singerMap()[code] || {}).color || '' : '';
+    const color = code ? (this.ed.singerMap()[code] || {}).color || '' : '';
     const anc = r.commonAncestorContainer.nodeType === 1 ? r.commonAncestorContainer : r.commonAncestorContainer.parentNode;
     const host = anc.closest('.sg-in');
     const hostIn = host && el.contains(host) ? host : null;
@@ -741,7 +741,7 @@ class StageEditor {
   }
   singerByNumber(n, shift) {
     if (n === 0) return this.assignSinger(null, 'clear');
-    const s = Store.singers()[n - 1];
+    const s = this.ed.singers()[n - 1];
     if (s) this.assignSinger(s.code, shift ? 'toggle' : 'force');
   }
   /* ← → : nikdo → první zpěvák → … → poslední → nikdo */
@@ -749,7 +749,7 @@ class StageEditor {
     const t = this.cur();
     if (!t) return;
     if (!['line', 'chords', 'section'].includes(t.kind)) { toast('Zpěváka jde nastavit u řádku nebo u nadpisu sekce.', 'warn', 1800); return; }
-    const codes = Store.singers().map(s => s.code);
+    const codes = this.ed.singers().map(s => s.code);
     const own = this.singersOf(t).own;
     const i = own.length === 1 ? codes.indexOf(own[0]) : -1;
     let j = i + d;
@@ -1039,7 +1039,7 @@ function stripMarkupBody(src) {
 }
 function visibleLength(body) {
   const d = document.createElement('div');
-  d.innerHTML = veInline(body, Store.singerMap());
+  d.innerHTML = veInline(body, SongsView.editor ? SongsView.editor.singerMap() : Store.singerMap());
   return d.textContent.replace(/​/g, '').length;
 }
 /* úsek s barvou zpěváka, ve kterém je kurzor / označení (i když je označený celý úsek) */
