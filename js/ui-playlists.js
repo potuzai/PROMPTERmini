@@ -91,7 +91,7 @@ const PlaylistsView = {
       const pls = sorted(sortSel.value).filter(p => !isReady(p)).filter(hit);
       readyIds = ready.map(p => p.id);
       if (!q || ready.length) {
-        const sec = h('div', { class: 'pl-sec pl-sec-ready' }, h('b', {}, '★ OBLÍBENÉ'), ready.length ? h('span', {}, String(ready.length)) : null);
+        const sec = h('div', { class: 'pl-sec pl-sec-ready' }, h('b', {}, h('i', {}, '★'), 'Oblíbené'), ready.length ? h('span', {}, String(ready.length)) : null);
         dropZone(sec, () => readyIds[0] || null);
         list.appendChild(sec);
         ready.forEach(p => list.appendChild(row(p, true)));
@@ -99,7 +99,7 @@ const PlaylistsView = {
           ready.length ? '' : 'Sem přetáhni oblíbený playlist (nebo v náhledu vpravo „☆ Oblíbený“). Zůstane tu, dokud ho nevrátíš.');
         dropZone(end, () => null);
         list.appendChild(end);
-        const other = h('div', { class: 'pl-sec pl-sec-other' }, h('b', {}, 'OSTATNÍ PLAYLISTY'), pls.length ? h('span', {}, String(pls.length)) : null);
+        const other = h('div', { class: 'pl-sec pl-sec-other' }, h('b', {}, 'Ostatní'), pls.length ? h('span', {}, String(pls.length)) : null);
         dropZone(other, () => false);
         list.appendChild(other);
       }

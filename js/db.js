@@ -25,6 +25,7 @@ const DEFAULT_TEMPLATE = {
   // barva textu podle části písně (zpěvák ji přebije jen se zapnutým „Písmo“)
   verseColor: '#ffffff', chorusColor: '#ffff00', bridgeColor: '#33ff33',
   instrColor: '#ff0000',   // předehra, mezihra, sólo a počet opakování sekce
+  onePage: true,   // zakázat více stránek: písmo se zmenší, aby se píseň vešla na 1 stránku
   fit: 'shrink', minScale: 0.6,
   showHeader: true, showFooter: false, headerSize: 25, headerColor: '#9e9e9e',
   mirror: 'none',

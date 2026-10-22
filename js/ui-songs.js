@@ -7,7 +7,7 @@ function songSingers(s) {
   return [...codes].filter(c => sm[c]).map(c => sm[c]);
 }
 // volby stránky, které jde u písně nastavit jinak než v šabloně (Stránka písně v pravém panelu)
-const PAGE_KEYS = ['padX', 'padY', 'columns', 'colGap', 'fit', 'minScale', 'showHeader', 'showFooter', 'headerSize', 'showNotes', 'mirror'];
+const PAGE_KEYS = ['padX', 'padY', 'columns', 'colGap', 'onePage', 'fit', 'minScale', 'showHeader', 'showFooter', 'headerSize', 'showNotes', 'mirror'];
 // volby sekcí písně (Struktura v levém panelu)
 const SECTION_KEYS = ['showSections', 'sectionScale', 'sectionColor', 'stanzaGap', 'verseColor', 'chorusColor', 'bridgeColor', 'instrColor'];
 const SongsView = {
@@ -564,7 +564,7 @@ class SongEditor {
   pagePopover(anchor) {
     this.settingsPopover(anchor, 'Stránka této písně', PAGE_KEYS, [
       ['Rozvržení', [['padX', 'Okraj vlevo a vpravo', 'px'], ['padY', 'Okraj nahoře a dole', 'px'], ['columns', 'Sloupce'], ['colGap', 'Mezera mezi sloupci', 'px'],
-        ['fit', 'Dlouhá píseň', null, [['shrink', 'zmenšit písmo'], ['paginate', 'na více stránek']]], ['minScale', 'Nejmenší zmenšení', '%']]],
+        ['onePage', 'Zakázat více stránek'], ['fit', 'Jinak dlouhá píseň', null, [['shrink', 'zmenšit písmo'], ['paginate', 'na více stránek']]], ['minScale', 'Nejmenší zmenšení', '%']]],
       ['Zobrazení', [['showHeader', 'Záhlaví'], ['showFooter', 'Zápatí'], ['headerSize', 'Velikost záhlaví a zápatí', 'px'], ['showNotes', 'Poznámky (//)'], ['mirror', 'Zrcadlení']]],
     ]);
   }

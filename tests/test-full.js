@@ -226,13 +226,17 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
     const two = Render.layout(song, Object.assign({}, base, { fit: 'paginate', columns: 2, fontSize: 64 }), 1920, 1080);
     const all = pag.pages.flat(2);
     const brk = Render.layout({ id: 'y', title: 'b', text: 'a\n---\nb' }, base, 1920, 1080);
-    return { pag: pag.pages.length, unique: new Set(all).size, total: pag.blocks.length, shrK: shr.k, shrP: shr.pages.length, nofitP: nofit.pages.length, nofitK: nofit.k, two: two.pages.length, brk: brk.pages.length };
+    const one = Render.layout(song, Object.assign({}, base, { onePage: true, fit: 'paginate', fontSize: 64 }), 1920, 1080);
+    const oneBrk = Render.layout({ id: 'y2', title: 'b', text: t + '\n---\nb' }, Object.assign({}, base, { onePage: true, fontSize: 64 }), 1920, 1080);
+    return { oneP: one.pages.length, oneK: one.k, oneBrk: oneBrk.pages.length, pag: pag.pages.length, unique: new Set(all).size, total: pag.blocks.length, shrK: shr.k, shrP: shr.pages.length, nofitP: nofit.pages.length, nofitK: nofit.k, two: two.pages.length, brk: brk.pages.length };
   }, long);
   assert(lay.pag >= 3 && lay.unique === lay.total, `rozdělení na ${lay.pag} stránky bez ztráty řádku`);
   assert(lay.shrP === 1 && lay.shrK < 1 && lay.shrK > 0.3, `zmenšení 25 řádků na 1 stránku (písmo ${Math.round(lay.shrK * 100)} %)`);
   assert(lay.nofitP > 1 && Math.abs(lay.nofitK - 0.6) < 0.001, 'když se nevejde ani zmenšená, rozdělí se na stránky při nejmenším povoleném písmu');
   assert(lay.two < lay.pag, 'dva sloupce = méně stránek');
   assert(lay.brk === 2, 'vynucená nová stránka ---');
+  assert(lay.oneP === 1 && lay.oneK < 0.6, `zakázané více stránek: celá píseň na 1 stránce (písmo ${Math.round(lay.oneK * 100)} %)`);
+  assert(lay.oneBrk === 2, 'zakázané více stránek: ručně zalomená stránka --- zůstane');
 
   /* ---------- Čtečka: všechny ovládací prvky ---------- */
   await p.evaluate(async t => {

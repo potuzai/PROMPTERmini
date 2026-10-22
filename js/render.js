@@ -132,18 +132,21 @@ const Render = {
     const cols = Math.max(1, tpl.columns | 0);
     const tryK = k => this._chunk(blocks, tpl, W, H, k, singerMap, cols);
     let k = 1, res = tryK(1);
-    if (tpl.fit === 'shrink' && res.pages.length > 1) {
-      const min = Math.min(1, Math.max(0.3, +tpl.minScale || 0.6));
+    // ručně zalomené stránky (---) zůstanou; jinak se píseň vejde na 1 stránku
+    const want = 1 + blocks.filter(b => b.type === 'break').length;
+    if ((tpl.onePage || tpl.fit === 'shrink') && res.pages.length > want) {
+      // zakázané více stránek: zmenšit, kolik je potřeba; jinak nejvýš na nejmenší zmenšení, pak více stránek
+      const min = tpl.onePage ? 0.15 : Math.min(1, Math.max(0.3, +tpl.minScale || 0.6));
       // binární hledání největšího zmenšení, při kterém se vejde na 1 stránku
       let lo = min, hi = 1, best = null;
       const atMin = tryK(min);
-      if (atMin.pages.length > 1) { k = min; res = atMin; }
+      if (atMin.pages.length > want) { k = min; res = atMin; }
       else {
         best = { k: min, res: atMin };
-        for (let it = 0; it < 7; it++) {
+        for (let it = 0; it < (tpl.onePage ? 9 : 7); it++) {
           const mid = (lo + hi) / 2;
           const r = tryK(mid);
-          if (r.pages.length <= 1) { best = { k: mid, res: r }; lo = mid; } else hi = mid;
+          if (r.pages.length <= want) { best = { k: mid, res: r }; lo = mid; } else hi = mid;
         }
         k = best.k; res = best.res;
       }
@@ -273,7 +276,7 @@ function applySongStyle(tpl, song) {
 
 /* volby šablony, které jde přepsat jen pro jednu píseň (style písně) */
 const SONG_TPL_KEYS = ['letterSpacing', 'uppercase', 'italic', 'textColor', 'lineGap', 'barWidth', 'padX', 'padY', 'columns', 'colGap',
-  'fit', 'minScale', 'showHeader', 'showFooter', 'headerSize', 'showSections', 'sectionScale', 'showNotes', 'mirror',
+  'onePage', 'fit', 'minScale', 'showHeader', 'showFooter', 'headerSize', 'showSections', 'sectionScale', 'showNotes', 'mirror',
   'sectionColor', 'verseColor', 'chorusColor', 'bridgeColor', 'instrColor'];
 
 /* vloží text dovnitř značek formátování (na začátek, nebo atEnd na konec): „{90%:**Mezihra**}“ → „{90%:**4× Mezihra**}“ */
