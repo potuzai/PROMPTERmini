@@ -167,6 +167,7 @@ Pokročilí můžou přes **⋯ › Zdrojový text…** upravit text tak, jak se
 | `## Předehra 8×` | předehra / mezihra / sólo – pokyn bez textu, na stránce vždy vidět |
 | `{#ff0000:slova}` | vlastní barva písma části textu |
 | `{↕1.4:řádek}` | řádkování jednoho řádku (v liště pole ↕) |
+| `{aa:slova}` | malá písmena i v šabloně, která píše VELKÝMI (v liště Aa) |
 | `@J text` | řádek zpívám já |
 | `@J+T text` | řádek zpíváme oba |
 | `{T:slovo}` | jiný zpěvák jen pro část řádku |

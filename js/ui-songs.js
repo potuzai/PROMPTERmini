@@ -3,7 +3,7 @@
 // Zpěváci, kteří v písni zpívají (podle značek @kód a {kód:…} v textu)
 function songSingers(s) {
   const sm = Store.singerMap(), codes = new Set();
-  for (const m of String(s.text || '').matchAll(/(?:^|\n)\s*(?:##[^\n@]*)?@([A-Za-z0-9+]+)|\{([A-Za-z0-9+]+):/g)) parseCodes(m[1] || m[2]).forEach(c => codes.add(c));
+  for (const m of String(s.text || '').matchAll(/(?:^|\n)\s*(?:##[^\n@]*)?@([A-Za-z0-9+]+)|\{(?!aa:)([A-Za-z0-9+]+):/g)) parseCodes(m[1] || m[2]).forEach(c => codes.add(c));
   return [...codes].filter(c => sm[c]).map(c => sm[c]);
 }
 const SongsView = {
@@ -203,6 +203,8 @@ class SongEditor {
         tool(h('b', {}, 'B'), 'Tučně (Ctrl+B) – označená slova, nebo celý řádek', () => this.se.format('bold')),
         tool(h('i', {}, 'I'), 'Kurzíva (Ctrl+I)', () => this.se.format('italic')),
         tool('Aa', 'VELKÁ / malá písmena – klik přepne označená slova nebo řádek', () => this.toggleCase()),
+      ),
+      h('div', { class: 'tl-grp seg-row' },
         tool('A−', 'Menší písmo (o 2 px)', () => this.stepSize(-2)),
         this.sizeBox = h('label', { class: 'tl tl-size', title: 'Velikost písma označených slov nebo řádku v px na zvolené obrazovce – napiš a potvrď Enterem' },
           this.sizeInp = h('input', { type: 'text', inputmode: 'numeric', maxlength: 3, value: '' }), 'px'),
@@ -392,6 +394,11 @@ class SongEditor {
     let t;
     if (se.editing && se.editEl && sel.rangeCount && !sel.isCollapsed && se.editEl.contains(sel.anchorNode)) t = sel.toString();
     else { const ls = se.lines(); t = (se.editing ? [se.editing.line] : se.selTargets().map(x => x.line)).map(i => ls[i] || '').join(' '); }
+    // šablona píše VELKÝMI: malá písmena jen se značkou {aa:…}, klik ji přidá / odebere
+    if (this.lookTpl().uppercase) {
+      const host = se.editing && se.editEl && sel.rangeCount && se.editEl.contains(sel.anchorNode) && (sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentNode).closest('.kc');
+      return se.format(host || /\{aa:/.test(t) ? 'kc-off' : 'kc-on');
+    }
     t = t.replace(/\{[^:}]*:|\[[^\]]*\]/g, '');   // bez značek a akordů
     se.format(t !== t.toLocaleUpperCase('cs') ? 'upper' : 'lower');
   }

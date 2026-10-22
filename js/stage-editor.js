@@ -686,6 +686,25 @@ class StageEditor {
     const all = ts.length && ts.every(t => this.singersOf(t).own.includes(code));
     this.assignSinger(code, all ? 'remove' : 'add');
   }
+  /* Malá písmena označených slov i při šabloně VELKÝMI: obalí je {aa:…} (on), nebo značku zruší a vrátí VELKÁ */
+  keepCaseSel(r, on) {
+    const el = this.editEl;
+    const anc = r.commonAncestorContainer.nodeType === 1 ? r.commonAncestorContainer : r.commonAncestorContainer.parentNode;
+    const host = anc.closest('.kc');
+    if (!on) {
+      if (host && el.contains(host)) {
+        for (const t of textNodes(host)) t.textContent = t.textContent.toLocaleUpperCase('cs');
+        host.replaceWith(...host.childNodes);
+      }
+      return;
+    }
+    const frag = r.extractContents();
+    for (const s of [...frag.querySelectorAll('.kc')]) s.replaceWith(...s.childNodes);
+    for (const t of textNodes(frag)) t.textContent = t.textContent.toLocaleLowerCase('cs');
+    const node = h('span', { class: 'kc' }, frag);
+    r.insertNode(node);
+    selectContents(node);
+  }
   /* Zpěvák pro označená slova: stávající barvu nahradí (nevnořuje), code = null barvu zruší */
   wordSinger(r, code) {
     const el = this.editEl;
@@ -788,6 +807,7 @@ class StageEditor {
         if (kind === 'bold' || kind === 'italic') this.toggleTag(kind === 'bold' ? 'B' : 'I');
         else if (kind === 'bigger' || kind === 'smaller' || kind === 'size') this.sizeSel(p => sizeStep(p, kind, val));
         else if (kind === 'upper' || kind === 'lower') { document.execCommand('insertText', false, kind === 'upper' ? sel.toString().toLocaleUpperCase('cs') : sel.toString().toLocaleLowerCase('cs')); }
+        else if (kind === 'kc-on' || kind === 'kc-off') this.keepCaseSel(sel.getRangeAt(0), kind === 'kc-on');
         this.syncEdit(); this.pushHist(); this.ed.onSelChange();
         return;
       }
@@ -982,6 +1002,15 @@ class StageEditor {
 }
 
 /* ===== Pomocníci pro řádky zdroje ===== */
+/* VELKÁ / malá jen v textu, ne ve značkách ([Am], {T:…}) */
+function caseText(b, upper) {
+  return b.split(/(\[[^\]]*\]|\{[^:}]*:|\})/).map((part, i) => i % 2 ? part : (upper ? part.toLocaleUpperCase('cs') : part.toLocaleLowerCase('cs'))).join('');
+}
+function textNodes(root) {
+  const out = [], w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  while (w.nextNode()) out.push(w.currentNode);
+  return out;
+}
 function selectContents(el) {
   const r = document.createRange(); r.selectNodeContents(el);
   const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
@@ -1055,9 +1084,18 @@ function formatLine(src, kind, val) {
     // řádkování jednoho řádku: val = výška řádku (× písmo), prázdné = podle písně / šablony
     const lh = outerMark(b, RE_LH_START); if (lh) b = lh.inner;
     if (val) b = `{↕${val}:${b}}`;
+  } else if (kind === 'kc-on' || kind === 'kc-off') {
+    // malá písmena i při šabloně VELKÝMI: {aa:…} uvnitř řádkování a velikosti
+    const lh = outerMark(b, RE_LH_START); if (lh) b = lh.inner;
+    const sz = outerMark(b, /^\{([+-]{1,2}|\d{2,3}%):/); if (sz) b = sz.inner;
+    const kc = outerMark(b, /^\{(aa):/); if (kc) b = kc.inner;
+    b = b.replace(/\{aa:([^{}]*)\}/g, '$1');
+    b = caseText(b, kind === 'kc-off');
+    if (kind === 'kc-on') b = `{aa:${b}}`;
+    if (sz) b = `{${sz.mark}:${b}}`;
+    if (lh) b = `{↕${lh.mark}:${b}}`;
   } else if (kind === 'upper' || kind === 'lower') {
-    // jen text, ne značky ([Am], {T:…})
-    b = b.split(/(\[[^\]]*\]|\{[^:}]*:|\})/).map((part, i) => i % 2 ? part : (kind === 'upper' ? part.toLocaleUpperCase('cs') : part.toLocaleLowerCase('cs'))).join('');
+    b = caseText(b, kind === 'upper');
   }
   return sp.prefix + b + sp.suffix;
 }
@@ -1087,6 +1125,7 @@ function serializeInline(node) {
     else if (n.classList.contains('sz') && n.dataset.p) out += '{' + szMark(+n.dataset.p) + ':' + inner + '}';
     else if (n.classList.contains('tc') && n.dataset.tc) out += '{' + n.dataset.tc + ':' + inner + '}';
     else if (n.classList.contains('lh') && n.dataset.lh) out += '{↕' + n.dataset.lh + ':' + inner + '}';
+    else if (n.classList.contains('kc')) out += '{aa:' + inner + '}';
     else if (tag === 'B' || tag === 'STRONG' || (n.style && (n.style.fontWeight === 'bold' || +n.style.fontWeight >= 600))) out += '**' + inner + '**';
     else if (tag === 'I' || tag === 'EM' || (n.style && n.style.fontStyle === 'italic')) out += '*' + inner + '*';
     else if (tag === 'U') out += '__' + inner + '__';

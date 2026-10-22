@@ -452,7 +452,7 @@ details summary { color: var(--text); }
 .ed-panel { flex: 0 0 236px; display: flex; flex-direction: column; gap: 18px; overflow-y: auto; padding: 14px 14px 16px; border: 1px solid var(--line); border-radius: var(--rc); background: var(--panel); }
 .ep-group { display: flex; flex-direction: column; gap: 8px; }
 .ep-lbl { font: 600 11.5px var(--font); letter-spacing: .05em; text-transform: uppercase; color: var(--dim); }
-.ep-meta { margin: -2px -4px 0; padding: 10px 10px 12px; border: 1px solid var(--line); border-radius: var(--r); background: var(--bg); }   /* údaje písně jako oddělený blok */
+.ep-meta { margin: -2px -4px 0; padding: 10px 10px 12px; border: 1px solid var(--line2); border-radius: var(--r); background: color-mix(in srgb, var(--panel) 93%, var(--text)); }   /* údaje písně jako oddělený blok – světlejší než panel */
 .ep-meta .f { display: flex; flex-direction: column; gap: 3px; margin: 0; }
 .ep-meta .f > span { font-size: 12px; color: var(--faint); }
 .ep-meta .inp { min-height: 32px; padding: 4px 9px; font-size: 14px; }
@@ -652,6 +652,7 @@ input[type=checkbox].switch:focus-visible { outline: 2px solid var(--acc-hi); ou
 .stage { position: absolute; left: 0; top: 0; display: flex; flex-direction: column; overflow: hidden; padding: var(--pady) var(--padx);
   font-size: calc(var(--fs) * var(--k)); font-weight: var(--fw); line-height: var(--lh); letter-spacing: var(--ls); text-align: var(--align); }
 .stage.upper .st-body { text-transform: uppercase; }
+.stage .kc { text-transform: none; }   /* {aa:…} malá písmena i při šabloně VELKÝMI */
 .st-head, .st-foot { flex: 0 0 auto; display: flex; justify-content: space-between; align-items: baseline; gap: 20px; font-size: var(--hs); line-height: 1.5; font-weight: 400; color: var(--hcolor); text-align: left; letter-spacing: 0; white-space: nowrap; overflow: hidden; font-family: Arial, sans-serif; }
 .st-head { border-bottom: 1px solid color-mix(in srgb, var(--hcolor) 35%, transparent); margin-bottom: calc(var(--hs) * .5); padding-bottom: calc(var(--hs) * .15); }
 .st-head b { color: color-mix(in srgb, var(--hcolor) 40%, currentColor); font-weight: 700; }

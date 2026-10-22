@@ -216,6 +216,7 @@ function inlineHtml(text, singerMap) {
     prev = s;
     s = s.replace(RE_SZ_IN, (all, mark, inner) => { const p = szPct(mark); return `<span class="sz" data-p="${p}" style="font-size:${p / 100}em">${inner}</span>`; });
     s = s.replace(/\{(#[0-9a-fA-F]{6}):([^{}]*)\}/g, (all, c, inner) => `<span class="tc" data-tc="${c.toLowerCase()}" style="color:${c}">${inner}</span>`);
+    s = s.replace(/\{aa:([^{}]*)\}/g, (all, inner) => `<span class="kc">${inner}</span>`);   // {aa:…} písmena tak, jak jsou napsaná (i když šablona píše VELKÝMI)
     s = s.replace(/\{([A-Za-z0-9+]+):([^{}]*)\}/g, singer);
     // {↕1.4:…} řádkování řádku (výšku řádku nastaví vykreslení stránky)
     s = s.replace(/\{↕(\d(?:\.\d{1,2})?):([^{}]*)\}/g, (all, v, inner) => `<span class="lh" data-lh="${v}">${inner}</span>`);
