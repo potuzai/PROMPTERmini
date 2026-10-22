@@ -965,13 +965,25 @@ class SongEditor {
   /* Nová sekce: u vybraného řádku, nebo přesně z označených řádků (za nimi pokračuje původní sekce) */
   async addSection() {
     const se = this.se;
+    // kurzor na novém prázdném řádku (po Enteru): sekce začne právě tady
+    const blank = se.editing && se.editEl && !se.editEl.textContent.replace(/\u200b/g, '').trim() ? se.editing.line : null;
     se.finishEdit(true);
     const sel = se.selTargets().filter(t => t.kind !== 'repeat');
-    if (!sel.length) return toast('Nejdřív klikni na řádek nebo označ řádky tažením myší.', 'warn');
+    if (blank == null && !sel.length) return toast('Nejdřív klikni na řádek nebo označ řádky tažením myší.', 'warn');
     const verses = parseSong(this.src).blocks.filter(b => b.type === 'section' && /^sloka/i.test(b.text)).length;
     const r = await pickSection(verses + 1);
     if (!r) return;
     const ls = se.lines();
+    if (blank != null && blank < ls.length && !ls[blank].trim()) {
+      const head = formatSectionLine({ name: r.name, count: r.count, color: '', singers: [] });
+      se.curKey = null; se.curLine = blank;
+      if (sectionKind(r.name) === 'instr') { ls[blank] = head; se.commit(ls.join('\n')); return; }
+      ls.splice(blank, 1, head, '');   // pod nadpisem se rovnou píše text sekce
+      se.commit(ls.join('\n'));
+      se.editing = { line: blank + 1, caret: 'start' };
+      se.render();
+      return;
+    }
     let first = Math.min(...sel.map(t => t.line));
     const last = Math.max(...sel.map(t => se.afterTarget(t) - 1));
     const instr = sectionKind(r.name) === 'instr';
@@ -1169,7 +1181,20 @@ function placePopover(m, anchor) {
   const r = anchor.getBoundingClientRect(), mh = m.offsetHeight;
   m.style.left = Math.max(8, Math.min(r.left, innerWidth - m.offsetWidth - 8)) + 'px';
   m.style.top = (r.bottom + mh + 8 > innerHeight && r.top - mh - 4 >= 8 ? r.top - mh - 4 : Math.max(8, Math.min(r.bottom + 4, innerHeight - mh - 8))) + 'px';
-  setTimeout(() => document.addEventListener('mousedown', function off(e) { if (!m.contains(e.target) && e.target !== anchor) { m.remove(); document.removeEventListener('mousedown', off); } }), 0);
+  // klik mimo zavře; druhý klik na tlačítko, které nabídku otevřelo, ji jen zavře (neotevře znovu)
+  setTimeout(() => document.addEventListener('mousedown', function off(e) {
+    if (m.isConnected && m.contains(e.target)) return;
+    document.removeEventListener('mousedown', off);
+    if (!m.isConnected) return;
+    m.remove();
+    if (anchor.contains(e.target)) swallowClick(anchor);
+  }), 0);
+}
+/* následující klik na prvek se nepošle dál (tlačítko po zavření své nabídky ji neotevře znovu) */
+function swallowClick(el) {
+  const stop = e => { document.removeEventListener('click', stop, true); if (el.contains(e.target)) { e.stopPropagation(); e.preventDefault(); } };
+  document.addEventListener('click', stop, true);
+  setTimeout(() => document.removeEventListener('click', stop, true), 1000);
 }
 
 /* items: { label, action, hint (klávesa vpravo), danger } nebo { sep: true } = oddělovač */

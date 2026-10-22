@@ -342,15 +342,20 @@ class StageEditor {
     }
     e.preventDefault();
     this.wrap.focus({ preventScroll: true });
-    if (this.editing) this.finishEdit(true);   // stránka se překreslí – řádek pod myší se hledá až potom
+    // řádek a místo v něm podle toho, co je vidět teď – konec psaní stránku překreslí a řádky se můžou posunout
     const bEl = lineAt();
-    const t = bEl && this.targets.find(x => x.bis.includes(+bEl.dataset.bi));
+    const t0 = bEl && this.targets.find(x => x.bis.includes(+bEl.dataset.bi));
+    const off = t0 && this.offsetAtPoint(bEl, e.clientX, e.clientY);
+    if (this.editing) this.finishEdit(true);
+    const t = t0 && this.targets.find(x => x.key === t0.key);
     if (!t) { this.curKey = null; this.anchorKey = null; this.curLine = null; this.paintSel(); return; }   // klik vedle textu: nic vybraného = úpravy pro celou píseň
-    const off = this.offsetAtPoint(bEl, e.clientX, e.clientY);
-    this.pendingClickEdit = !e.shiftKey && this.editable(t) ? { t, offset: off } : null;
-    this.select(this.targets.indexOf(this.targets.find(x => x.key === t.key)), e.shiftKey);
-    if (!e.shiftKey) this.startDrag(e, t, { bEl, off });
+    this.select(this.targets.indexOf(t), e.shiftKey);
+    if (e.shiftKey) return;
+    // psaní začne hned při stisku: kurzor na místě kliknutí, tažením se slova označují průběžně
+    if (this.editable(t)) { this.startEdit(t, off); this.startDrag(e, t, off); }
+    else this.startDrag(e, t, null);
   }
+  /* tažení myší: v jednom řádku označuje slova (průběžně), přes více řádků označí celé řádky */
   startDrag(e, t, from) {
     if (!t) return;
     const d = { key: t.key, multi: false };
@@ -364,24 +369,18 @@ class StageEditor {
       if (!t2) return;
       if (t2.key !== d.key) {
         ev.preventDefault();
-        if (!d.multi) { d.multi = true; this.pendingClickEdit = null; if (this.editing) this.finishEdit(true); window.getSelection().removeAllRanges(); }
+        if (!d.multi) { d.multi = true; if (this.editing) this.finishEdit(true); window.getSelection().removeAllRanges(); }
         this.anchorKey = d.key; this.curKey = t2.key; this.paintSel();
       } else if (d.multi) { this.anchorKey = null; this.curKey = d.key; this.paintSel(); }
-    };
-    const up = ev => {
-      window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up);
-      if (d.multi) { this.wrap.focus({ preventScroll: true }); return; }
-      // puštění myši = psaní na místě kliknutí (tažením v řádku s označenými slovy);
-      // nečeká se na „click“ – po překreslení stránky by ho prohlížeč nemusel poslat
-      const p = this.pendingClickEdit;
-      this.pendingClickEdit = null;
-      if (!from || !p || this.editing) return;
-      if (lineAt(ev) === t) {
-        const end = this.offsetAtPoint(from.bEl, ev.clientX, ev.clientY);
-        if (typeof end === 'number' && typeof p.offset === 'number' && end !== p.offset) p.end = end;
+      else if (from != null && this.editing && this.editEl) {
+        ev.preventDefault();
+        const end = this.offsetAtPoint(this.editEl, ev.clientX, ev.clientY);
+        if (typeof end === 'number') this.setCaret(typeof from === 'number' ? from : this.editEl.textContent.replace(/​/g, '').length, end);
       }
-      this.startEdit(this.targets.find(x => x.key === p.t.key), p.offset);
-      if (this.editing && p.end != null) { this.editing.selEnd = p.end; this.setCaret(p.offset, p.end); }
+    };
+    const up = () => {
+      window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up);
+      if (d.multi) this.wrap.focus({ preventScroll: true });
     };
     window.addEventListener('mousemove', move); window.addEventListener('mouseup', up);
   }
@@ -407,8 +406,8 @@ class StageEditor {
     let n;
     while ((n = w.nextNode())) {
       if (n.parentElement.closest('.ch, .badge, .mtag')) continue;
-      if (n === r.startContainer) return off + r.startOffset;
-      off += n.length;
+      if (n === r.startContainer) return off + n.data.slice(0, r.startOffset).replace(/​/g, '').length;
+      off += n.data.replace(/​/g, '').length;
     }
     return 'end';
   }
