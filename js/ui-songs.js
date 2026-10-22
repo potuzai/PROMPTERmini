@@ -161,11 +161,10 @@ class SongEditor {
 
     // Uložení, další volby písně a čtečka: vpravo dole pod stránkou
     this.saveBtn = h('button', { class: 'btn', title: 'Uložit změny (Ctrl+S)', onclick: () => this.save(true) }, '💾 Uložit');
-    const moreBtn = h('button', { class: 'btn', title: 'Další volby písně: uložit jako, playlist, písmo, vyčištění textu, export, smazání', onclick: e => popupMenu(e.currentTarget, [
+    const moreBtn = h('button', { class: 'btn', title: 'Další volby písně: uložit jako, playlist, vyčištění textu, export, smazání', onclick: e => popupMenu(e.currentTarget, [
       { label: 'Uložit jako…', action: () => this.saveAs() },
       { label: 'Přidat do playlistu…', action: () => addToPlaylistMenu(moreBtn, [this.id]) },
       { sep: true },
-      { label: 'Písmo této písně…', action: () => this.fontPopover(moreBtn) },
       { label: 'Vyčistit text…', action: () => this.cleanDialog() },
       { label: 'Zdrojový text…', action: () => this.sourceDialog() },
       { label: 'Export .txt', action: () => this.exportTxt() },
@@ -474,7 +473,7 @@ class SongEditor {
     this.paintLs();
     this.paintFont();
   }
-  /* písmo písně v liště: „podle šablony“ nebo vlastní (ukládá se do písně jako u Písmo této písně…) */
+  /* písmo písně v liště: „podle šablony“ nebo vlastní (ukládá se do písně) */
   /* označení v psaném řádku si zapamatuje, než fokus vezme výběr písma */
   keepSel() {
     const sel = window.getSelection();
@@ -1085,42 +1084,6 @@ class SongEditor {
     if (!ok) return;
     this.se.curKey = null;
     this.se.commit(ta.value.replace(/\r\n?/g, '\n'));
-  }
-
-  fontPopover(anchor) {
-    $$('.menu').forEach(m => m.remove());
-    const song = this.collect();
-    const st = Object.assign({}, song.style || {});
-    const base = Store.template(this.inTpl.value || Settings.get('defaultTemplate'));
-    const apply = () => {
-      const clean = {};
-      for (const [k, v] of Object.entries(st)) if (v !== '' && v != null && !(k === 'sizePct' && +v === 100)) clean[k] = v;
-      this.style = Object.keys(clean).length ? clean : null;
-      this.paintFont();
-      this.markDirty(); this.se.pushHist(); this.schedulePreview();
-    };
-    const f = (label, el) => h('label', { class: 'f' }, h('span', {}, label), el);
-    const fontSel = h('select', { class: 'inp' }, h('option', { value: '' }, `dle šablony (${base.fontFamily})`), FONTS.map(x => h('option', { value: x, selected: st.fontFamily === x }, x)));
-    fontSel.onchange = () => { st.fontFamily = fontSel.value; apply(); };
-    const sizeLbl = numField(st.sizePct || 100, { dec: 0, min: 30, max: 300 }, v => { st.sizePct = v; size.value = v; apply(); });
-    const size = h('input', { type: 'range', min: 50, max: 200, step: 5, value: st.sizePct || 100 });
-    size.oninput = () => { st.sizePct = +size.value; sizeLbl.setValue(+size.value); apply(); };
-    const wSel = h('select', { class: 'inp' }, [['', 'dle šablony'], [400, 'normální'], [600, 'polotučné'], [700, 'tučné'], [900, 'extra tučné']].map(([v, l]) => h('option', { value: v, selected: String(st.fontWeight || '') === String(v) }, l)));
-    wSel.onchange = () => { st.fontWeight = wSel.value ? +wSel.value : ''; apply(); };
-    const lhSel = h('select', { class: 'inp' }, [['', 'dle šablony'], [1.05, 'těsné'], [1.2, 'normální'], [1.4, 'volnější'], [1.6, 'volné']].map(([v, l]) => h('option', { value: v, selected: String(st.lineHeight || '') === String(v) }, l)));
-    lhSel.onchange = () => { st.lineHeight = lhSel.value ? +lhSel.value : ''; apply(); };
-    const alSel = h('select', { class: 'inp' }, [['', 'dle šablony'], ['left', 'vlevo'], ['center', 'na střed'], ['right', 'vpravo']].map(([v, l]) => h('option', { value: v, selected: (st.align || '') === v }, l)));
-    alSel.onchange = () => { st.align = alSel.value; apply(); };
-    const m = h('div', { class: 'menu menu-form' },
-      h('div', { class: 'menu-head' }, 'Písmo jen pro tuto píseň'),
-      f('Font', fontSel),
-      h('label', { class: 'f' }, h('span', {}, 'Velikost: ', sizeLbl, ` % (šablona ${base.fontSize} px)`), size),
-      h('div', { class: 'grid2' }, f('Tloušťka', wSel), f('Řádkování', lhSel)),
-      f('Zarovnání', alSel),
-      h('div', { class: 'row', style: { marginTop: '6px' } },
-        h('button', { class: 'btn small nogrow', onclick: () => { for (const k of Object.keys(st)) delete st[k]; apply(); m.remove(); } }, 'Zpět na šablonu'),
-        h('span', { class: 'help' }, 'Pro všechny písně najednou se písmo nastavuje v Šablonách.')));
-    placePopover(m, anchor);
   }
 
   /* Označení zpěváků jen pro tuto píseň (jinak platí šablona): tabulka zpěváci × proužek vlevo / vpravo, podklad, písmo */
