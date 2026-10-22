@@ -19,7 +19,7 @@ const SHOTS = process.env.SHOTS || '/tmp/claude-0/shots';
   // nabídky v editoru: ⋯ (volby písně), lišta nad stránkou (＋ Vložit, Řádek, Pro muzikanty)
   const pick = async (btn, label) => { await p.click(btn); await p.click(`.menu > div:has-text("${label}")`); };
   const songMenu = async label => {
-    if (label === 'Ukázat akordy') return pick('.ed-tools .ed-mus', 'akordy a poznámky');
+    if (label === 'Ukázat akordy') return pick('.ed-side .ed-mus', 'akordy a poznámky');
     if (label === 'Zdrojový text') return pick('.ed-side button[title^="Další volby písně"]', 'Zdrojový text');
   };
   const curText = () => p.evaluate(() => { const e = document.querySelector('.edit-stage .is-cur'); return e ? e.textContent : ''; });

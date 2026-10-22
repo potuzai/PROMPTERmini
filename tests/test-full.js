@@ -90,8 +90,8 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   // ⋯ nahoře = volby písně; Pro muzikanty a ＋ Vložit jsou v liště nad stránkou
   const pick = async (btn, label) => { await p.click(btn); await p.click(`.menu > div:has-text("${label}") >> nth=0`); };
   const more = async label => {
-    if (label === 'Ukázat akordy') return pick('.ed-tools .ed-mus', 'akordy a poznámky');
-    if (label === 'Které vrstvy') return pick('.ed-tools .ed-mus', 'Které vrstvy');
+    if (label === 'Ukázat akordy') return pick('.ed-side .ed-mus', 'akordy a poznámky');
+    if (label === 'Které vrstvy') return pick('.ed-side .ed-mus', 'Které vrstvy');
     return pick('.ed-side button[title^="Další volby písně"]', label);
   };
   const dl = p.waitForEvent('download');

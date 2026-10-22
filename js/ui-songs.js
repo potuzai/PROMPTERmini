@@ -174,7 +174,7 @@ class SongEditor {
     this.structBox = h('div', { class: 'ep-struct' });
     this.leftPanel = h('div', { class: 'ed-panel ed-left-panel' },
       this.backBtn(),
-      h('div', { class: 'ep-group ep-meta' }, h('div', { class: 'ep-lbl' }, 'Údaje'),
+      h('div', { class: 'ep-group ep-meta' },
         f('Interpret', this.inArtist),
         f('Název písně', this.inTitle),
         h('div', { class: 'ep-row3' }, f('Ladění', this.inKey), f('BPM', this.inTempo), f('Délka', this.inDur)),
@@ -188,19 +188,17 @@ class SongEditor {
 
     // Lišta nad stránkou: vše pro vybraný řádek
     const sep = () => h('span', { class: 'tl-sep' });
-    this.musBtn = menuTool('Muzikanti ▾', 'Akordy a poznámky pro nástroje – ve čtečce se nikdy nezobrazí', btn => {
-      const on = !!(Settings.get('musView') || {}).on;
-      return [
+    // Muzikanti: v pravém panelu pod náhledem
+    this.musBtn = h('button', { class: 'btn small ed-mus', title: 'Akordy a poznámky pro nástroje – ve čtečce se nikdy nezobrazí', onclick: e => {
+      const btn = e.currentTarget, on = !!(Settings.get('musView') || {}).on;
+      popupMenu(btn, [
         { label: on ? 'Skrýt akordy a poznámky' : 'Ukázat akordy a poznámky', action: () => this.setView(!on) },
         on ? { label: 'Které vrstvy ukázat…', action: () => layersPopover(btn, () => this.se.render()) } : null,
         { sep: true },
-        ...this.musItems()].filter(Boolean);
-    }, 'ed-mus');
-    // lišta: nástroje uprostřed nad stránkou, Muzikanti vždy vpravo
-    this.tools = h('div', { class: 'ed-tools' }, h('span'), h('div', { class: 'ed-tools-mid' },
-      this.sgRow = h('div', { class: 'tl-grp sw-row', title: 'Kdo zpívá vybraný řádek (všichni vypnutí = nikdo)' },
-        tool([ic('sliders'), ic('down', 'caret')], 'Označení zpěváků: proužek vlevo / vpravo, podklad, barva písma – jen pro tuto píseň', e => this.singerPopover(e.currentTarget), 'tl-sgshow')),
-      sep(),
+        ...this.musItems()].filter(Boolean));
+    } }, 'Muzikanti ▾');
+    // lišta: vlevo úpravy textu, vpravo zpěváci
+    this.tools = h('div', { class: 'ed-tools' }, h('div', { class: 'ed-tools-text' },
       this.fontSel = h('select', { class: 'tl tl-font', title: 'Písmo této písně (bez výběru platí písmo šablony; další volby v ⋯ › Písmo této písně…)', onchange: () => this.setFont(this.fontSel.value) }),
       h('div', { class: 'tl-grp seg-row' },
         tool(h('b', {}, 'B'), 'Tučně (Ctrl+B) – označená slova, nebo celý řádek', () => this.se.format('bold')),
@@ -222,7 +220,8 @@ class SongEditor {
         tool('↶', 'Zpět (Ctrl+Z)', () => this.se.undo(-1)),
         tool('↷', 'Znovu (Ctrl+Y)', () => this.se.undo(1))),
       ),
-      this.musBtn);
+      this.sgRow = h('div', { class: 'tl-grp sw-row', title: 'Kdo zpívá vybraný řádek (všichni vypnutí = nikdo)' },
+        tool([ic('sliders'), ic('down', 'caret')], 'Označení zpěváků: proužek vlevo / vpravo, podklad, barva písma – jen pro tuto píseň', e => this.singerPopover(e.currentTarget), 'tl-sgshow')));
     this.makeSingerBtns();
 
     this.stageWrap = h('div', { class: 'se-wrap' });
@@ -243,7 +242,8 @@ class SongEditor {
         h('button', { class: 'btn small ed-break', title: 'Na zvolené obrazovce začít od vybraného řádku novou stránku (ostatní obrazovky stránkují samy)', onclick: () => this.se.insertLines([this.breakLine()], { before: true }) }, '＋ Nová stránka od řádku')),
       sgrp('Náhled',
         h('label', { class: 'f' }, h('span', {}, 'Obrazovka'), this.scrSel),
-        h('label', { class: 'f' }, h('span', {}, 'Jako v playlistu'), this.inPl)),
+        h('label', { class: 'f' }, h('span', {}, 'Jako v playlistu'), this.inPl),
+        this.musBtn),
       h('div', { class: 'grow' }),
       h('div', { class: 'ed-save' }, this.savedInd, h('div', { class: 'ed-save-row' }, this.saveBtn, moreBtn), readerBtn));
     const ed = h('div', { class: 'song-editor' },

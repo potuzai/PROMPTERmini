@@ -155,7 +155,7 @@ code { font-family: var(--mono); font-size: 12.5px; background: var(--well); bor
 .ed-pages { display: flex; align-items: center; gap: 6px; }
 .ed-pages .page-lbl { flex: 1; text-align: center; color: var(--text); font-size: 14px; }
 .ed-pages .tl { font-size: 18px; }
-.ed-side .ed-break { align-self: stretch; justify-content: center; }
+.ed-side .ed-break, .ed-side .ed-mus { align-self: stretch; justify-content: center; }
 .ed-save { display: flex; flex-direction: column; gap: 8px; }
 .ed-save-row { display: flex; gap: 6px; }
 .ed-save-row .btn:first-child, .ed-save > .btn { flex: 1; justify-content: center; }
@@ -477,11 +477,8 @@ details summary { color: var(--text); }
 /* střed: lišta pro vybraný řádek, stránka, stránkování */
 .ed-center { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--desk); border-radius: var(--rc); overflow: hidden; }
 /* nástroje na střed nad stránkou (vpravo je odsazení o šířku pravého panelu), Muzikanti vždy vpravo nad panelem */
-.ed-tools { position: relative; flex: 0 0 auto; container-type: inline-size; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, max-content) minmax(0, 1fr); align-items: start; gap: 6px; padding: 8px 108px 8px 8px; background: var(--panel); border-bottom: 1px solid var(--line); }
-.ed-tools-mid { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px; }
-.ed-tools-mid { margin-right: 160px; }   /* střed nad stránkou (pravý panel je širší než Muzikanti)… */
-@container (max-width: 1130px) { .ed-tools-mid { margin-right: 0; } }   /* …v užším okně radši celá lišta v jednom řádku */
-.ed-tools > .ed-mus { position: absolute; top: 8px; right: 8px; }
+.ed-tools { position: relative; flex: 0 0 auto; display: flex; justify-content: space-between; align-items: flex-start; gap: 6px 16px; padding: 8px; background: var(--panel); border-bottom: 1px solid var(--line); }
+.ed-tools-text { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; }
 .tl-grp { display: flex; align-items: center; gap: 3px; }
 .tl-sep { width: 1px; height: 22px; background: var(--line2); }
 .tl { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 30px; height: 32px; padding: 0 8px; border: 1px solid var(--line2); border-radius: var(--r); background: var(--well); color: var(--text); font: 13.5px var(--font); cursor: pointer; white-space: nowrap; }
@@ -490,7 +487,7 @@ details summary { color: var(--text); }
 .seg-row { gap: 0; border: 1px solid var(--line2); border-radius: var(--r); overflow: hidden; }
 .seg-row .tl { border: 0; border-right: 1px solid var(--line2); border-radius: 0; }
 .seg-row .tl:last-child { border-right: 0; }
-.tl.tl-font { width: 134px; padding: 0 6px; appearance: auto; }   /* výběr písma v liště */
+.tl.tl-font { width: 152px; padding: 0 6px; appearance: auto; }   /* výběr písma v liště */
 .tl.tl-size { gap: 1px; padding: 0 7px 0 4px; cursor: text; color: var(--dim); font-size: 12px; }
 .tl-size input { width: 2.3ch; border: 0; background: none; color: var(--text); font: 600 13.5px var(--font); text-align: right; outline: none; padding: 0; }   /* pole na dvě číslice */
 .tl-size:focus-within { background: var(--sel); box-shadow: inset 0 0 0 1px var(--acc); }
@@ -884,10 +881,8 @@ input[type=checkbox].switch:focus-visible { outline: 2px solid var(--acc-hi); ou
   .ed-side { flex: 0 0 auto; border-left: 0; border-top: 1px solid var(--line); }
   .ed-side .grow { display: none; }
   .ed-tools { display: flex; overflow-x: auto; padding: 6px 8px; }   /* lišta v jednom řádku, posouvá se prstem */
-  .ed-tools > .ed-mus { position: static; }
-  .ed-tools > span:first-child { display: none; }
-  .ed-tools-mid { flex-wrap: nowrap; }
-  .ed-tools > *, .ed-tools-mid > *, .ed-tools .tl, .ed-tools .sw { flex-shrink: 0; }
+  .ed-tools-text { flex-wrap: nowrap; }
+  .ed-tools > *, .ed-tools-text > *, .ed-tools .tl, .ed-tools .sw { flex-shrink: 0; }
   .ep-group { margin-top: 16px; }
   .content { padding: 12px max(12px, env(safe-area-inset-left, 0px)); }
   .song-editor { padding: 0; gap: 0; }
