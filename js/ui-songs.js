@@ -801,21 +801,39 @@ class SongEditor {
     const ls = () => this.se.lines();
     const setHeader = fn => { const l = ls(); l[it.line] = formatSectionLine(fn(parseSectionLine(l[it.line]))); this.se.commit(l.join('\n')); };
     if (it.rep) return popupMenu(anchor, [{ label: 'Smazat opakování', danger: true, action: () => { const l = ls(); l.splice(it.line, 1); this.se.commit(l.join('\n')); } }]);
+    $$('.menu').forEach(m => m.remove());
+    const sec = parseSectionLine(ls()[it.line]);
     const verses = parseSong(this.src).blocks.filter(b => b.type === 'section' && /^sloka/i.test(b.text)).length;
-    popupMenu(anchor, [
-      { label: 'Přejmenovat…', action: async () => { const n = await promptDlg('Název sekce', it.name); if (n) setHeader(o => Object.assign(o, { name: n })); } },
-      { sep: true },
-      ...SECTION_TYPES.map(t => ({ label: 'Typ: ' + t, action: () => setHeader(o => Object.assign(o, { name: t === 'Sloka' ? 'Sloka ' + (verses + 1) : t })) })),
-      { sep: true },
-      { label: 'Opakování…', hint: it.count > 1 ? it.count + '×' : '1×', action: async () => {
-        const v = await promptDlg('Kolikrát se sekce opakuje (1 = bez označení)', String(it.count || 1));
-        if (v != null && v !== '') setHeader(o => Object.assign(o, { count: Math.max(0, Math.min(99, parseInt(v, 10) || 0)) }));
-      } },
-      { label: 'Barva písma…', action: () => this.sectionColor(anchor, it, setHeader) },
-      { label: it.hidden ? 'Ukázat nadpis v textu' : 'Skrýt nadpis v textu', hint: it.hidden ? 'skrytý' : '', action: () => setHeader(o => Object.assign(o, { hidden: !o.hidden })) },
-      { label: 'Zopakovat tuto sekci u vybraného řádku', action: () => this.se.insertLines(['>> ' + it.name]) },
-      { sep: true },
-      { label: 'Odebrat sekci (text zůstane)', danger: true, action: () => this.removeSection(it) }]);
+    // počet opakování: − n× +, číslo jde i přepsat
+    let count = sec.count || 1;
+    const setCount = v => { count = Math.max(1, Math.min(99, v)); num.setValue(count); setHeader(o => Object.assign(o, { count: count > 1 ? count : 0 })); };
+    const num = numField(count, { dec: 0, min: 1, max: 99 }, setCount);
+    // barva písma sekce (podle šablony, dokud se nezmění)
+    const defColor = () => { const tpl = this.lookTpl(), kind = sectionKind(parseSectionLine(ls()[it.line]).name); return (kind === 'instr' ? tpl.instrColor : tpl[kind + 'Color']) || tpl.textColor || '#ffffff'; };
+    const col = h('input', { type: 'color', value: sec.color || defColor() });
+    const reset = h('button', { class: 'btn small nogrow', disabled: !sec.color, title: 'Barva podle šablony', onclick: () => { setHeader(o => Object.assign(o, { color: '' })); col.value = defColor(); reset.disabled = true; } }, 'Podle šablony');
+    col.onchange = () => { this.setSectionColor(it.line, col.value.toLowerCase()); reset.disabled = false; };
+    const hid = h('input', { type: 'checkbox', checked: !!sec.hidden, onchange: () => setHeader(o => Object.assign(o, { hidden: hid.checked })) });
+    // typ a název sekce
+    const name = h('input', { class: 'inp', value: sec.name });
+    const types = sectionTypeChips(name, 'Sloka ' + (verses + 1), n => setHeader(o => Object.assign(o, { name: n })));
+    name.addEventListener('change', () => { const n = name.value.trim(); if (n) setHeader(o => Object.assign(o, { name: n })); });
+    name.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') name.blur(); });
+    const act = (label, title, fn, cls) => h('button', { type: 'button', class: 'sp-act' + (cls ? ' ' + cls : ''), title, onclick: () => { m.remove(); fn(); } }, label);
+    const m = h('div', { class: 'menu sec-pop' },
+      h('div', { class: 'menu-head' }, 'Sekce „' + sec.name + '“'),
+      act('↻ Zopakovat tuto sekci', 'Vloží opakování sekce u vybraného řádku – ve čtečce se vypíše celá', () => this.se.insertLines(['>> ' + it.name])),
+      h('div', { class: 'sp-row' }, h('span', {}, 'Počet opakování'), h('div', { class: 'pg-step' },
+        h('button', { type: 'button', class: 'tl tl-step', onclick: () => setCount(count - 1) }, '−'),
+        h('label', { class: 'pg-num' }, num, h('span', {}, '×')),
+        h('button', { type: 'button', class: 'tl tl-step', onclick: () => setCount(count + 1) }, '+'))),
+      h('div', { class: 'sp-row' }, h('span', {}, 'Barva písma'), h('div', { class: 'sp-col' }, col, reset)),
+      h('label', { class: 'sp-row sp-chk' }, h('span', {}, 'Skrýt nadpis v textu'), hid),
+      h('hr', { class: 'menu-sep' }),
+      h('div', { class: 'sp-types' }, types, h('label', { class: 'f' }, h('span', {}, 'Název'), name)),
+      h('hr', { class: 'menu-sep' }),
+      act('Odebrat sekci (text zůstane)', 'Text zůstane, jen už nebude patřit do žádné sekce', () => this.removeSection(it), 'danger'));
+    placePopover(m, anchor);
   }
   /* odebrat nadpis sekce: text zůstane bez sekce (nespadne do sekce nad ním – místo nadpisu zůstane konec sekce „##“) */
   removeSection(it) {
@@ -837,19 +855,6 @@ class SongEditor {
       ls[j] = color && codes.some(c => singerShowOf(tpl, c).text) ? formatLine(ls[j], 'color', color) : stripColor(ls[j]);
     }
     this.se.commit(ls.join('\n'));
-  }
-  sectionColor(anchor, it, setHeader) {
-    $$('.menu').forEach(m => m.remove());
-    const sec = parseSectionLine(this.se.lines()[it.line]);
-    const tpl = this.lookTpl(), kind = sectionKind(sec.name);
-    const def = (kind === 'instr' ? tpl.instrColor : tpl[kind + 'Color']) || tpl.textColor || '#ffffff';
-    const c = h('input', { type: 'color', value: sec.color || def });
-    c.onchange = () => this.setSectionColor(it.line, c.value.toLowerCase());
-    const m = h('div', { class: 'menu menu-form' }, h('div', { class: 'menu-head' }, 'Barva písma sekce „' + sec.name + '“'),
-      h('label', { class: 'chk' }, c, 'Vlastní barva'),
-      h('div', { class: 'help' }, 'Zpěvák, který má v označení zpěváků zapnuté „Písmo“, má přednost.'),
-      h('button', { class: 'btn small nogrow', onclick: () => { setHeader(o => Object.assign(o, { color: '' })); m.remove(); } }, 'Podle šablony'));
-    placePopover(m, anchor);
   }
   focusMeta() { this.inArtist.focus(); this.inArtist.select(); }
   schedulePreview() { clearTimeout(this.pvT); this.pvT = setTimeout(() => { if (!this.se.editing) this.se.render(); }, 250); }
@@ -1191,18 +1196,40 @@ function addToPlaylistMenu(anchor, songIds) {
   popupMenu(anchor, items);
 }
 
-const SECTION_TYPES = ['Sloka', 'Refrén', 'Předrefrén', 'Mezičást', 'Předehra', 'Mezihra', 'Sólo', 'Dohra'];
+const SECTION_TYPES = ['Sloka', 'Refrén', 'Mezičást', 'Předehra', 'Mezihra', 'Sólo'];
+/* čipy typů sekcí (s textem / pokyn pro kapelu) navázané na pole s názvem; onPick = hned použít */
+function sectionTypeChips(inp, verseName, onPick) {
+  const chips = [];
+  const paint = () => chips.forEach(b => b.classList.toggle('on', inp.value.trim().toLowerCase().startsWith(b.dataset.n.toLowerCase())));
+  const chip = n => {
+    const b = h('button', { type: 'button', class: 'ps-chip', onclick: () => { inp.value = n === 'Sloka' ? verseName : n; paint(); if (onPick) onPick(inp.value); } }, n);
+    b.dataset.n = n; chips.push(b); return b;
+  };
+  const g = (label, names) => h('div', { class: 'ps-g' }, h('span', {}, label), h('div', { class: 'ps-chips' }, names.map(chip)));
+  const box = h('div', { class: 'ps-types' }, g('S textem', SECTION_TYPES.slice(0, 3)), g('Pokyn pro kapelu', SECTION_TYPES.slice(3)));
+  inp.addEventListener('input', paint);
+  paint();
+  return box;
+}
 /* výběr nové sekce: typ / název a počet opakování */
 async function pickSection(nextVerse) {
+  // přehledně: druh sekce (s textem / pokyn pro kapelu), název, kolikrát se opakuje
+  let count = 1;
   const inp = h('input', { class: 'inp', value: `Sloka ${nextVerse}` });
-  const cnt = h('input', { class: 'inp', type: 'number', min: 1, max: 99, value: 1, style: { width: '90px' } });
-  const body = h('div', {}, h('div', { class: 'row', style: { marginBottom: '10px', flexWrap: 'wrap', gap: '6px' } },
-    SECTION_TYPES.map(n => h('button', { class: 'btn small nogrow', onclick: () => { inp.value = n === 'Sloka' ? `Sloka ${nextVerse}` : n; inp.focus(); } }, n))),
-    h('label', { class: 'f' }, h('span', {}, 'Název'), inp),
-    h('label', { class: 'f' }, h('span', {}, 'Kolikrát se opakuje'), cnt),
-    h('p', { class: 'help' }, 'Předehra, mezihra a sólo jsou pokyny bez textu – na stránce se ukážou vždy (např. „8× PŘEDEHRA“). U ostatních sekcí se počet opakování ukáže před prvním řádkem.'));
+  const types = sectionTypeChips(inp, `Sloka ${nextVerse}`);
+  const num = numField(1, { dec: 0, min: 1, max: 99 }, v => { count = v; });
+  const step = d => { count = Math.max(1, Math.min(99, count + d)); num.setValue(count); };
+  const body = h('div', { class: 'ps-dlg' },
+    types,
+    h('div', { class: 'ps-row' },
+      h('label', { class: 'f', style: { flex: '1' } }, h('span', {}, 'Název'), inp),
+      h('div', { class: 'f' }, h('span', {}, 'Opakování'), h('div', { class: 'pg-step' },
+        h('button', { type: 'button', class: 'tl tl-step', onclick: () => step(-1) }, '−'),
+        h('label', { class: 'pg-num' }, num, h('span', {}, '×')),
+        h('button', { type: 'button', class: 'tl tl-step', onclick: () => step(1) }, '+')))),
+    h('p', { class: 'help' }, 'Pokyny (předehra, mezihra, sólo) nemají text a ukážou se vždy, např. „8× Předehra“. U sekcí s textem je počet opakování u prvního řádku.'));
   const ok = await modal({ title: 'Nová sekce', body, buttons: [{ label: 'Zrušit', value: false }, { label: 'Vložit', primary: true, value: true }] });
-  return ok && inp.value.trim() ? { name: inp.value.trim(), count: Math.max(0, parseInt(cnt.value, 10) || 0) } : null;
+  return ok && inp.value.trim() ? { name: inp.value.trim(), count: count > 1 ? count : 0 } : null;
 }
 
 function showMarkupHelp() {
