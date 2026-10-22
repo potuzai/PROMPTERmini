@@ -134,7 +134,6 @@ class SongEditor {
      (upravuje se přímo v ní) a nad ní jedna lišta pro vybraný řádek. Každá funkce je jen na jednom místě. */
   build(song) {
     const tool = (label, title, onclick, cls = '') => h('button', { class: 'tl ' + cls, title, onclick }, label);
-    const menuTool = (label, title, items, cls = '') => tool(label, title, e => popupMenu(e.currentTarget, items(e.currentTarget)), cls);
     const f = (label, el, cls = '') => h('label', { class: 'f ' + cls }, h('span', {}, label), el);
 
     this.inTitle = h('input', { class: 'inp ep-title', value: song.title || '', placeholder: 'Název písně' });
@@ -203,13 +202,11 @@ class SongEditor {
       h('div', { class: 'tl-grp seg-row' },
         tool(h('b', {}, 'B'), 'Tučně (Ctrl+B) – označená slova, nebo celý řádek', () => this.se.format('bold')),
         tool(h('i', {}, 'I'), 'Kurzíva (Ctrl+I)', () => this.se.format('italic')),
+        tool('Aa', 'VELKÁ / malá písmena – klik přepne označená slova nebo řádek', () => this.toggleCase()),
         tool('A−', 'Menší písmo (o 2 px)', () => this.stepSize(-2)),
         this.sizeBox = h('label', { class: 'tl tl-size', title: 'Velikost písma označených slov nebo řádku v px na zvolené obrazovce – napiš a potvrď Enterem' },
           this.sizeInp = h('input', { type: 'text', inputmode: 'numeric', maxlength: 3, value: '' }), 'px'),
-        tool('A+', 'Větší písmo (o 2 px)', () => this.stepSize(2)),
-        menuTool('Aa ▾', 'Velká / malá písmena', () => [
-          { label: 'VELKÁ PÍSMENA', action: () => this.se.format('upper') },
-          { label: 'malá písmena', action: () => this.se.format('lower') }])),
+        tool('A+', 'Větší písmo (o 2 px)', () => this.stepSize(2))),
       h('div', { class: 'tl-grp seg-row tl-lh-grp' },
         tool('−', 'Menší řádkování (o 0,1)', () => this.stepLh(-0.1), 'tl-step'),
         this.lhBox = h('label', { class: 'tl tl-size tl-lh', title: 'Řádkování řádku s kurzorem (nebo označených řádků) – výška řádku × písmo; napiš a potvrď Enterem, prázdné = podle písně' },
@@ -389,6 +386,15 @@ class SongEditor {
     this.sizeBox.title = 'Velikost písma v px na obrazovce „' + this.screen().name + '“' + (p !== 100 ? ` (${p} % písma řádku)` : ' (podle šablony)') + ' – napiš a potvrď Enterem';
   }
   /* zapnutí zpěváci: u slov v barvě zpěváka ten zpěvák, jinak zpěváci řádku */
+  /* Aa: je-li v textu nějaké malé písmeno, vše na VELKÁ, jinak na malá */
+  toggleCase() {
+    const se = this.se, sel = window.getSelection();
+    let t;
+    if (se.editing && se.editEl && sel.rangeCount && !sel.isCollapsed && se.editEl.contains(sel.anchorNode)) t = sel.toString();
+    else { const ls = se.lines(); t = (se.editing ? [se.editing.line] : se.selTargets().map(x => x.line)).map(i => ls[i] || '').join(' '); }
+    t = t.replace(/\{[^:}]*:|\[[^\]]*\]/g, '');   // bez značek a akordů
+    se.format(t !== t.toLocaleUpperCase('cs') ? 'upper' : 'lower');
+  }
   /* přepínače zpěváků v liště (před tlačítkem označení) */
   makeSingerBtns() {
     (this.sgButtons || []).forEach(b => b.remove());
