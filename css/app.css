@@ -146,6 +146,11 @@ code { font-family: var(--mono); font-size: 12.5px; background: var(--well); bor
 /* ===== Editor písně: stránka čtečky (upravuje se přímo v ní) ===== */
 .ed-main { flex: 1; min-height: 0; display: flex; }
 .se-wrap { position: relative; flex: 1; min-width: 0; overflow: hidden; outline: none; }
+.se-pages { position: absolute; inset: 0; overflow-x: hidden; overflow-y: hidden; }
+.se-pages.more { overflow-y: auto; padding: 14px 0; }   /* víc stránek: pod sebou, posun kolečkem */
+.se-page { position: relative; margin: 0 auto; }
+.se-pages.more .se-page + .se-page { margin-top: 30px; }
+.se-pages.more .se-page + .se-page::before { content: ''; position: absolute; left: -28px; right: -28px; top: -16px; border-top: 2px dashed rgba(255,255,255,.35); }   /* konec jedné a začátek další stránky */
 /* pravý panel pod lištou: stránka, náhled, uložení */
 .ed-side { flex: 0 0 264px; display: flex; flex-direction: column; gap: 18px; padding: 14px 12px 12px; background: var(--panel); border-left: 1px solid var(--line); overflow-y: auto; }
 .ed-side .grow { flex: 1; }

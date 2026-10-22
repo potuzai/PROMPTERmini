@@ -139,8 +139,8 @@ class SongEditor {
     const tool = (label, title, onclick, cls = '') => h('button', { class: 'tl ' + cls, title, onclick, onmousedown: e => e.preventDefault() }, label);
     const f = (label, el, cls = '') => h('label', { class: 'f ' + cls }, h('span', {}, label), el);
 
-    this.inTitle = h('input', { class: 'inp ep-title', value: song.title || '', placeholder: 'Název písně' });
-    this.inArtist = h('input', { class: 'inp', value: song.artist || '', placeholder: 'Interpret / autor' });
+    this.inTitle = h('input', { class: 'inp ep-title', value: song.title || '', placeholder: 'Název písně', title: 'Název písně' });
+    this.inArtist = h('input', { class: 'inp', value: song.artist || '', placeholder: 'Interpret', title: 'Interpret' });
     this.inKey = h('input', { class: 'inp', value: song.key || '', placeholder: 'C, Am…' });
     this.inTempo = h('input', { class: 'inp', value: song.tempo || '', placeholder: '120' });
     this.inDur = h('input', { class: 'inp', value: song.duration || '', placeholder: '3:45' });
@@ -177,8 +177,7 @@ class SongEditor {
     this.leftPanel = h('div', { class: 'ed-panel ed-left-panel' },
       this.backBtn(),
       h('div', { class: 'ep-group ep-meta' },
-        f('Interpret', this.inArtist),
-        f('Název písně', this.inTitle),
+        this.inArtist, this.inTitle,   // popis jen uvnitř prázdného pole – šetří místo
         h('div', { class: 'ep-row3' }, f('Ladění', this.inKey), f('BPM', this.inTempo), f('Délka', this.inDur)),
         h('div', { class: 'f' }, h('span', {}, 'Šablona'), h('div', { class: 'tpl-row' }, this.inTpl,
           h('button', { class: 'btn small icon nogrow', title: 'Uložit nastavení písně do šablony (písmo, velikost, barvy, zpěváci, stránka…)', onclick: e => {
@@ -390,8 +389,11 @@ class SongEditor {
   onStageRender(lay) {
     const n = lay.pages.length;
     this.paintStruct();
-    this.pageLbl.textContent = `${this.se.page + 1}/${n}`;
+    this.onPageScroll(this.se.page, n);
     this.pageNav.style.display = n > 1 ? '' : 'none';
+  }
+  onPageScroll(p, n) {
+    this.pageLbl.textContent = `${p + 1}/${n}`;
   }
   onSelChange() {
     if (!this.se) return;

@@ -31,6 +31,11 @@ class StageEditor {
     // vlastní kurzor: stránka je zmenšená, takže kurzor prohlížeče by byl tenčí než pixel
     this.caretEl = h('div', { class: 'se-caret' });
     wrap.appendChild(this.caretEl);
+    // stránky pod sebou (při více stránkách se posouvá kolečkem, mezi stránkami je čára)
+    this.pagesBox = h('div', { class: 'se-pages' });
+    wrap.insertBefore(this.pagesBox, wrap.firstChild);
+    this.stages = [];
+    this.pagesBox.addEventListener('scroll', () => { this.paintCaret(); this.onScroll(); });
     this.onSel = () => { if (!wrap.isConnected) { document.removeEventListener('selectionchange', this.onSel); return; } this.paintCaret(); };
     document.addEventListener('selectionchange', this.onSel);
   }
@@ -113,13 +118,19 @@ class StageEditor {
     this.lay = lay;
     this.tpl = tpl;
     this.targets = this.buildTargets(lay, tpl);
-    const tkey = JSON.stringify(tpl) + W + 'x' + H;
-    if (!this.stage || this.tkey !== tkey) {
-      if (this.stage) this.stage.remove();
-      this.stage = Render.makeStage(tpl, W, H);
-      this.stage.classList.add('edit-stage');
-      this.wrap.insertBefore(this.stage, this.wrap.firstChild);
+    const tkey = JSON.stringify(tpl) + W + 'x' + H + ':' + lay.pages.length;
+    if (this.tkey !== tkey) {
+      const top = this.pagesBox.scrollTop;
+      this.pagesBox.innerHTML = '';
+      this.stages = lay.pages.map(() => {
+        const st = Render.makeStage(tpl, W, H);
+        st.classList.add('edit-stage');
+        this.pagesBox.appendChild(h('div', { class: 'se-page' }, st));
+        return st;
+      });
+      this.pagesBox.classList.toggle('more', lay.pages.length > 1);
       this.tkey = tkey;
+      this.keepTop = top;
     }
     // vybraný řádek musí existovat; stránka podle něj
     let cur = this.curIdx();
@@ -144,17 +155,46 @@ class StageEditor {
   }
 
   paintPage() {
-    const song = this.ed.collect();
-    Render.renderPage(this.stage, this.lay, this.tpl, this.page, this.ed.pageInfo(song));
+    const info = this.ed.pageInfo(this.ed.collect());
+    this.stages.forEach((st, i) => Render.renderPage(st, this.lay, this.tpl, i, info));
     this.fit();
+    if (this.keepTop != null) { this.pagesBox.scrollTop = this.keepTop; this.keepTop = null; }
+    this.showPage(this.page);
     this.paintSel();
     if (this.editing) this.makeEditable();
   }
+  /* každá stránka celá na výšku okna; víc stránek pod sebou */
   fit() {
-    if (!this.stage) return;
-    const scr = this.ed.screen();
-    Render.fit(this.stage, this.wrap, scr.w, scr.h, 'none');
+    if (!this.stages.length) return;
+    const scr = this.ed.screen(), W = scr.w, H = scr.h, n = this.stages.length;
+    const r = this.pagesBox.getBoundingClientRect(), pad = n > 1 ? 14 : 0;
+    const s = Math.min(r.width / W, (r.height - 2 * pad) / H) || 1;
+    this.stages.forEach(st => {
+      const hold = st.parentNode;
+      hold.style.width = W * s + 'px'; hold.style.height = H * s + 'px';
+      hold.style.marginTop = n > 1 ? '' : Math.max(0, (r.height - H * s) / 2) + 'px';
+      Object.assign(st.style, { left: '0px', top: '0px', transformOrigin: '0 0', transform: `scale(${s})` });
+    });
     this.paintCaret();
+  }
+  /* stránka p v okně: posunout, jen když z ní není nic vidět (při psaní a klikání okno neskáče) */
+  showPage(p, force) {
+    const hold = this.stages[p] && this.stages[p].parentNode, box = this.pagesBox;
+    if (!hold || this.stages.length < 2) return;
+    const top = hold.offsetTop - 14, vis = box.scrollTop, h = box.clientHeight;
+    if (force || hold.offsetTop + hold.offsetHeight <= vis || hold.offsetTop >= vis + h) {
+      // během plynulého posunu se číslo stránky nemění (ukazuje cílovou)
+      this.scrollGoal = p; clearTimeout(this.scrollGoalT); this.scrollGoalT = setTimeout(() => { this.scrollGoal = null; this.onScroll(); }, 900);
+      box.scrollTo({ top, behavior: force ? 'smooth' : 'auto' });
+    }
+  }
+  /* číslo stránky podle posunu (ta, které je v okně nejvíc) */
+  onScroll() {
+    if (this.stages.length < 2 || this.scrollGoal != null) return;
+    const box = this.pagesBox, mid = box.scrollTop + box.clientHeight / 2;
+    let p = 0;
+    this.stages.forEach((st, i) => { if (st.parentNode.offsetTop <= mid) p = i; });
+    if (p !== this.page) { this.page = p; this.ed.onPageScroll && this.ed.onPageScroll(p, this.stages.length); }
   }
 
   /* Cíle pro výběr šipkami: řádky, nadpisy, poznámky, opakování (celé jako jeden cíl), bloky */
@@ -189,10 +229,10 @@ class StageEditor {
     if (a < 0) a = c;
     return this.targets.slice(Math.min(a, c), Math.max(a, c) + 1);
   }
-  elsOf(t) { return t ? t.bis.map(i => this.stage.querySelector(`[data-bi="${i}"]`)).filter(Boolean) : []; }
+  elsOf(t) { return t ? t.bis.map(i => this.pagesBox.querySelector(`[data-bi="${i}"]`)).filter(Boolean) : []; }
 
   paintSel() {
-    for (const e of this.stage.querySelectorAll('.is-sel, .is-cur')) e.classList.remove('is-sel', 'is-cur');
+    for (const e of this.pagesBox.querySelectorAll('.is-sel, .is-cur')) e.classList.remove('is-sel', 'is-cur');
     const sel = this.selTargets();
     this.wrap.classList.toggle('multi', sel.length > 1 || this.anchorKey != null);
     for (const t of sel) for (const e of this.elsOf(t)) e.classList.add('is-sel');
@@ -208,7 +248,8 @@ class StageEditor {
     if (!extend) this.anchorKey = null;
     else if (this.anchorKey == null) this.anchorKey = this.curKey;
     this.curKey = t.key;
-    if (t.page !== this.page) { this.page = t.page; this.paintPage(); } else this.paintSel();
+    if (t.page !== this.page) { this.page = t.page; this.showPage(t.page, true); }
+    this.paintSel();
   }
   turnPage(d) {
     this.finishEdit(true);
@@ -218,7 +259,9 @@ class StageEditor {
     this.page = p;
     const first = this.targets.findIndex(t => t.page === p);
     if (first >= 0) { this.curKey = this.targets[first].key; this.anchorKey = null; }
-    this.paintPage();
+    this.showPage(p, true);
+    this.paintSel();
+    this.ed.onPageScroll && this.ed.onPageScroll(p, n);
   }
 
   describe(t) {
@@ -291,7 +334,7 @@ class StageEditor {
     if (e.button !== 0) return;
     this.wrap.classList.remove('kbd-nav');
     if (e.target.closest('.line-menu')) return;
-    const lineAt = () => { const el = document.elementFromPoint(e.clientX, e.clientY); return el && this.stage && this.stage.contains(el) ? el.closest('[data-bi]') : null; };
+    const lineAt = () => { const el = document.elementFromPoint(e.clientX, e.clientY); return el && this.pagesBox.contains(el) ? el.closest('[data-bi]') : null; };
     if (this.editing && this.editEl && this.editEl.contains(e.target)) {   // označování v psaném řádku nechá prohlížeč
       const b = e.target.closest('[data-bi]');
       this.startDrag(e, b && this.targets.find(x => x.bis.includes(+b.dataset.bi)), null);
@@ -313,7 +356,7 @@ class StageEditor {
     const d = { key: t.key, multi: false };
     const lineAt = ev => {
       const el = document.elementFromPoint(ev.clientX, ev.clientY);
-      const b = el && this.stage && this.stage.contains(el) && el.closest('[data-bi]');
+      const b = el && this.pagesBox.contains(el) && el.closest('[data-bi]');
       return b && this.targets.find(x => x.bis.includes(+b.dataset.bi));
     };
     const move = ev => {
