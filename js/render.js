@@ -64,9 +64,9 @@ const Render = {
     if (b.type === 'break') return h('div', { class: 'b-gap' });
     if (b.type === 'section') {
       // předehra, mezihra, sólo: pokyn pro kapelu, vidět vždy (i když se nadpisy sekcí neukazují)
-      if (b.instr) return h('div', { class: 'b-instr', 'data-src': b.src, style: { color: b.color || tpl.instrColor || '#ff0000' } }, (b.count > 1 ? b.count + '× ' : '') + b.text);
+      if (b.instr) return h('div', { class: 'b-instr', 'data-src': b.src, style: { color: b.color || tpl.instrColor || '#ff0000', textAlign: AL_CSS[b.align] || '' } }, (b.count > 1 ? b.count + '× ' : '') + b.text);
       const sg = b.singers.map(c => singerMap[c]).filter(Boolean);
-      return h('div', { class: 'b-sec' + (b.repeat ? ' rep' : ''), 'data-src': b.src, style: b.color ? { color: b.color } : {} },
+      return h('div', { class: 'b-sec' + (b.repeat ? ' rep' : ''), 'data-src': b.src, style: Object.assign(b.color ? { color: b.color } : {}, b.align ? { textAlign: AL_CSS[b.align] } : {}) },
         b.text, b.count > 1 ? ' ' + b.count + '×' : '', sg.length ? h('span', { class: 'sec-sg' }, ' · ' + sg.map(s => s.name).join(' + ')) : null);
     }
     if (b.type === 'note') return h('div', { class: 'b-note' + (b.warn ? ' warn' : '') + (b.private ? ' private' : ''), 'data-src': b.src, html: inlineHtml(b.text, singerMap) });

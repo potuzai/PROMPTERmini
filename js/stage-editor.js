@@ -206,7 +206,7 @@ class StageEditor {
     let last = null;
     lay.blocks.forEach((b, i) => {
       if ((b.type === 'gap' && !b.extra) || b.type === 'break' || b.private || pageOf[i] === undefined) return;
-      if (b.type === 'section' && !tpl.showSections && !b.repeat) return;
+      if (b.type === 'section' && !tpl.showSections && !b.repeat && !b.instr) return;   // předehra, mezihra, sólo jsou vidět vždy
       if (b.type === 'note' && !tpl.showNotes && !b.warn) return;
       const rep = b.repeat || (info[b.src] && info[b.src].kind === 'repeat');
       const line = b.repeat ? b.rsrc : b.src;
@@ -928,6 +928,7 @@ class StageEditor {
     if (!t) return {};
     const src = this.lines()[t.line] || '';
     const info = parseSong(src).lines[0] || {};
+    if (info.kind === 'section') return { al: parseSectionLine(src).align };   // nadpis sekce: jen zarovnání
     return peelOuter(splitLine(src, info.kind || 'line').body).w;
   }
   /* součin velikostí všech značek {N%:…} od uzlu až k psanému řádku (v %) */
@@ -1235,6 +1236,7 @@ function wrapOuter(b, w) {
 function formatLine(src, kind, val) {
   const info = parseSong(src).lines[0] || {};
   if (info.kind === 'section' && kind === 'color') return formatSectionLine(Object.assign(parseSectionLine(src), { color: val || '' }));   // barva z lišty u nadpisu = barva sekce
+  if (info.kind === 'section' && kind === 'al') return formatSectionLine(Object.assign(parseSectionLine(src), { align: val || '' }));   // zarovnání nadpisu / pokynu (mezihra…)
   if (!['line', 'note'].includes(info.kind)) return src;   // nadpis sekce má vlastní volby (barva, opakování) – značky do názvu nepatří
   const sp = splitLine(src, info.kind);
   const pe = peelOuter(sp.body);

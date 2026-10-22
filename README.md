@@ -164,6 +164,7 @@ Pokročilí můžou přes **⋯ › Zdrojový text…** upravit text tak, jak se
 | `## Refrén` | nadpis sekce |
 | `## Refrén @V` | celou sekci zpívají všichni |
 | `##` | konec sekce – další řádky už do ní nepatří (v editoru Shift+Enter) |
+| `## Mezihra ↔` | zarovnání nadpisu sekce / pokynu (⇤ vlevo, ↔ na střed, ⇥ vpravo) |
 | `## Refrén 2× #ffff00` | sekce se opakuje 2× (ukáže se u prvního řádku), vlastní barva písma |
 | `## Předehra 8×` | předehra / mezihra / sólo – pokyn bez textu, na stránce vždy vidět |
 | `{#ff0000:slova}` | vlastní barva písma části textu |

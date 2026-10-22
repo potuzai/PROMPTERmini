@@ -21,21 +21,22 @@
   [Am] akordy, %G řádek pro nástroj, %%G … %% blok pro nástroj
 */
 const RE_SECTION = /^##\s*(.*?)\s*(?:@([A-Za-z0-9+]+))?\s*$/;
-/* nadpis sekce: „## Refrén 2× #ffff00 @V“ – název, počet opakování, vlastní barva písma, zpěváci celé sekce */
+/* nadpis sekce: „## Refrén 2× #ffff00 ↔ @V“ – název, počet opakování, vlastní barva písma, zarovnání nadpisu, zpěváci celé sekce */
 function parseSectionLine(t) {
   const m = RE_SECTION.exec(String(t).trim());
   if (!m || !String(t).trim().startsWith('##')) return null;
-  let name = m[1], count = 0, color = '';
+  let name = m[1], count = 0, color = '', align = '';
   let x;
+  if ((x = /\s*([⇤↔⇥])$/.exec(name))) { align = x[1]; name = name.slice(0, x.index); }   // zarovnání nadpisu / pokynu (předehra…)
   if ((x = /\s*(#[0-9a-fA-F]{6})$/.exec(name))) { color = x[1].toLowerCase(); name = name.slice(0, x.index); }
   if ((x = /(^|\s+)(\d{1,2})\s*[x×]$/i.exec(name))) { count = +x[2]; name = name.slice(0, x.index); }
   // značky formátování do názvu sekce nepatří (starší úpravy je tam mohly zapsat)
   for (let prev = null; prev !== name;) { prev = name; name = name.replace(/\{[^:{}]*:([^{}]*)\}/g, '$1'); }
   name = name.replace(/\*\*|__/g, '');
-  return { name: name.trim(), count, color, singers: parseCodes(m[2]) };
+  return { name: name.trim(), count, color, align, singers: parseCodes(m[2]) };
 }
 function formatSectionLine(o) {
-  return '## ' + (o.name || 'Sekce') + (o.count > 1 ? ' ' + o.count + '×' : '') + (o.color ? ' ' + o.color : '') + (o.singers && o.singers.length ? ' @' + o.singers.join('+') : '');
+  return '## ' + (o.name || 'Sekce') + (o.count > 1 ? ' ' + o.count + '×' : '') + (o.color ? ' ' + o.color : '') + (o.align ? ' ' + o.align : '') + (o.singers && o.singers.length ? ' @' + o.singers.join('+') : '');
 }
 const RE_SINGER = /^@([A-Za-z0-9+]+)\s?(.*)$/;
 const RE_REPEAT = /^>>\s*(.+?)\s*$/;
@@ -113,7 +114,7 @@ function parseSong(text) {
       const name = sec.name || 'Sekce', singers = sec.singers;
       lines.push({ kind: 'section', singers });
       const instr = sectionKind(name) === 'instr';
-      const b = { type: 'section', text: name, singers, src: i, count: sec.count, color: sec.color, instr };
+      const b = { type: 'section', text: name, singers, src: i, count: sec.count, color: sec.color, align: sec.align, instr };
       // nástrojová část (předehra, mezihra, sólo) nemá text – další řádky do ní nepatří
       curSection = { name, singers, blocks: [b], count: sec.count, color: sec.color, instr, first: true };
       sections[name.toLowerCase()] = curSection.blocks;
