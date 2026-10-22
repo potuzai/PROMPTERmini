@@ -32,7 +32,6 @@ Aplikace pro psaní, úpravy a zobrazování textů písní na čtečce (prompte
 | seznam písní (skok) | prostřední tlačítko | L, Tab, pak číslo nebo šipky |
 | další / předchozí píseň | | Shift + → / ← |
 | výběr playlistu | | P |
-| zatemnit obrazovku | | B |
 | větší / menší písmo | | + / − (0 = výchozí) |
 | zrcadlení (sklo prompteru) | | M |
 | celá obrazovka | | F nebo F11 |
@@ -41,7 +40,7 @@ Aplikace pro psaní, úpravy a zobrazování textů písní na čtečce (prompte
 | nápověda | | H |
 | zpět / úpravy | | Esc |
 
-Když myš sjede do spodní části obrazovky, objeví se **ovládací lišta** (předchozí / další, pořadí písně a stránky, seznam písní, nabídka) a nahoře tenký pruh s průběhem playlistu. Po chvíli sama zmizí. **Rychlá nabídka** má velké dlaždice: seznam písní, černá obrazovka, menší / větší písmo, zrcadlení, synchronizace, úprava písně, nápověda a zavření čtečky. Vybraný prvek má vždy bílý rámeček, aby byl vidět i z dálky.
+Když myš sjede do spodní části obrazovky, objeví se **ovládací lišta** (předchozí / další, pořadí písně a stránky, seznam písní, nabídka) a nahoře tenký pruh s průběhem playlistu. Po chvíli sama zmizí. **Rychlá nabídka** má velké dlaždice: seznam písní, menší / větší písmo, zrcadlení, synchronizace, úprava písně, nápověda a zavření čtečky. Vybraný prvek má vždy bílý rámeček, aby byl vidět i z dálky.
 
 Monitor čtečky během běhu programu neusne. Program se po případném pádu sám obnoví a každý den zálohuje data do `data\zalohy` (drží 14 dní).
 
@@ -102,7 +101,6 @@ Myší jako v textovém editoru: klik do řádku = psaní na tom místě, tažen
 | seznam písní (skok) | prostřední tlačítko | L, Tab, pak číslo nebo šipky |
 | další / předchozí píseň | | Shift + → / ← |
 | výběr playlistu | | P |
-| zatemnit obrazovku | | B |
 | větší / menší písmo | | + / − (0 = výchozí) |
 | zrcadlení (sklo prompteru) | | M |
 | celá obrazovka | | F nebo F11 |
@@ -111,7 +109,7 @@ Myší jako v textovém editoru: klik do řádku = psaní na tom místě, tažen
 | nápověda | | H |
 | zpět / úpravy | | Esc |
 
-Když myš sjede do spodní části obrazovky, objeví se **ovládací lišta** (předchozí / další, pořadí písně a stránky, seznam písní, nabídka) a nahoře tenký pruh s průběhem playlistu. Po chvíli sama zmizí. **Rychlá nabídka** má velké dlaždice: seznam písní, černá obrazovka, menší / větší písmo, zrcadlení, synchronizace, úprava písně, nápověda a zavření čtečky. Vybraný prvek má vždy bílý rámeček, aby byl vidět i z dálky.
+Když myš sjede do spodní části obrazovky, objeví se **ovládací lišta** (předchozí / další, pořadí písně a stránky, seznam písní, nabídka) a nahoře tenký pruh s průběhem playlistu. Po chvíli sama zmizí. **Rychlá nabídka** má velké dlaždice: seznam písní, menší / větší písmo, zrcadlení, synchronizace, úprava písně, nápověda a zavření čtečky. Vybraný prvek má vždy bílý rámeček, aby byl vidět i z dálky.
 
 Monitor čtečky během běhu programu neusne. Program se po případném pádu sám obnoví a každý den zálohuje data do `data\zalohy` (drží 14 dní).
 

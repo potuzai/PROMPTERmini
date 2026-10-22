@@ -262,8 +262,6 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   await sleep(200);
   assert((await pos())[0] === 2, 'konec playlistu – zůstane na poslední písni');
   assert(await p.isVisible('text=konec playlistu'), 'zápatí „konec playlistu“');
-  await p.keyboard.press('b'); assert(await p.isVisible('.r-black'), 'B zatemní'); await p.keyboard.press('b');
-  assert(!(await p.isVisible('.r-black')), 'B zruší zatemnění');
   await p.keyboard.press('m'); await sleep(100);
   assert((await p.evaluate(() => document.querySelector('#reader .stage').style.transform)).includes('scale(-'), 'M zrcadlení');
   await p.keyboard.press('m');
