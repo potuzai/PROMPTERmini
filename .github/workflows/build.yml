@@ -59,7 +59,7 @@ jobs:
           target_commitish: ${{ github.sha }}
           make_latest: true
           body: |
-            **PROMPTER-mini-Windows-64bit.zip**: běžná Windows 10/11 (64bit). **PROMPTER-mini-Windows-32bit.zip**: starší 32bitová Windows.
+            **PROMPTER-mini-Windows-64bit.zip**: běžná Windows 10/11 (64bit). **PROMPTER-mini-Windows-32bit.zip**: starší 32bitová Windows (Electron 43 – poslední verze s 32bitovou podporou).
             Rozbal a spusť `PROMPTER mini.exe`. Návod je v souboru NAVOD.md uvnitř složky.
           files: PROMPTER-mini-Windows-*.zip
 
