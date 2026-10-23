@@ -48,6 +48,7 @@ const DEFAULT_SETTINGS = {
   wheelNav: false,               // listovat kolečkem myši
   hideCursor: true,
   readerSyncOnStart: true,
+  readerHud: true,               // stavový řádek dole ve čtečce (pořadí, stránky, další píseň)
   defaultTemplate: 'default',
   lastPlaylist: null,
   pinHash: '',                   // PIN pro úpravy (prázdné = bez PINu)

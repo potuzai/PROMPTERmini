@@ -516,6 +516,7 @@ const SettingsView = {
         setFlag('startInReader', 'Po spuštění rovnou čtečka', 'Otevře se poslední playlist – pro PC u monitoru.'),
         window.native ? setRow('Spustit po zapnutí počítače', 'Program se spustí sám s Windows.', setSwitch(window.native.getAutoStart(), v => window.native.setAutoStart(v))) : null,
         setFlag('readerSyncOnStart', 'Při otevření čtečky stáhnout změny', 'Když je internet.'),
+        setFlag('readerHud', 'Stavový řádek dole', 'Pořadí písně, stránky a co bude dál. Když šablona ukazuje zápatí, schová se.'),
         setFlag('hideCursor', 'Skrývat kurzor myši', ''),
         setFlag('swapMouse', 'Prohodit tlačítka myši', 'Normálně: pravé = další, levé = zpět.'),
         setFlag('wheelNav', 'Listovat kolečkem myši', ''),
