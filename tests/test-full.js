@@ -286,12 +286,29 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   await p.mouse.click(700, 400, { button: 'left' }); await sleep(100);
   assert(JSON.stringify(await pos()) === '[1,1]', 'prohozená tlačítka: levé = další');
   await p.evaluate(() => Settings.set('swapMouse', false));
+  // pódium: dvojité šlápnutí pedálu do 250 ms = jedna stránka
+  await p.evaluate(() => { Reader.songIdx = 0; Reader.pageIdx = 0; Reader.navT = 0; Reader.aimT = 0; Reader.render(); });
+  for (let i = 0; i < 2; i++) { await p.mouse.down({ button: 'right' }); await p.mouse.up({ button: 'right' }); }
+  await sleep(100);
+  assert(JSON.stringify(await pos()) === '[1,0]', 'dvojité šlápnutí pedálu = jen jedna stránka');
+  // seznam písní ovládaný pedálem: pravý = další položka, podržet pravý = potvrdit
+  await sleep(300); await p.mouse.down({ button: 'middle' }); await p.mouse.up({ button: 'middle' }); await sleep(100);
+  await p.evaluate(() => { Reader.aimT = 0; });
+  await p.mouse.down({ button: 'right' }); await p.mouse.up({ button: 'right' }); await sleep(300);
+  assert(await p.evaluate(() => Reader.menu && Reader.menu.sel) === 2, 'pedál v seznamu posune výběr (nevybere položku pod kurzorem)');
+  await p.mouse.down({ button: 'right' }); await sleep(750); await p.mouse.up({ button: 'right' }); await sleep(100);
+  assert(await p.evaluate(() => !Reader.menu) && (await pos())[0] === 2, 'podržený pravý pedál potvrdí');
+  // Esc napoprvé jen upozorní, čtečku nezavře
+  await p.keyboard.press('Escape'); await sleep(100);
+  assert(await p.evaluate(() => Reader.isOpen()) && await p.isVisible('.r-toast:has-text("Stiskni znovu Esc")'), 'Esc napoprvé čtečku nezavře');
   // skrytí kurzoru
   await sleep(2300);
   assert(await p.evaluate(() => document.getElementById('reader').classList.contains('nocursor')), 'kurzor se po 2 s skryje');
   // E = upravit aktuální píseň
+  await p.keyboard.press('e'); await sleep(200);
+  assert(await p.evaluate(() => Reader.isOpen()), 'E napoprvé jen upozorní');
   await p.keyboard.press('e'); await sleep(400);
-  assert(await p.evaluate(() => location.hash.startsWith('#/songs/') && !Reader.isOpen()), 'E otevře píseň v editoru');
+  assert(await p.evaluate(() => location.hash.startsWith('#/songs/') && !Reader.isOpen()), 'E podruhé otevře píseň v editoru');
 
   /* ---------- Záloha a obnova ---------- */
   await p.evaluate(() => { location.hash = '#/settings/backup'; }); await sleep(400);

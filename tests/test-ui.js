@@ -158,8 +158,10 @@ const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode
   await p.keyboard.press('ArrowDown'); await p.keyboard.press('Enter'); await p.waitForTimeout(200);
   assert((await pos())[0] === 1, 'skok na píseň');
   await p.screenshot({ path: '/tmp/claude-0/shots/7-reader2.png' });
+  await p.keyboard.press('Escape'); await p.waitForTimeout(150);
+  assert(await p.evaluate(() => Reader.isOpen()), 'Esc napoprvé jen upozorní');
   await p.keyboard.press('Escape'); await p.waitForTimeout(300);
-  assert(!(await p.evaluate(() => Reader.isOpen())), 'Esc zavře čtečku');
+  assert(!(await p.evaluate(() => Reader.isOpen())), 'Esc dvakrát zavře čtečku');
   // PIN
   await p.evaluate(() => { Settings.set('pinHash', sha1Bytes(utf8.enc('prompter:1234'))); sessionStorage.removeItem('unlocked'); location.hash = '#/settings/device'; });
   await p.waitForTimeout(300);

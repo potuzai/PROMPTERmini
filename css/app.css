@@ -876,6 +876,19 @@ input[type=checkbox].switch:focus-visible { outline: 2px solid var(--acc-hi); ou
 #reader .r-progress i { display: block; height: 100%; background: #e8493f; }
 #reader.bar-on .r-progress { opacity: 1; }
 #reader .r-toast { position: absolute; left: 50%; top: 20px; transform: translateX(-50%); background: rgba(22,23,26,.94); border: 1px solid #3a3d43; color: #e6e3dc; padding: 8px 18px; border-radius: 0; font-size: 20px; font-family: var(--mono); z-index: 6; pointer-events: none; transition: opacity .3s; }
+/* ukazatele na pódiu: tečky stránek písně, další píseň na poslední stránce */
+#reader .r-ind { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); display: flex; gap: 10px; z-index: 4; pointer-events: none; }
+#reader .r-ind i { width: 12px; height: 12px; border-radius: 50%; background: rgba(255,255,255,.28); }
+#reader .r-ind i.on { background: #fff; }
+#reader .r-next { position: absolute; right: 16px; bottom: 10px; z-index: 4; pointer-events: none; padding: 4px 12px; border-radius: 6px; background: rgba(0,0,0,.65); color: #c9c9cd; font: 18px var(--font); }
+#reader .r-next:empty { display: none; }
+#reader .r-next.end { color: #ffb547; }
+/* nabídka: podržený pedál – vybraná položka se plní, po dokončení se potvrdí (pravý) / zavře (levý) */
+#reader .r-overlay.holding .r-opt.sel { background-image: linear-gradient(#e8493f, #e8493f); background-repeat: no-repeat; background-position: left bottom; animation: r-hold .6s linear forwards; }
+@keyframes r-hold { from { background-size: 0 5px; } to { background-size: 100% 5px; } }
+.r-menu .r-opt.r-grp { min-height: 40px; margin-top: 10px; cursor: default; color: #ff8a80; font-size: 16px; letter-spacing: .06em; text-transform: uppercase; }
+.r-menu .r-opt.r-grp .r-l { font-weight: 600; }
+#reader .r-toast.low { top: auto; bottom: 34px; font-size: 18px; }
 #reader .r-fs-hint { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); background: #d7372b; color: #fff; padding: 8px 18px; border-radius: 0; font-size: 15px; font-family: var(--label); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; z-index: 6; pointer-events: none; }
 
 /* ===== Tisk playlistu ===== */

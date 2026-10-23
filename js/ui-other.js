@@ -520,8 +520,8 @@ const SettingsView = {
         setFlag('swapMouse', 'Prohodit tlačítka myši', 'Normálně: pravé = další, levé = zpět.'),
         setFlag('wheelNav', 'Listovat kolečkem myši', ''),
         setRow('Výchozí šablona', 'Vzhled písní, které nemají vlastní šablonu.', tplSel)),
-      h('h3', {}, 'Ovládání'),
-      h('div', { class: 'set-rows set-keys' }, READER_KEYS.map(([k, v]) => h('div', { class: 'set-row' }, h('div', {}, h('b', {}, v)), h('kbd', {}, k)))));
+      ...READER_HELP.flatMap(([g, rows]) => [h('h3', {}, g),
+        h('div', { class: 'set-rows set-keys' }, rows.map(([k, v]) => h('div', { class: 'set-row' }, h('div', {}, h('b', {}, v)), h('kbd', {}, k))))]));
   },
 
   /* ---------- Záloha a import ---------- */

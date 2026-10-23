@@ -25,18 +25,23 @@ Aplikace pro psaní, úpravy a zobrazování textů písní na čtečce (prompte
 
 ### Ovládání čtečky
 
-| Akce | Myš | Klávesnice |
+| Akce | Pedál / myš | Airmouse, klávesnice |
 |---|---|---|
 | další stránka / píseň | **pravé tlačítko** | → ↓ PgDn mezera Enter |
 | předchozí stránka | **levé tlačítko** | ← ↑ PgUp |
 | seznam písní (skok) | prostřední tlačítko | L, Tab, pak číslo nebo šipky |
+| v nabídce: předchozí / další položka | levé / pravé | ↑ ↓ |
+| v nabídce: potvrdit / zpět | **podržet** pravé / levé | Enter / Esc |
 | další / předchozí píseň | | Shift + → / ← |
 | výběr playlistu | | P |
-| celá obrazovka | | F nebo F11 |
+| celá obrazovka | | F (ukončit: F, F) nebo F11 |
 | stáhnout změny | | S |
-| rychlá nabídka (dlaždice) | | Q nebo klávesa menu |
+| nabídka (dlaždice) | | Q nebo klávesa Menu |
+| upravit píseň | | E, E |
 | nápověda | | H |
-| zpět / úpravy | | Esc |
+| zavřít čtečku | | Esc, Esc |
+
+**Na pódiu je čtečka blbuvzdorná:** pedál vždy jen listuje – i když kurzor airmouse zůstal stát nad tlačítkem nebo nabídkou; druhé šlápnutí do 250 ms (zákmit, dvojitý stisk) se nepočítá a držená klávesa nelistuje dál. Kurzor se ukáže jen při záměrném pohybu myši (chvění airmouse se nepočítá) a teprve tehdy kliknutí ovládá tlačítka. Co čtečku opouští (Esc, E, ukončení celé obrazovky), chce stisk dvakrát; tlačítka myši zpět / vpřed čtečku nezavřou. Seznam písní a nabídka se samy zavřou po 20 s nečinnosti, aby nepřekrývaly text. Když má píseň víc stránek, ukazují je tečky dole; na poslední stránce je vpravo dole další píseň (pokud ji neukazuje zápatí šablony) a při přechodu na jinou píseň se krátce ukáže její pořadí a název. Změny ze synchronizace během hraní nepřeskočí na jinou píseň.
 
 Když myš sjede do spodní části obrazovky, objeví se **ovládací lišta** (předchozí / další, pořadí písně a stránky, seznam písní, nabídka) a nahoře tenký pruh s průběhem playlistu. Po chvíli sama zmizí. **Rychlá nabídka** má velké dlaždice: seznam písní, úprava písně, synchronizace a nápověda; zavření čtečky je v její patičce. Vybraný prvek má vždy bílý rámeček, aby byl vidět i z dálky.
 
@@ -92,18 +97,23 @@ Myší jako v textovém editoru: klik do řádku = psaní na tom místě, tažen
 
 ### Ovládání čtečky
 
-| Akce | Myš | Klávesnice |
+| Akce | Pedál / myš | Airmouse, klávesnice |
 |---|---|---|
 | další stránka / píseň | **pravé tlačítko** | → ↓ PgDn mezera Enter |
 | předchozí stránka | **levé tlačítko** | ← ↑ PgUp |
 | seznam písní (skok) | prostřední tlačítko | L, Tab, pak číslo nebo šipky |
+| v nabídce: předchozí / další položka | levé / pravé | ↑ ↓ |
+| v nabídce: potvrdit / zpět | **podržet** pravé / levé | Enter / Esc |
 | další / předchozí píseň | | Shift + → / ← |
 | výběr playlistu | | P |
-| celá obrazovka | | F nebo F11 |
+| celá obrazovka | | F (ukončit: F, F) nebo F11 |
 | stáhnout změny | | S |
-| rychlá nabídka (dlaždice) | | Q nebo klávesa menu |
+| nabídka (dlaždice) | | Q nebo klávesa Menu |
+| upravit píseň | | E, E |
 | nápověda | | H |
-| zpět / úpravy | | Esc |
+| zavřít čtečku | | Esc, Esc |
+
+**Na pódiu je čtečka blbuvzdorná:** pedál vždy jen listuje – i když kurzor airmouse zůstal stát nad tlačítkem nebo nabídkou; druhé šlápnutí do 250 ms (zákmit, dvojitý stisk) se nepočítá a držená klávesa nelistuje dál. Kurzor se ukáže jen při záměrném pohybu myši (chvění airmouse se nepočítá) a teprve tehdy kliknutí ovládá tlačítka. Co čtečku opouští (Esc, E, ukončení celé obrazovky), chce stisk dvakrát; tlačítka myši zpět / vpřed čtečku nezavřou. Seznam písní a nabídka se samy zavřou po 20 s nečinnosti, aby nepřekrývaly text. Když má píseň víc stránek, ukazují je tečky dole; na poslední stránce je vpravo dole další píseň (pokud ji neukazuje zápatí šablony) a při přechodu na jinou píseň se krátce ukáže její pořadí a název. Změny ze synchronizace během hraní nepřeskočí na jinou píseň.
 
 Když myš sjede do spodní části obrazovky, objeví se **ovládací lišta** (předchozí / další, pořadí písně a stránky, seznam písní, nabídka) a nahoře tenký pruh s průběhem playlistu. Po chvíli sama zmizí. **Rychlá nabídka** má velké dlaždice: seznam písní, úprava písně, synchronizace a nápověda; zavření čtečky je v její patičce. Vybraný prvek má vždy bílý rámeček, aby byl vidět i z dálky.
 
