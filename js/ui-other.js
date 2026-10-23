@@ -45,98 +45,21 @@ const TPL_FIELDS = [
 const TemplatesView = {
   previewSong: null, page: 0, selected: null, paintSide: null,
 
-  /* Bez otevřené šablony: seznam jako u písní (2/3) a náhled vybrané šablony (1/3). Klik = náhled, dvojklik / Upravit = editor.
-     S otevřenou šablonou: editor jako u písně – vlevo volby, uprostřed stránka, vpravo uložení a náhled. */
+  /* Rovnou úprava šablony (naposledy upravovaná, jinak výchozí); jiná šablona se vybírá nahoře v levém panelu.
+     Rozložení jako editor písně – vlevo volby, uprostřed stránka, vpravo uložení a náhled. */
   render(main, tplId) {
-    const tpl = tplId && Store.templates.get(tplId);
+    const tpl = Store.templates.get(tplId) || Store.templates.get(this.selected) || Store.templates.get(Settings.get('defaultTemplate')) || [...Store.templates.values()][0];
+    if (!tpl) return;
+    if (tpl.id !== tplId) history.replaceState(null, '', '#/templates/' + tpl.id);
     const content = h('div', { class: 'content', style: { padding: 0 } });
-    if (tpl) { main.append(h('div', { class: 'view has-detail song-open' }, content)); this.editor(content, tpl); return; }
-    App.edit = null;
-    const side = h('div', { class: 'side big-list tpl-list' });
-    main.append(h('div', { class: 'view list-only' }, side, content));
-    const list = h('div', { class: 'list' });
-    const total = h('span', {});
-    const prev = h('div', { class: 'pl-prev' });
-    side.append(h('div', { class: 'pl-split' },
-      h('div', { class: 'pl-main' },
-        h('div', { class: 'sl-titlebar' }, h('h1', {}, 'Šablony'), total),
-        h('div', { class: 'side-head sl-head' },
-          h('button', { class: 'btn primary', onclick: () => this.create(this.selected) }, '＋ Nová šablona'),
-          h('span', { class: 'help' }, 'Vzhled stránky ve čtečce – písmo, barvy, okraje, zpěváci. Přiřazuje se písni.')),
-        h('div', { class: 'sl-row tp-row sl-cols' }, h('span', {}, 'Vzhled'), h('span', {}, 'Název'), h('span', {}, 'Písmo'), h('span', {}, 'Písní')),
-        list,
-        h('div', { class: 'sl-count' }, 'Klik = náhled · dvojklik = upravit · Enter = upravit')),
-      prev));
-    const def = () => Settings.get('defaultTemplate');
-    const songsOf = t => Store.sortedSongs().filter(s => Store.template(s.templateId || def()).id === t.id);
-    const fontInfo = t => `${t.fontFamily} · ${t.fontSize} px` + (t.columns > 1 ? ` · ${t.columns} sloupce` : '');
-    // vzorek: pozadí šablony a „Aa“ jejím písmem v barvě sloky
-    const swatch = t => h('span', { class: 'tp-sw', style: { background: t.bgColor, color: t.verseColor || t.textColor, fontFamily: `"${t.fontFamily}", sans-serif`, fontWeight: t.fontWeight } }, 'Aa');
-    const open = id => { location.hash = '#/templates/' + id; };
-    const setDef = t => { Settings.set('defaultTemplate', t.id); paintList(); toast('Nastaveno jako výchozí šablona', 'ok'); };
-    const paintPrev = t => {
-      prev.innerHTML = '';
-      if (!t) { prev.appendChild(h('div', { class: 'help pl-prev-empty' }, 'Klikni na šablonu a tady uvidíš její náhled.')); return; }
-      const songs = songsOf(t), isDef = t.id === def();
-      const sample = Store.songs.get(this.previewSong) || songs[0] || Store.sortedSongs()[0] || sampleSong();
-      const box = h('div', { class: 'mini-page' });
-      const wrap = h('div', { class: 'mini-wrap' }, box);
-      prev.append(
-        h('div', { class: 'pl-prev-head' }, h('h3', {}, t.name),
-          h('div', { class: 'pl-prev-meta' }, fontInfo(t))),
-        h('div', { class: 'pl-prev-btns two' },
-          h('button', { class: 'btn primary', onclick: () => open(t.id) }, '✎ Upravit'),
-          isDef ? h('button', { class: 'btn tp-isdef', disabled: true, title: 'Platí pro písně, které nemají vlastní šablonu' }, '★ Výchozí')
-            : h('button', { class: 'btn', title: 'Platí pro písně, které nemají vlastní šablonu', onclick: () => setDef(t) }, '☆ Nastavit výchozí')),
-        wrap,
-        h('div', { class: 'ep-lbl' }, 'Používají ji'),
-        songs.length ? h('div', { class: 'chips' }, songs.slice(0, 12).map(s => h('button', { class: 'chip', onclick: () => { location.hash = '#/songs/' + s.id; } }, s.title || '(bez názvu)')),
-          songs.length > 12 ? h('span', { class: 'help' }, `a ${plural(songs.length - 12, 'další', 'další', 'dalších')}`) : null)
-          : h('div', { class: 'help' }, 'Zatím žádná píseň.'));
-      miniPage(box, Object.assign({}, sample, { templateId: t.id, style: null }));
-      const scr = Screens.edit(), ratio = scr.w / scr.h;
-      const size = () => { const r = wrap.getBoundingClientRect(); if (r.width && r.height) box.style.width = Math.floor(Math.min(r.width, r.height * ratio)) + 'px'; };
-      new ResizeObserver(size).observe(wrap);
-    };
-    const select = id => {
-      this.selected = id;
-      $$('.item', list).forEach(el => el.classList.toggle('active', el.dataset.id === id));
-      paintPrev(Store.templates.get(id));
-    };
-    const paintList = () => {
-      list.innerHTML = '';
-      const tpls = [...Store.templates.values()].sort((a, b) => (b.id === def()) - (a.id === def()) || a.name.localeCompare(b.name, 'cs'));
-      for (const raw of tpls) {
-        const t = tplFill(Object.assign(clone(DEFAULT_TEMPLATE), raw));
-        list.appendChild(h('div', { class: 'item sl-row tp-row', 'data-id': t.id, title: 'Klik = náhled, dvojklik = upravit',
-          onclick: () => isMobile() ? open(t.id) : select(t.id), ondblclick: () => open(t.id) },
-          swatch(t),
-          h('b', { class: 'sl-title' }, t.name, t.id === def() ? h('small', { class: 'tp-def' }, '★ výchozí') : null),
-          h('span', { class: 'sl-artist' }, fontInfo(t)),
-          h('span', { class: 'sl-key' }, String(songsOf(t).length))));
-      }
-      total.textContent = plural(tpls.length, 'šablona', 'šablony', 'šablon');
-      const keep = tpls.find(x => x.id === this.selected) || tpls[0];
-      select(keep ? keep.id : null);
-    };
-    list.tabIndex = 0;
-    list.addEventListener('keydown', e => {
-      const rows = $$('.item', list); const i = rows.findIndex(r => r.classList.contains('active'));
-      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-        e.preventDefault();
-        const n = rows[Math.max(0, Math.min(rows.length - 1, i + (e.key === 'ArrowDown' ? 1 : -1)))];
-        if (n) { select(n.dataset.id); n.scrollIntoView({ block: 'nearest' }); }
-      } else if (e.key === 'Enter' && this.selected) open(this.selected);
-    });
-    this.paintSide = paintList;
-    paintList();
+    main.append(h('div', { class: 'view has-detail song-open' }, content));
+    this.editor(content, tpl);
   },
 
-  async create(fromId) {
+  async create() {   // nová šablona s původním nastavením (kopii současné udělá Uložit jako)
     const name = await promptDlg('Název nové šablony', 'Moje šablona');
     if (!name) return;
-    const base = Store.template(fromId);
-    const t = Object.assign(clone(base), { id: uid(), name });
+    const t = Object.assign(clone(DEFAULT_TEMPLATE), { id: uid(), name });
     await Store.put('templates', t);
     location.hash = '#/templates/' + t.id;
   },
@@ -174,9 +97,17 @@ const TemplatesView = {
     // Levý panel: název a všechny volby šablony po skupinách
     const nameInp = h('input', { class: 'inp ep-title', value: t.name, placeholder: 'Název šablony' });
     nameInp.oninput = () => { t.name = nameInp.value; markDirty(); };
+    // výběr šablony k úpravě (při neuložených změnách se App zeptá) a nová šablona
+    const tplSel = h('select', { class: 'inp', title: 'Kterou šablonu upravit' });
+    const paintSel = () => tplSel.replaceChildren(...[...Store.templates.values()].sort((a, b) => a.name.localeCompare(b.name, 'cs'))
+      .map(x => h('option', { value: x.id, selected: x.id === t.id }, x.name + (x.id === Settings.get('defaultTemplate') ? ' ★' : ''))));
+    paintSel();
+    tplSel.onchange = () => { const id = tplSel.value; tplSel.value = t.id; location.hash = '#/templates/' + id; };
     const form = h('div', { class: 'ed-panel ed-left-panel tpl-form' },
-      h('button', { class: 'ep-back', title: 'Zpět na seznam šablon', onclick: () => { location.hash = '#/templates'; } }, '◀ Šablony'),
-      h('div', { class: 'ep-group ep-meta' }, h('label', { class: 'f' }, h('span', {}, 'Název šablony'), nameInp)));
+      h('div', { class: 'ep-group ep-meta' },
+        h('div', { class: 'f' }, h('span', {}, 'Šablona'), h('div', { class: 'tpl-row' }, tplSel,
+          h('button', { class: 'btn small nogrow', title: 'Nová šablona s původním nastavením', onclick: () => this.create() }, '＋ Nová'))),
+        h('label', { class: 'f' }, h('span', {}, 'Název'), nameInp)));
     let grp = null;
     for (const f of TPL_FIELDS) {
       if (f.g) { grp = h('div', { class: 'ep-group tpl-grp' }, h('div', { class: 'ep-lbl' }, f.g), f.help ? h('p', { class: 'help' }, f.help) : null); form.appendChild(grp); continue; }
@@ -254,11 +185,11 @@ const TemplatesView = {
       const n = Store.sortedSongs().filter(s => Store.template(s.templateId || Settings.get('defaultTemplate')).id === t.id).length;
       useBox.replaceChildren(h('div', { class: 'ep-lbl' }, 'Použití'),
         isDef ? h('div', { class: 'tp-isdef-row' }, '★ Výchozí šablona') :
-          h('button', { class: 'btn', title: 'Platí pro písně, které nemají vlastní šablonu', onclick: () => { Settings.set('defaultTemplate', t.id); paintUse(); toast('Nastaveno jako výchozí šablona', 'ok'); } }, '☆ Nastavit jako výchozí'),
+          h('button', { class: 'btn', title: 'Platí pro písně, které nemají vlastní šablonu', onclick: () => { Settings.set('defaultTemplate', t.id); this.paintSide(); toast('Nastaveno jako výchozí šablona', 'ok'); } }, '☆ Nastavit jako výchozí'),
         h('div', { class: 'ep-info' }, n ? 'Používá ' + plural(n, 'píseň', 'písně', 'písní') : 'Zatím ji nepoužívá žádná píseň.'));
     };
     paintUse();
-    this.paintSide = paintUse;
+    this.paintSide = () => { paintSel(); paintUse(); };
     const side = h('div', { class: 'ed-side' },
       h('div', { class: 'ed-save' }, savedInd, h('div', { class: 'ed-save-row' }, moreBtn, saveBtn)),
       useBox,
