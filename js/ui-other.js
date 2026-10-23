@@ -247,7 +247,6 @@ const TemplatesView = {
     // Vpravo: uložení, použití šablony, náhled
     const moreBtn = h('button', { class: 'btn nogrow', title: 'Další volby šablony', onclick: e => popupMenu(e.currentTarget, [
       { label: 'Uložit jako novou šablonu', action: () => saveAs() },
-      { label: 'Nová šablona podle této', action: () => this.create(t.id) },
       ...(t.id !== 'default' ? [{ sep: true }, { label: 'Smazat šablonu', danger: true, action: () => this.del(t) }] : [])]) }, '⋯');
     const useBox = h('div', { class: 'ep-group' });
     const paintUse = () => {
