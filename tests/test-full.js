@@ -369,6 +369,7 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   assert(await p.isVisible('.se-wrap .sz[data-p="155"]'), 'stránka ukáže větší text');
   assert(await p.evaluate(() => /font-size:1\.55em/.test(inlineHtml('{++:a} {130%:b}', {})) && inlineHtml('{130%:b}', {}).includes('1.3em')), 'starší i nový zápis velikosti');
   assert(await p.evaluate(() => { const x = inlineHtml('{90%:a {96%:b}} {#ff0000:{80%:c}}', {}); return !x.includes('{') && x.includes('font-size:0.96em') && x.includes('color:#ff0000'); }), 'vnořená velikost a vlastní barva písma');
+  assert(await p.evaluate(() => formatLine('', 'font', 'Arial') === '{ƒArial:}' && formatLine('{ƒArial:}', 'font', '') === '' && formatLine('', 'bold') === ''), 'prázdný řádek si pamatuje písmo');
   // řádkování řádku s kurzorem
   await p.click('.se-wrap .b-line:has-text("velký")'); await sleep(150);
   await p.click('.ed-tools label[title^="Řádkování"] input'); await p.keyboard.type('2'); await p.keyboard.press('Enter'); await sleep(300);

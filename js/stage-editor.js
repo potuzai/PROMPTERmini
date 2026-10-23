@@ -443,6 +443,11 @@ class StageEditor {
     const { body } = splitLine(src, t.kind);
     el.innerHTML = veInline(body, this.ed.singerMap()) || '';
     if (!el.firstChild) el.appendChild(document.createTextNode(''));
+    else if (!el.textContent.replace(/\u200b/g, '')) {   // prázdný řádek s formátováním: kurzor dovnitř značek, ať psaný text převezme písmo, velikost…
+      let n = el;
+      while (n.lastElementChild && !n.lastElementChild.classList.contains('vchord')) n = n.lastElementChild;
+      n.appendChild(document.createTextNode('\u200b'));
+    }
     el.classList.add('is-edit');
     el.contentEditable = 'true';
     el.spellcheck = false;
@@ -1231,6 +1236,8 @@ function wrapOuter(b, w) {
   return b;
 }
 function formatLine(src, kind, val) {
+  // prázdný řádek si formátování pamatuje (např. {ƒArial:}) – co se do něj napíše, má písmo, barvu, velikost…
+  if (!String(src).trim()) return ['bold', 'italic', 'upper', 'lower', 'kc-on', 'kc-off'].includes(kind) ? src : formatLine('\u200b', kind, val).replace(/\u200b/g, '');
   const info = parseSong(src).lines[0] || {};
   if (info.kind === 'section' && kind === 'color') return formatSectionLine(Object.assign(parseSectionLine(src), { color: val || '' }));   // barva z lišty u nadpisu = barva sekce
   if (!['line', 'note', 'section'].includes(info.kind)) return src;
