@@ -1,7 +1,7 @@
 {
   "name": "prompter-mini",
   "productName": "PROMPTER mini",
-  "version": "1.25.0",
+  "version": "2.0.0",
   "description": "Čtečka a editor textů písní pro kapelu",
   "main": "electron/main.js",
   "private": true,
