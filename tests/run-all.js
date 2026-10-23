@@ -33,7 +33,16 @@ setTimeout(() => {
     if (only.length && !only.some(o => t.includes(o))) continue;
     console.log('\n=== ' + t);
     const args = [path.join(__dirname, t)];
-    const r = xvfb && /folder|mega|electron/.test(t) ? spawnSync('xvfb-run', ['-a', process.execPath, ...args], { stdio: 'inherit' }) : spawnSync(process.execPath, args, { stdio: 'inherit' });
+    // na GitHubu výstup projde i do anotací (FAIL a chyby jsou vidět u běhu bez stahování logu)
+    const gh = !!process.env.GITHUB_ACTIONS;
+    const opts = gh ? { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 64 << 20 } : { stdio: 'inherit' };
+    const r = xvfb && /folder|mega|electron/.test(t) ? spawnSync('xvfb-run', ['-a', process.execPath, ...args], opts) : spawnSync(process.execPath, args, opts);
+    if (gh) {
+      process.stdout.write((r.stdout || '') + (r.stderr || ''));
+      const bad = (r.stdout || '').split('\n').filter(l => l.startsWith('FAIL'));
+      if (r.status !== 0 && !bad.length) bad.push('skončil s chybou: ' + String(r.stderr || r.error || '').trim().split('\n').slice(0, 6).join(' | '));
+      for (const l of bad) console.log(`::error title=${t}::${l.replace(/[\r\n]+/g, ' ').slice(0, 900)}`);
+    }
     if (r.status !== 0) failed = true;
   }
   bg.forEach(p => p.kill());
