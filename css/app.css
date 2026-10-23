@@ -161,7 +161,7 @@ code { font-family: var(--mono); font-size: 12.5px; background: var(--well); bor
 .ed-pages { position: absolute; right: 12px; bottom: 12px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px; border: 1px solid var(--line2); border-radius: var(--r); background: var(--panel); }   /* stránkování vpravo dole: ▲ číslo ▼ */
 .ed-pages .page-lbl { color: var(--text); font-size: 13px; font-variant-numeric: tabular-nums; }
 .ed-pages .tl { min-width: 30px; height: 26px; padding: 0; }
-.ed-save { display: flex; flex-direction: column; gap: 8px; }
+.ed-save { display: flex; flex-direction: column-reverse; gap: 8px; }   /* čtečka nahoře, pod ní uložit a další volby */
 .ed-save-row { display: flex; gap: 6px; }
 .ed-save-row .btn:last-child, .ed-save > .btn { flex: 1; justify-content: center; }   /* ⋯ vlevo, Uložit přes zbytek */
 .se-wrap .stage { box-shadow: 0 0 0 1px rgba(0,0,0,.6), 0 14px 40px rgba(0,0,0,.45); }
@@ -511,8 +511,7 @@ details summary { color: var(--text); }
 .tools-side .ed-tools-text > .tl-lh-grp > .tl-step { flex: 0 0 26px; }
 .tools-side .ep-text .ep-lbl-row .tl-grp { position: static; gap: 2px; }
 .tools-side .ep-text .ep-lbl-row .tl { height: 26px; min-width: 28px; padding: 0 4px; }
-.tools-side .ed-save { flex-direction: column-reverse; }   /* čtečka nahoře, pod ní uložit a další volby */
-.tools-side .ed-save .saved-ind { margin-top: -2px; }
+.ed-save .saved-ind { margin-top: -2px; }
 /* plovoucí lišta: úzký sloupec, tlačítka ve 2 sloupcích (jako palety nástrojů v grafických editorech), čísla nad − + */
 .tools-float .ed-tools { position: absolute; z-index: 20; flex-direction: column; align-items: stretch; gap: 10px; width: 104px; padding: 6px 8px 10px; border: 1px solid var(--line2); border-radius: var(--rc); box-shadow: 0 10px 28px rgba(0,0,0,.5); }
 .tools-float .ed-tools > .tl-mode, .tools-float .ed-tools > .ed-undo { position: static; }

@@ -396,7 +396,7 @@ class SongEditor {
     } else {
       this.tools.replaceChildren(this.modeGrp, this.toolsText, this.undoGrp);
       if (this.tools.parentNode !== this.center) this.center.prepend(this.tools);
-      this.pager.replaceChildren(this.sgGroup, this.pageGroup, this.sideGrow, this.pvGroup, this.saveBox);
+      this.pager.replaceChildren(this.saveBox, this.pageGroup, this.sgGroup, this.sideGrow, this.pvGroup);   // stejné pořadí, jen bez úprav textu
     }
     if (mode === 'float') { const p = Settings.get('edToolsPos') || { x: 12, y: 12 }; this.placeTools(p.x, p.y); }
     else this.tools.style.left = this.tools.style.top = '';
