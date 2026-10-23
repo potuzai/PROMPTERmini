@@ -426,7 +426,13 @@ const Reader = {
       paint: (scroll = true) => {
         const all = m.els();
         all.forEach((x, i) => x.classList.toggle('sel', i === m.sel));
-        if (scroll && all[m.sel]) all[m.sel].scrollIntoView({ block: 'nearest' });
+        // posunout jen seznam (scrollIntoView by posouval i celou čtečku – text by uskočil do strany)
+        const el = all[m.sel];
+        if (scroll && el && el.parentNode === list) {
+          const top = el.offsetTop, bot = top + el.offsetHeight;
+          if (top < list.scrollTop) list.scrollTop = top - 10;
+          else if (bot > list.scrollTop + list.clientHeight) list.scrollTop = bot - list.clientHeight + 10;
+        }
       },
     };
     this.el.appendChild(ov);
