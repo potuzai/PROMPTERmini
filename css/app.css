@@ -261,7 +261,8 @@ kbd { font: 600 11px/1 var(--mono); padding: 3px 5px; border: 1px solid var(--li
 .pl-list .pl-prev { flex: 2 1 0; }
 .pl-prev-head h3 { margin: 0 0 4px; font: 600 19px var(--font); letter-spacing: 0; text-transform: none; color: var(--text); }
 .pl-prev-meta { font-size: 12.5px; color: var(--dim); }
-.pl-prev-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+.pl-prev-btns { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.pl-prev-btns .btn.play { min-height: 40px; padding: 6px 20px; font-size: 15px; font-weight: 600; }   /* Čtečka výraznější */
 .pl-prev-empty { padding: 4px 0; }
 /* Náhled = zkrácená úprava playlistu */
 .pl-prev-title { display: flex; align-items: center; gap: 6px; }
