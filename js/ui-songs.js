@@ -1219,28 +1219,40 @@ function swallowClick(el) {
   setTimeout(() => document.removeEventListener('click', stop, true), 1000);
 }
 
-/* items: { label, action, hint (klávesa vpravo), danger } nebo { sep: true } = oddělovač */
-function popupMenu(anchor, items) {
+/* items: { label, action, hint (klávesa vpravo), danger, cls } nebo { sep: true } = oddělovač, { head: 'text' } = nadpis skupiny */
+function popupMenu(anchor, items, cls = '') {
   $$('.menu').forEach(m => m.remove());
-  const m = h('div', { class: 'menu' }, items.map(it => it.sep ? h('hr', { class: 'menu-sep' })
-    : h('div', { class: it.danger ? 'danger' : '', onclick: () => { m.remove(); it.action(); } }, it.label, it.hint ? h('kbd', {}, it.hint) : null)));
+  const m = h('div', { class: 'menu' + (cls ? ' ' + cls : '') }, items.map(it => it.sep ? h('hr', { class: 'menu-sep' }) : it.head ? h('div', { class: 'menu-head' }, it.head)
+    : h('div', { class: (it.danger ? 'danger ' : '') + (it.cls || ''), onclick: () => { m.remove(); it.action(); } }, it.label, it.hint ? h('kbd', {}, it.hint) : null)));
   m.addEventListener('mousedown', e => e.preventDefault());   // klik do nabídky nebere fokus (stránka editoru dál reaguje na klávesy)
   placePopover(m, anchor);
 }
 
+/* Přidat do playlistu: nový playlist nahoře, pak oblíbené a ostatní; u každého datum a počet písní, ✓ = píseň už v něm je */
 function addToPlaylistMenu(anchor, songIds) {
-  const items = Store.sortedPlaylists().map(p => ({ label: `${p.name} (${p.items.length})`, action: async () => {
-    p.items.push(...songIds.filter(id => !p.items.includes(id)));
-    await Store.put('playlists', p);
-    toast(`Přidáno do „${p.name}“`, 'ok');
-  } }));
-  items.unshift({ label: '＋ Nový playlist', action: async () => {
-    const name = await promptDlg('Název nového playlistu', playlistNameHint());
-    if (!name) return;
-    const p = await Store.put('playlists', newPlaylist(name, [...songIds]));
-    toast(`Vytvořen playlist „${p.name}“`, 'ok');
-  } });
-  popupMenu(anchor, items);
+  const item = p => {
+    const has = songIds.every(id => p.items.includes(id));
+    const meta = [p.date ? new Date(p.date).toLocaleDateString('cs-CZ') : '', plural(p.items.length, 'píseň', 'písně', 'písní')].filter(Boolean).join(' · ');
+    return { cls: 'atp-it' + (has ? ' has' : ''), label: h('span', { class: 'atp-t' }, h('b', {}, p.name || '(bez názvu)'), h('small', {}, meta)), hint: has ? '✓ už obsahuje' : '',
+      action: async () => {
+        if (has) return toast(`Píseň už v „${p.name}“ je`, 'info');
+        p.items.push(...songIds.filter(id => !p.items.includes(id)));
+        await Store.put('playlists', p);
+        toast(`Přidáno do „${p.name}“`, 'ok');
+      } };
+  };
+  const all = Store.sortedPlaylists(), fav = all.filter(isReadyPl).sort((a, b) => a.ready - b.ready), rest = all.filter(p => !isReadyPl(p));
+  popupMenu(anchor, [
+    { head: 'Přidat do playlistu' },
+    { cls: 'atp-new', label: '＋ Nový playlist', action: async () => {
+      const name = await promptDlg('Název nového playlistu', playlistNameHint());
+      if (!name) return;
+      const p = await Store.put('playlists', newPlaylist(name, [...songIds]));
+      toast(`Vytvořen playlist „${p.name}“`, 'ok');
+    } },
+    ...(fav.length ? [{ sep: true }, { head: '★ Oblíbené' }, ...fav.map(item)] : []),
+    ...(rest.length ? [{ sep: true }, { head: fav.length ? 'Ostatní' : 'Playlisty' }, ...rest.map(item)] : []),
+  ], 'atp-menu');
 }
 
 const SECTION_TYPES = ['Sloka', 'Refrén', 'Mezičást', 'Předehra', 'Mezihra', 'Sólo'];
