@@ -638,12 +638,13 @@ class SongEditor {
   settingsPopover(anchor, title, keys, groups) {
     $$('.menu').forEach(m => m.remove());
     const F = k => TPL_FIELDS.find(f => f.k === k);
-    const box = h('div', { class: 'pg-set' });
+    const box = h('div', { class: 'pg-set' + (groups.length > 3 ? ' two' : '') });   // víc skupin = dva sloupce, ať okno není dlouhé
     const paint = () => {
       box.innerHTML = '';
       const tpl = this.lookTpl(), base = this.baseTpl(), st = this.style || {};
       for (const [gTitle, rows] of groups) {
-        box.appendChild(h('div', { class: 'pg-g' }, gTitle));
+        const card = h('div', { class: 'pg-card' }, h('div', { class: 'pg-g' }, gTitle));
+        box.appendChild(card);
         for (const [k, label, unit, opts] of rows) {
           const f = F(k), v = tpl[k], own = st[k] !== undefined && st[k] !== base[k];
           const set = val => { this.setSong(k, val); paint(); };
@@ -670,17 +671,18 @@ class SongEditor {
               h('label', { class: 'pg-num' }, numField(v, { pct: unit === '%', dec: unit === '%' ? 0 : dec, min: f.min, max: f.max }, set), unit ? h('span', {}, unit) : null),
               h('button', { class: 'tl tl-step', onmousedown: e => e.preventDefault(), onclick: () => go(1) }, '+'));
           }
-          box.appendChild(h('div', { class: 'pg-row' + (own ? ' own' : ''), title: own ? 'Jen pro tuto píseň (šablona: ' + base[k] + ')' : 'Podle šablony' }, h('span', { class: 'pg-l' }, label), ctl));
+          card.appendChild(h('div', { class: 'pg-row' + (own ? ' own' : ''), title: own ? 'Jen pro tuto píseň (šablona: ' + base[k] + ')' : 'Podle šablony' }, h('span', { class: 'pg-l' }, label), ctl));
         }
       }
-      reset.style.display = keys.some(k => st[k] !== undefined) ? '' : 'none';
+      reset.disabled = !keys.some(k => st[k] !== undefined);
     };
-    const reset = h('button', { class: 'btn small nogrow', style: { alignSelf: 'flex-start' }, onclick: () => {
+    const reset = h('button', { class: 'btn small nogrow', title: 'Zrušit vlastní nastavení – vše podle šablony', onclick: () => {
       const st = Object.assign({}, this.style || {}); keys.forEach(k => delete st[k]);
       this.style = Object.keys(st).length ? st : null; this.markDirty(); this.se.pushHist(); this.se.render(); this.onSelChange(); paint();
     } }, 'Vše podle šablony');
-    const m = h('div', { class: 'menu menu-form menu-page' }, h('div', { class: 'menu-head' }, title),
-      h('div', { class: 'help' }, 'Výchozí je šablona, změny platí jen pro tuto píseň (označené tečkou).'), box, reset);
+    const m = h('div', { class: 'menu menu-form menu-page' + (groups.length > 3 ? ' wide' : '') },
+      h('div', { class: 'pg-top' }, h('div', {}, h('div', { class: 'pg-title' }, title), h('div', { class: 'pg-sub' }, 'Jen pro tuto píseň, jinak podle šablony · ', h('i', { class: 'pg-dot' }), ' vlastní')), reset),
+      box);
     paint();
     placePopover(m, anchor);
   }
