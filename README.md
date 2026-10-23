@@ -33,14 +33,13 @@ Aplikace pro psaní, úpravy a zobrazování textů písní na čtečce (prompte
 | další / předchozí píseň | | Shift + → / ← |
 | výběr playlistu | | P |
 | větší / menší písmo | | + / − (0 = výchozí) |
-| zrcadlení (sklo prompteru) | | M |
 | celá obrazovka | | F nebo F11 |
 | stáhnout změny | | S |
 | rychlá nabídka (dlaždice) | | Q nebo klávesa menu |
 | nápověda | | H |
 | zpět / úpravy | | Esc |
 
-Když myš sjede do spodní části obrazovky, objeví se **ovládací lišta** (předchozí / další, pořadí písně a stránky, seznam písní, nabídka) a nahoře tenký pruh s průběhem playlistu. Po chvíli sama zmizí. **Rychlá nabídka** má velké dlaždice: seznam písní, menší / větší písmo, zrcadlení, synchronizace, úprava písně, nápověda a zavření čtečky. Vybraný prvek má vždy bílý rámeček, aby byl vidět i z dálky.
+Když myš sjede do spodní části obrazovky, objeví se **ovládací lišta** (předchozí / další, pořadí písně a stránky, seznam písní, nabídka) a nahoře tenký pruh s průběhem playlistu. Po chvíli sama zmizí. **Rychlá nabídka** má velké dlaždice: seznam písní, menší / větší písmo, synchronizace, úprava písně, nápověda a zavření čtečky. Vybraný prvek má vždy bílý rámeček, aby byl vidět i z dálky.
 
 Monitor čtečky během běhu programu neusne. Program se po případném pádu sám obnoví a každý den zálohuje data do `data\zalohy` (drží 14 dní).
 
@@ -102,14 +101,13 @@ Myší jako v textovém editoru: klik do řádku = psaní na tom místě, tažen
 | další / předchozí píseň | | Shift + → / ← |
 | výběr playlistu | | P |
 | větší / menší písmo | | + / − (0 = výchozí) |
-| zrcadlení (sklo prompteru) | | M |
 | celá obrazovka | | F nebo F11 |
 | stáhnout změny | | S |
 | rychlá nabídka (dlaždice) | | Q nebo klávesa menu |
 | nápověda | | H |
 | zpět / úpravy | | Esc |
 
-Když myš sjede do spodní části obrazovky, objeví se **ovládací lišta** (předchozí / další, pořadí písně a stránky, seznam písní, nabídka) a nahoře tenký pruh s průběhem playlistu. Po chvíli sama zmizí. **Rychlá nabídka** má velké dlaždice: seznam písní, menší / větší písmo, zrcadlení, synchronizace, úprava písně, nápověda a zavření čtečky. Vybraný prvek má vždy bílý rámeček, aby byl vidět i z dálky.
+Když myš sjede do spodní části obrazovky, objeví se **ovládací lišta** (předchozí / další, pořadí písně a stránky, seznam písní, nabídka) a nahoře tenký pruh s průběhem playlistu. Po chvíli sama zmizí. **Rychlá nabídka** má velké dlaždice: seznam písní, menší / větší písmo, synchronizace, úprava písně, nápověda a zavření čtečky. Vybraný prvek má vždy bílý rámeček, aby byl vidět i z dálky.
 
 Monitor čtečky během běhu programu neusne. Program se po případném pádu sám obnoví a každý den zálohuje data do `data\zalohy` (drží 14 dní).
 
@@ -184,7 +182,7 @@ Starší zápisy pro muzikanty (akordy `[Am]`, `%G …`, bloky `%%G … %%`) se 
 
 **Barva textu** může být podle zpěváka, nebo **podle části písně** (šablona *Barvy podle částí písně*: sloka bílá, refrén žlutý, mezičást zelená; zpěváka pak ukazuje jen barevný pruh). Část se pozná podle názvu sekce: „Refrén…“, „Mezičást / Bridge / Předrefrén…“, ostatní je sloka.
 
-**Zpěváky** určuje šablona: v záložce **Šablony › Zpěváci** je přidáš, odebereš, změníš barvu (klik na tečku) a nastavíš, jak se označí (proužek vlevo / vpravo, podklad, barva písma). Platí pro všechny písně s touto šablonou; jednu píseň jde nastavit jinak v editoru (ikona vedle zpěváků). Vzhled stránky (písmo, velikost, barvy, okraje, zarovnání, sloupce, zmenšení dlouhých písní, zrcadlení) nastavíš v záložce **Šablony**. Šablonu přiřadíš písni (Údaje… → Šablona písně). Formátování drží každá píseň sama, playlist ho nemění – rozměr stránky určuje jen nastavení monitoru.
+**Zpěváky** určuje šablona: v záložce **Šablony › Zpěváci** je přidáš, odebereš, změníš barvu (klik na tečku) a nastavíš, jak se označí (proužek vlevo / vpravo, podklad, barva písma). Platí pro všechny písně s touto šablonou; jednu píseň jde nastavit jinak v editoru (ikona vedle zpěváků). Vzhled stránky (písmo, velikost, barvy, okraje, zarovnání, sloupce, zmenšení dlouhých písní) nastavíš v záložce **Šablony**. Šablonu přiřadíš písni (Údaje… → Šablona písně). Formátování drží každá píseň sama, playlist ho nemění – rozměr stránky určuje jen nastavení monitoru.
 
 ### Obrazovky kapely a osobní zobrazení
 

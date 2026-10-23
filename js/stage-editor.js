@@ -207,7 +207,6 @@ class StageEditor {
     lay.blocks.forEach((b, i) => {
       if ((b.type === 'gap' && !b.extra) || b.type === 'break' || b.private || pageOf[i] === undefined) return;
       if (b.type === 'section' && ((!tpl.showSections && !b.repeat && !b.instr) || b.hidden)) return;   // předehra, mezihra, sólo jsou vidět vždy
-      if (b.type === 'note' && !tpl.showNotes && !b.warn) return;
       const rep = b.repeat || (info[b.src] && info[b.src].kind === 'repeat');
       const line = b.repeat ? b.rsrc : b.src;
       let key = (rep ? 'r' : 's') + line;

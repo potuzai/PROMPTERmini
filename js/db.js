@@ -25,7 +25,7 @@ const DEFAULT_TEMPLATE = {
   align: 'center', uppercase: true,
   textColor: '#ffffff', bgColor: '#000000',
   sectionColor: '#8a8a8a', sectionScale: 0.5, showSections: false,
-  noteColor: '#b0b0b0', showNotes: true,
+  noteColor: '#b0b0b0',
   padX: 0, padY: 0, columns: 1, colGap: 30, stanzaGap: 0.1,
   // označení zpěváka: proužek vlevo / vpravo, podbarvení řádku, barva písma (libovolná kombinace; píseň může přepsat)
   singerText: false, singerBar: true, singerBarRight: false, singerBg: false, barWidth: 15,
@@ -35,7 +35,6 @@ const DEFAULT_TEMPLATE = {
   onePage: true,   // zakázat více stránek: písmo se zmenší, aby se píseň vešla na 1 stránku
   fit: 'shrink', minScale: 0.6,
   showHeader: true, showFooter: false, headerSize: 25, headerColor: '#9e9e9e',
-  mirror: 'none',
 };
 // zrušené vestavěné šablony starších verzí – smažou se všude (i ze sdílených dat kapely)
 const DROPPED_TEMPLATES = ['casti-pisne', 'velke-stred', 'svetla', 'dva-sloupce'];

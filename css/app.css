@@ -805,7 +805,7 @@ input[type=checkbox].switch:focus-visible { outline: 2px solid var(--acc-hi); ou
 .b-note.private::before { content: "Moje: "; font-weight: 700; }
 .b-line.not-mine { opacity: .38; }
 .b-gap { height: var(--gap); }
-.hide-sections .b-sec, .hide-notes .b-note { display: none; }
+.hide-sections .b-sec { display: none; }
 .b-instr { font-size: .7em; font-weight: 700; text-transform: uppercase; }   /* předehra, mezihra, sólo */
 .rep-n { font-weight: 700; }
 .sz { line-height: 1.1; }
@@ -854,6 +854,7 @@ input[type=checkbox].switch:focus-visible { outline: 2px solid var(--acc-hi); ou
 .r-grid .r-opt kbd { position: absolute; right: 12px; top: 10px; }
 .r-grid .r-opt.danger { background: #3a2725; border-color: #3a2725; color: #ffb3aa; }
 .r-grid .r-opt.danger > .ic { color: inherit; }
+.r-grid .r-opt.wide { grid-column: 1 / -1; flex-direction: row; min-height: 64px; }   /* zavřít přes celou šířku */
 .r-grid .r-opt.sel { outline-offset: 3px; }
 /* ovládací lišta dole a průběh playlistu nahoře */
 #reader .r-bar { position: absolute; left: 50%; bottom: 6vh; transform: translate(-50%, 20px); display: flex; align-items: center; gap: 6px; padding: 8px; background: rgba(39,39,41,.95); border: 1px solid #36363a; border-radius: 14px; box-shadow: 0 20px 60px rgba(0,0,0,.6); z-index: 6; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; color: #fff; font-family: var(--font); }

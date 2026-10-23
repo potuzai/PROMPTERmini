@@ -7,7 +7,7 @@ function songSingers(s) {
   return [...codes].filter(c => sm[c]).map(c => sm[c]);
 }
 // volby stránky, které jde u písně nastavit jinak než v šabloně (Stránka písně v pravém panelu)
-const PAGE_KEYS = ['onePage', 'fit', 'minScale', 'padX', 'padY', 'columns', 'colGap', 'showHeader', 'headerSize', 'headPadX', 'showFooter', 'footerSize', 'footPadX', 'showNotes', 'mirror'];
+const PAGE_KEYS = ['onePage', 'fit', 'minScale', 'padX', 'padY', 'columns', 'colGap', 'showHeader', 'headerSize', 'headPadX', 'showFooter', 'footerSize', 'footPadX'];
 // volby sekcí písně (Struktura v levém panelu)
 const SECTION_KEYS = ['showSections', 'sectionScale', 'sectionColor', 'stanzaGap', 'verseColor', 'chorusColor', 'bridgeColor', 'instrColor'];
 const SongsView = {
@@ -254,7 +254,7 @@ class SongEditor {
     // Pravý panel: zpěváci, stránka písně, náhled (obrazovka, playlist), uložení a čtečka; pořadí podle umístění úprav textu
     this.sgGroup = h('div', { class: 'ep-group' }, h('div', { class: 'ep-lbl ep-lbl-row' }, h('span', {}, 'Zpěváci'), sgShowBtn), this.sgRow);
     this.pageGroup = h('div', { class: 'ep-group' }, h('div', { class: 'ep-lbl ep-lbl-row' }, h('span', {}, 'Stránka písně'),
-      this.pageSetBtn = tool(ic('sliders'), 'Rozvržení a zobrazení stránky jen pro tuto píseň: okraje, sloupce, mezery, dlouhá píseň, záhlaví a zápatí, nadpisy sekcí, poznámky, zrcadlení, proužek zpěváka', e => this.pagePopover(e.currentTarget), 'tl-sgshow')));
+      this.pageSetBtn = tool(ic('sliders'), 'Rozvržení a zobrazení stránky jen pro tuto píseň: okraje, sloupce, mezery, dlouhá píseň, záhlaví a zápatí', e => this.pagePopover(e.currentTarget), 'tl-sgshow')));
     this.textHead = h('div', { class: 'ep-lbl ep-lbl-row' }, h('span', {}, 'Text'));
     this.textGroup = h('div', { class: 'ep-group ep-text' }, this.textHead);
     this.sideGrow = h('div', { class: 'grow' });
@@ -623,7 +623,6 @@ class SongEditor {
       ['Rozvržení', [['padX', 'Okraj vlevo a vpravo', 'px'], ['padY', 'Okraj nahoře a dole', 'px'], ['columns', 'Sloupce'], ['colGap', 'Mezera mezi sloupci', 'px']]],
       ['Záhlaví', [['showHeader', 'Zobrazit'], ['headerSize', 'Velikost', 'px'], ['headPadX', 'Okraj vlevo a vpravo', 'px']]],
       ['Zápatí', [['showFooter', 'Zobrazit'], ['footerSize', 'Velikost', 'px'], ['footPadX', 'Okraj vlevo a vpravo', 'px']]],
-      ['Zobrazení', [['showNotes', 'Poznámky (//)'], ['mirror', 'Zrcadlení']]],
     ]);
   }
   /* sekce písně (Struktura): nadpisy, mezera mezi slokami, barvy částí písně – jen pro tuto píseň */

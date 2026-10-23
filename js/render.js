@@ -59,7 +59,6 @@ const Render = {
     st.classList.toggle('with-bar-r', shows.some(x => x.barR));
     st.classList.toggle('with-bg', shows.some(x => x.bg));
     st.classList.toggle('hide-sections', !tpl.showSections);
-    st.classList.toggle('hide-notes', !tpl.showNotes);
   },
 
   blockEl(b, tpl, singerMap) {
@@ -239,17 +238,15 @@ const Render = {
 
   /* Přizpůsobí plátno velikosti okna (zachová poměr stran) */
   /* rotate: otočení obrazu ve stupních (0/90/180/270) – když je monitor otočený, ale Windows ne */
-  fit(stage, wrap, W, H, mirror = 'none', rotate = 0) {
+  fit(stage, wrap, W, H, rotate = 0) {
     const r = wrap.getBoundingClientRect();
     const rot = (((+rotate || 0) % 360) + 360) % 360;
     const bw = rot % 180 ? H : W, bh = rot % 180 ? W : H;
     const s = Math.min(r.width / bw, r.height / bh) || 1;
-    const mx = mirror === 'h' || mirror === 'hv' ? -1 : 1;
-    const my = mirror === 'v' || mirror === 'hv' ? -1 : 1;
     stage.style.left = (r.width - W) / 2 + 'px';
     stage.style.top = (r.height - H) / 2 + 'px';
     stage.style.transformOrigin = '50% 50%';
-    stage.style.transform = `rotate(${rot}deg) scale(${s * mx}, ${s * my})`;
+    stage.style.transform = `rotate(${rot}deg) scale(${s})`;
     return s;
   },
 };
@@ -279,7 +276,7 @@ function applySongStyle(tpl, song) {
 
 /* volby šablony, které jde přepsat jen pro jednu píseň (style písně) */
 const SONG_TPL_KEYS = ['letterSpacing', 'uppercase', 'italic', 'textColor', 'lineGap', 'barWidth', 'padX', 'padY', 'columns', 'colGap',
-  'onePage', 'fit', 'minScale', 'showHeader', 'showFooter', 'headerSize', 'footerSize', 'headPadX', 'footPadX', 'showSections', 'sectionScale', 'showNotes', 'mirror',
+  'onePage', 'fit', 'minScale', 'showHeader', 'showFooter', 'headerSize', 'footerSize', 'headPadX', 'footPadX', 'showSections', 'sectionScale',
   'sectionColor', 'verseColor', 'chorusColor', 'bridgeColor', 'instrColor'];
 
 /* vloží text dovnitř značek formátování (na začátek, nebo atEnd na konec): „{90%:**Mezihra**}“ → „{90%:**4× Mezihra**}“ */

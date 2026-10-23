@@ -37,11 +37,9 @@ const TPL_FIELDS = [
   { k: 'showFooter', l: 'Zápatí (strana, další píseň)', t: 'check' },
   { k: 'footerSize', l: 'Velikost zápatí (px)', t: 'range', min: 14, max: 70, step: 1 },
   { k: 'footPadX', l: 'Okraj zápatí vlevo/vpravo (px)', t: 'range', min: 0, max: 400, step: 2 },
-  { g: 'Zobrazení' },
+  { g: 'Nadpisy sekcí' },
   { k: 'showSections', l: 'Zobrazit nadpisy sekcí', t: 'check' },
   { k: 'sectionScale', l: 'Velikost nadpisů sekcí', t: 'range', min: 0.3, max: 1.2, step: 0.05, rel: true },
-  { k: 'showNotes', l: 'Zobrazit poznámky (//)', t: 'check' },
-  { k: 'mirror', l: 'Zrcadlení (pro sklo prompteru)', t: 'select', o: [['none', 'žádné'], ['h', 'vodorovně'], ['v', 'svisle'], ['hv', 'obojí']] },
 ];
 
 const TemplatesView = {
@@ -171,7 +169,7 @@ const TemplatesView = {
       prevWrap.appendChild(stage);
       prevWrap.appendChild(dimLabel(W, H));
       Render.renderPage(stage, lay, t, this.page, { title: song.title, artist: song.artist, key: song.key, tempo: song.tempo, pos: '3/12', next: 'Další píseň v playlistu' });
-      Render.fit(stage, prevWrap, W, H, t.mirror);
+      Render.fit(stage, prevWrap, W, H);
       pageLbl.textContent = `strana ${this.page + 1}/${lay.pages.length}` + (lay.k < 0.999 ? ` · písmo zmenšeno na ${Math.round(lay.k * 100)} %` : '');
     };
     const upd = () => { markDirty(); clearTimeout(this._pt); this._pt = setTimeout(paint, 60); };
@@ -183,7 +181,7 @@ const TemplatesView = {
           h('button', { class: 'btn small icon', onclick: () => { this.page++; paint(); }, title: 'Další stránka' }, ic('right')),
           h('span', { class: 'grow', style: { flex: 1 } }), h('span', {}, `monitor ${W}×${H}`)),
         prevWrap)));
-    new ResizeObserver(() => stage && Render.fit(stage, prevWrap, W, H, t.mirror)).observe(prevWrap);
+    new ResizeObserver(() => stage && Render.fit(stage, prevWrap, W, H)).observe(prevWrap);
     paint();
   },
 
