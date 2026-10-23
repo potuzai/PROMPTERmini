@@ -573,6 +573,13 @@ function setRememberBand(on) {
   toast(on ? 'Toto zařízení zůstane přihlášené.' : 'Po zavření prohlížeče bude potřeba přihlásit se znovu.', 'ok');
 }
 
+/* Soubor PROMPTER s písněmi / playlistem: stejný tvar jako záloha (jde otevřít Importem nebo přetažením do okna),
+   s formátováním, nastavením písní a jejich šablonami */
+function packItems(kind, songs, playlists = []) {
+  const tids = new Set(songs.map(s => s.templateId).filter(Boolean));
+  return { app: 'prompter', version: 1, kind, exportedAt: new Date().toISOString(), songs, playlists, templates: [...tids].map(id => Store.templates.get(id)).filter(Boolean) };
+}
+
 function exportBackup() {
   const data = {
     app: 'prompter', version: 1, exportedAt: new Date().toISOString(),
@@ -596,6 +603,12 @@ async function importBackup(file) {
     }
   }
   Store.emit('sync', null);
+  const first = data.kind === 'song' ? data.songs && data.songs[0] : data.kind === 'playlist' ? data.playlists && data.playlists[0] : null;
+  if (first) {
+    toast((data.kind === 'song' ? `Píseň „${first.title}“ otevřena` : `Playlist „${first.name}“ otevřen`) + (kept ? ' (v zařízení už byla stejná nebo novější verze)' : ''), 'ok', 5000);
+    location.hash = (data.kind === 'song' ? '#/songs/' : '#/playlists/') + first.id;
+    return;
+  }
   toast(`Obnoveno ${n} položek` + (kept ? ` · ${kept} ponecháno (v zařízení je stejná nebo novější verze)` : ''), 'ok', 6000);
 }
 

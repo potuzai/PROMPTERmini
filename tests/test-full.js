@@ -90,11 +90,14 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   // ⋯ v pravém panelu = volby písně
   const pick = async (btn, label) => { await p.click(btn); await p.click(`.menu > div:has-text("${label}") >> nth=0`); };
   const more = label => pick('.ed-side button[title^="Další volby písně"]', label);
-  const dl = p.waitForEvent('download');
-  await more('Export .txt');
-  const d = await dl; const dpath = path.join(tmp, 'exp.txt'); await d.saveAs(dpath);
-  assert(fs.readFileSync(dpath, 'utf8').startsWith('# Holubí dům'), 'export písně do .txt');
-  await more('Uložit jako');
+  // Uložit jako: soubory do zařízení (v testu bez výběru místa = stažení)
+  await p.evaluate(() => { window.showSaveFilePicker = undefined; });
+  const saveAsFile = async (label, file) => { const dl = p.waitForEvent('download'); await more('Uložit jako'); await p.click(`.choose-it:has-text("${label}")`); const f = path.join(tmp, file); await (await dl).saveAs(f); return fs.readFileSync(f, 'utf8'); };
+  const txt = await saveAsFile('Prostý text', 'exp.txt');
+  assert(txt.startsWith('# Holubí dům') && !/[{}@]/.test(txt), 'uložit jako prostý text bez značek');
+  const pf = JSON.parse(await saveAsFile('Soubor PROMPTER', 'exp.prompter.json'));
+  assert(pf.app === 'prompter' && pf.kind === 'song' && pf.songs.length === 1 && pf.songs[0].title === 'Holubí dům' && Array.isArray(pf.templates), 'uložit jako soubor PROMPTER (píseň s formátováním)');
+  await more('Uložit jako'); await p.click('.choose-it:has-text("Novou píseň")');
   await p.fill('.modal input', 'Holubí dům (kopie)'); await p.keyboard.press('Enter');
   await sleep(500);
   assert(await p.evaluate(() => Store.sortedSongs().some(s => s.title === 'Holubí dům (kopie)')) && await p.evaluate(() => SongsView.editor.inTitle.value) === 'Holubí dům (kopie)', 'Uložit jako – nová píseň pod jiným názvem');

@@ -88,6 +88,24 @@ ipcMain.handle('del', (e, store, id) => { try { fs.unlinkSync(storeFile(store, i
 ipcMain.on('loadSettings', e => { try { e.returnValue = fs.readFileSync(SETTINGS_FILE, 'utf8'); } catch (err) { e.returnValue = null; } });
 ipcMain.on('saveSettings', (e, txt) => { try { writeAtomic(SETTINGS_FILE, txt); e.returnValue = true; } catch (err) { e.returnValue = false; } });
 ipcMain.handle('openDataDir', () => shell.openPath(DATA));
+/* Uložit soubor do zařízení (systémové okno Uložit); PDF = stránka připravená k tisku */
+async function askSavePath(e, name) {
+  const ext = path.extname(name).slice(1) || '*';
+  const r = await dialog.showSaveDialog(BrowserWindow.fromWebContents(e.sender), { defaultPath: path.join(app.getPath('documents'), name), filters: [{ name: ext.toUpperCase(), extensions: [ext] }] });
+  return r.canceled ? null : r.filePath;
+}
+ipcMain.handle('saveFile', async (e, name, bytes) => {
+  const file = await askSavePath(e, name);
+  if (!file) return null;
+  fs.writeFileSync(file, Buffer.from(bytes));
+  return path.basename(file);
+});
+ipcMain.handle('savePdf', async (e, name) => {
+  const file = await askSavePath(e, name);
+  if (!file) return null;
+  fs.writeFileSync(file, await e.sender.printToPDF({ printBackground: true, pageSize: 'A4' }));
+  return path.basename(file);
+});
 ipcMain.handle('setAutoStart', (e, on) => app.setLoginItemSettings({ openAtLogin: !!on }));
 ipcMain.on('getAutoStart', e => { e.returnValue = app.getLoginItemSettings().openAtLogin; });
 ipcMain.handle('setFullscreen', (e, on) => { const w = BrowserWindow.fromWebContents(e.sender); if (w) w.setFullScreen(!!on); });

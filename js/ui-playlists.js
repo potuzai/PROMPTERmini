@@ -444,7 +444,7 @@ const PlaylistsView = {
         paintReady();
       } });
     paintReady();
-    const saveAsBtn = h('button', { class: 'btn', title: 'Uložit jako nový playlist (původní zůstane beze změny)', onclick: () => saveAs() }, 'Uložit jako…');
+    const saveAsBtn = h('button', { class: 'btn', title: 'Uložit jako: nový playlist v aplikaci, soubor PROMPTER, Excel, PDF nebo texty', onclick: () => this.saveAsDialog(pl, saveAs) }, 'Uložit jako…');
 
     if (compact) {
       // název, datum a poznámka: tužka otevře okno; vše ostatní přímo v náhledu
@@ -466,7 +466,7 @@ const PlaylistsView = {
       // v náhledu je málo místa: disketa (uložit, uložit jako) a ⋯ (čára pro přídavky, tisk, celá stránka)
       const menuBtn = h('button', { class: 'btn', title: 'Uložit (Ctrl+S) nebo uložit jako nový playlist', onclick: e => popupMenu(e.currentTarget, [
         { label: 'Uložit (Ctrl+S)', action: () => save(true) },
-        { label: 'Uložit jako…', action: () => saveAs() }]) }, '💾 ▾');
+        { label: 'Uložit jako…', action: () => this.saveAsDialog(pl, saveAs) }]) }, '💾 ▾');
       const moreBtn = h('button', { class: 'btn', title: 'Další možnosti: čára pro přídavky, celá stránka úprav, tisk', onclick: e => popupMenu(e.currentTarget, [
         rows.includes(LINE) ? null : { label: 'Čára pro přídavky', action: () => { rows.push(LINE); commit(); } },
         { label: 'Celá stránka úprav', action: () => { location.hash = '#/playlists/' + pl.id; } },
@@ -492,7 +492,6 @@ const PlaylistsView = {
         h('button', { class: 'btn play', onclick: () => { location.hash = '#/reader/' + pl.id; } }, '▶ Spustit ve čtečce'),
         h('button', { class: 'btn', onclick: () => this.print(pl) }, '🖨 Tisk'),
         h('button', { class: 'btn', onclick: () => this.duplicate(pl) }, '⧉ Duplikovat'),
-        h('button', { class: 'btn', onclick: () => this.exportTxt(pl) }, '⇩ Export textů'),
         readyBtn,
         h('span', { class: 'grow' }),
         savedInd, saveBtn, saveAsBtn,
@@ -515,7 +514,22 @@ const PlaylistsView = {
     App.edit = null;   // smazaný playlist už není co ukládat
     App.home();
   },
-  async print(pl) {
+  /* Uložit jako: kopie v aplikaci, nebo soubor do zařízení (PROMPTER s písněmi, Excel, PDF, texty) */
+  async saveAsDialog(pl, saveAs) {
+    const name = safeFileName(pl.name || 'playlist');
+    const v = await chooseDlg('Uložit jako', [
+      { id: 'copy', tag: '＋', label: 'Nový playlist v aplikaci', help: 'Kopie pod jiným názvem, původní zůstane beze změny.' },
+      { id: 'file', tag: 'PROMPTER', label: 'Soubor PROMPTER', help: 'Playlist se všemi písněmi, jejich formátováním a šablonami. Otevře se v aplikaci i na jiném zařízení.' },
+      { id: 'xlsx', tag: 'XLSX', label: 'Excel', help: 'Setlist jako tabulka: pořadí, název, interpret, ladění, BPM, délka.' },
+      { id: 'pdf', tag: 'PDF', label: 'PDF', help: 'Setlist, texty písní, nebo obojí – jako při tisku.' },
+      { id: 'txt', tag: 'TXT', label: 'Texty písní', help: 'Všechny texty v pořadí, bez formátování.' }]);
+    if (v === 'copy') return saveAs();
+    if (v === 'file') return saveFile(name + '.prompter.json', JSON.stringify(packItems('playlist', pl.items.map(id => Store.songs.get(id)).filter(Boolean), [clone(pl)]), null, 1));
+    if (v === 'xlsx') return saveFile(name + '.xlsx', setlistXlsx(pl), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    if (v === 'pdf') return this.print(pl, name + '.pdf');
+    if (v === 'txt') return this.exportTxt(pl);
+  },
+  async print(pl, pdfName) {
     const o = Object.assign({ what: 'both', bigList: false, color: true, pageBreak: true, size: 'm', cols: 1, notes: true, sections: true }, Settings.get('printOpts') || {});
     delete o.mus;   // starší volba tisku pro muzikanty
     const radio = (name, val, label, help) => h('label', { class: 'chk' }, h('input', { type: 'radio', name, checked: o[name] === val, onchange: () => { o[name] = val; } }), h('span', {}, label, help ? h('span', { class: 'help' }, ' – ' + help) : null));
@@ -538,24 +552,54 @@ const PlaylistsView = {
           h('div', { class: 'row', style: { marginTop: '8px' } },
             h('label', { class: 'f' }, h('span', {}, 'Velikost písma'), (() => { const s = h('select', { class: 'inp' }, [['s', 'malé'], ['m', 'střední'], ['l', 'velké']].map(([v, l]) => h('option', { value: v, selected: o.size === v }, l))); s.onchange = () => { o.size = s.value; }; return s; })()),
             h('label', { class: 'f' }, h('span', {}, 'Sloupce'), (() => { const s = h('select', { class: 'inp' }, [[1, '1'], [2, '2']].map(([v, l]) => h('option', { value: v, selected: +o.cols === v }, l))); s.onchange = () => { o.cols = +s.value; }; return s; })())))));
-    const go = await modal({ title: '🖨 Tisk playlistu „' + (pl.name || '') + '“', body, wide: true, buttons: [{ label: 'Zrušit', value: false }, { label: '🖨 Tisknout', value: true, primary: true }] });
+    const go = await modal({ title: (pdfName ? 'PDF' : '🖨 Tisk') + ' playlistu „' + (pl.name || '') + '“', body, wide: true, buttons: [{ label: 'Zrušit', value: false }, { label: pdfName ? 'Uložit PDF' : '🖨 Tisknout', value: true, primary: true }] });
     if (!go) return;
     Settings.set('printOpts', o);
-    printDocument(buildPrintPlaylist(pl, o));
+    if (pdfName) pdfDocument(buildPrintPlaylist(pl, o), pdfName);
+    else printDocument(buildPrintPlaylist(pl, o));
   },
   exportTxt(pl) {
-    const txt = pl.items.map((id, i) => { const s = Store.songs.get(id); return s ? `=== ${i + 1}. ${s.title}${s.artist ? ' – ' + s.artist : ''} ===\n\n${s.text}\n` : ''; }).join('\n\n');
-    downloadFile(safeFileName(pl.name) + '.txt', txt, 'text/plain');
+    const txt = pl.items.map((id, i) => { const s = Store.songs.get(id); return s ? `=== ${i + 1}. ${s.title}${s.artist ? ' – ' + s.artist : ''} ===\n\n${plainSongText(s.text)}\n` : ''; }).join('\n\n');
+    saveFile(safeFileName(pl.name) + '.txt', txt, 'text/plain');
   },
 };
 
+/* Setlist do Excelu: pořadí, název, interpret, ladění, BPM, délka; přídavky a celková délka */
+function setlistXlsx(pl) {
+  const enc = plEncore(pl);
+  const rows = [['Pořadí', 'Název', 'Interpret', 'Ladění', 'BPM', 'Délka']];
+  let n = 0, secs = 0;
+  pl.items.forEach((id, i) => {
+    const s = Store.songs.get(id);
+    if (!s) return;
+    if (i === enc) rows.push(['', 'Přídavky']);
+    const d = /^(\d+):(\d{1,2})$/.exec(String(s.duration || '').trim());
+    if (d) secs += +d[1] * 60 + +d[2];
+    rows.push([++n, s.title || '', s.artist || '', s.key || '', /^\d+$/.test(String(s.tempo || '').trim()) ? +s.tempo : s.tempo || '', s.duration || '']);
+  });
+  if (secs) rows.push([], ['', 'Celkem', '', '', '', Math.floor(secs / 60) + ':' + String(secs % 60).padStart(2, '0')]);
+  return makeXlsx(pl.name || 'Setlist', rows, [8, 36, 26, 10, 8, 8]);
+}
+
 /* ===== Tisk ===== */
-function printDocument(node) {
+/* PDF: v programu pro Windows rovnou soubor (okno Uložit), v prohlížeči přes tisk „Uložit jako PDF“ */
+async function pdfDocument(node, name) {
+  if (!(window.native && window.native.savePdf)) { toast('V okně tisku zvol jako tiskárnu „Uložit jako PDF“.', 'info', 7000); return printDocument(node); }
+  const root = printRoot(node);
+  try { const r = await window.native.savePdf(name); if (r) toast('Uloženo: ' + r, 'ok'); }
+  catch (e) { toast('PDF se nepodařilo uložit.', 'err'); }
+  finally { document.body.classList.remove('printing'); root.innerHTML = ''; }
+}
+function printRoot(node) {
   let root = $('#print-root');
   if (!root) { root = h('div', { id: 'print-root' }); document.body.appendChild(root); }
   root.innerHTML = '';
   root.appendChild(node);
   document.body.classList.add('printing');
+  return root;
+}
+function printDocument(node) {
+  const root = printRoot(node);
   const done = () => { document.body.classList.remove('printing'); root.innerHTML = ''; window.removeEventListener('afterprint', done); };
   window.addEventListener('afterprint', done);
   setTimeout(() => {
@@ -566,7 +610,7 @@ function printDocument(node) {
 }
 
 function buildPrintPlaylist(pl, o) {
-  const songs = pl.items.map(id => Store.songs.get(id)).filter(Boolean);
+  const songs = pl.songs || pl.items.map(id => Store.songs.get(id)).filter(Boolean);   // pl.songs = neuložená verze (PDF z editoru)
   const enc = plEncore(pl) >= 0 ? pl.items.slice(0, plEncore(pl)).filter(id => Store.songs.has(id)).length : -1;
   const legendMap = Object.assign({}, Store.singerMap());   // + zpěváci jednotlivých písní
   const dateTxt = pl.date ? new Date(pl.date).toLocaleDateString('cs-CZ') : '';

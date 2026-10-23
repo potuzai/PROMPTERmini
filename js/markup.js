@@ -270,6 +270,19 @@ const SECTION_ALIASES = [
   [/^(verse|sloka|s|v)\s*(\d+)$/i, 'Sloka $2'],
 ];
 
+/* Prostý text písně pro jiné programy: bez značek formátování a zpěváků, sekce jako [Refrén 2×], opakování vypsaná */
+function plainSongText(text) {
+  const ent = { nbsp: ' ', lt: '<', gt: '>', quot: '"', '#39': "'", amp: '&' };
+  const strip = s => inlineHtml(s, {}).replace(/<[^>]*>/g, '').replace(/&(nbsp|lt|gt|quot|#39|amp);/g, (a, k) => ent[k]).trim();
+  const out = [];
+  for (const b of filterForView(parseSong(text).blocks)) {
+    if (b.type === 'section') { if (out.length && out[out.length - 1] !== '') out.push(''); out.push('[' + b.text + (b.count > 1 ? ' ' + b.count + '×' : '') + ']'); }
+    else if (b.type === 'gap') out.push('');
+    else if (b.type === 'line' || (b.type === 'note' && !b.warn)) out.push(strip(b.text));
+  }
+  return out.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
 function cleanText(text, opts = {}) {
   // chords: 'remove' = smazat akordy, tabulatury a starší poznámky pro nástroje (%G, %%G … %%), 'none' = nechat
   const o = Object.assign({ chords: 'remove', detectSections: true, trimSpaces: true, collapseBlank: true }, opts);

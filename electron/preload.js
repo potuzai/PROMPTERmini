@@ -9,6 +9,8 @@ contextBridge.exposeInMainWorld('native', {
   loadSettings: () => ipcRenderer.sendSync('loadSettings'),
   saveSettings: txt => ipcRenderer.sendSync('saveSettings', txt),
   openDataDir: () => ipcRenderer.invoke('openDataDir'),
+  saveFile: (name, bytes) => ipcRenderer.invoke('saveFile', name, bytes),
+  savePdf: name => ipcRenderer.invoke('savePdf', name),
   setAutoStart: on => ipcRenderer.invoke('setAutoStart', on),
   getAutoStart: () => ipcRenderer.sendSync('getAutoStart'),
   setFullscreen: on => ipcRenderer.invoke('setFullscreen', on),

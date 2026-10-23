@@ -161,13 +161,12 @@ class SongEditor {
 
     // Uložení, další volby písně a čtečka: vpravo dole pod stránkou
     this.saveBtn = h('button', { class: 'btn', title: 'Uložit změny (Ctrl+S)', onclick: () => this.save(true) }, '💾 Uložit');
-    const moreBtn = h('button', { class: 'btn', title: 'Další volby písně: uložit jako, playlist, vyčištění textu, export, smazání', onclick: e => popupMenu(e.currentTarget, [
-      { label: 'Uložit jako…', action: () => this.saveAs() },
+    const moreBtn = h('button', { class: 'btn', title: 'Další volby písně: uložit jako (kopie, soubor, PDF), playlist, vyčištění textu, smazání', onclick: e => popupMenu(e.currentTarget, [
+      { label: 'Uložit jako…', action: () => this.saveAsDialog() },
       { label: 'Přidat do playlistu…', action: () => addToPlaylistMenu(moreBtn, [this.id]) },
       { sep: true },
       { label: 'Vyčistit text…', action: () => this.cleanDialog() },
       { label: 'Zdrojový text…', action: () => this.sourceDialog() },
-      { label: 'Export .txt', action: () => this.exportTxt() },
       { label: 'Nápověda k editoru', action: () => showMarkupHelp() },
       { sep: true },
       { label: 'Smazat píseň', danger: true, action: () => this.del() }]) }, '⋯');
@@ -1155,10 +1154,18 @@ class SongEditor {
   }
 
   /* ----- Akce ----- */
-  exportTxt() {
-    const s = this.collect();
-    const head = [`# ${s.title}`, s.artist ? `# ${s.artist}` : ''].filter(Boolean).join('\n');
-    downloadFile(safeFileName(s.title) + '.txt', head + '\n\n' + s.text, 'text/plain');
+  /* Uložit jako: kopie v aplikaci, nebo soubor do zařízení (PROMPTER se vším formátováním, PDF, prostý text) */
+  async saveAsDialog() {
+    const s = this.collect(), name = safeFileName(s.title);
+    const v = await chooseDlg('Uložit jako', [
+      { id: 'copy', tag: '＋', label: 'Novou píseň v aplikaci', help: 'Kopie pod jiným názvem, původní zůstane beze změny.' },
+      { id: 'file', tag: 'PROMPTER', label: 'Soubor PROMPTER', help: 'Se vším formátováním, nastavením stránky a šablonou. Otevře se v aplikaci i na jiném zařízení (Import nebo přetažení do okna).' },
+      { id: 'pdf', tag: 'PDF', label: 'PDF', help: 'Text písně k tisku nebo k poslání.' },
+      { id: 'txt', tag: 'TXT', label: 'Prostý text', help: 'Bez formátování, pro jiné programy.' }]);
+    if (v === 'copy') return this.saveAs();
+    if (v === 'file') return saveFile(name + '.prompter.json', JSON.stringify(packItems('song', [s]), null, 1));
+    if (v === 'pdf') return pdfDocument(buildPrintPlaylist({ name: s.title, items: [s.id], songs: [s] }, Object.assign({ color: true, size: 'm', cols: 1, notes: true, sections: true }, Settings.get('printOpts'), { what: 'texts', pageBreak: false })), name + '.pdf');
+    if (v === 'txt') return saveFile(name + '.txt', [`# ${s.title}`, s.artist ? `# ${s.artist}` : ''].filter(Boolean).join('\n') + '\n\n' + plainSongText(s.text), 'text/plain');
   }
   async del() {
     const s = Store.songs.get(this.id);
@@ -1360,7 +1367,7 @@ async function importTxtFiles(fileList) {
     });
   }
   if (!files || !files.length) return;
-  const clean = await modal({
+  const clean = files.every(f => /\.json$/i.test(f.name)) ? false : await modal({
     title: `Import ${files.length} souborů`,
     body: h('p', {}, 'Mám text při importu vyčistit (odstranit akordy, rozpoznat sloky a refrény)?'),
     buttons: [{ label: 'Zrušit', value: null }, { label: 'Ponechat beze změny', value: false }, { label: 'Vyčistit', value: true, primary: true }],

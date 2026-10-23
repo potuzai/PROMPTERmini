@@ -79,6 +79,73 @@ function downloadFile(name, content, type = 'application/json') {
   setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
 }
 
+/* Uložení souboru do zařízení: v programu pro Windows systémové okno Uložit, v prohlížeči výběr místa
+   (kde to jde), jinak obyčejné stažení. content = text nebo Uint8Array. */
+async function saveFile(name, content, type = 'application/json') {
+  const bytes = typeof content === 'string' ? new TextEncoder().encode(content) : content;
+  if (window.native && window.native.saveFile) {
+    const r = await window.native.saveFile(name, bytes);
+    if (r) toast('Uloženo: ' + r, 'ok');
+    return;
+  }
+  const blob = new Blob([bytes], { type });
+  if (window.showSaveFilePicker) {
+    try {
+      const ext = name.slice(name.lastIndexOf('.'));
+      const fh = await window.showSaveFilePicker({ suggestedName: name, types: [{ description: ext.slice(1).toUpperCase(), accept: { [type]: [ext] } }] });
+      const w = await fh.createWritable(); await w.write(blob); await w.close();
+      toast('Uloženo: ' + fh.name, 'ok');
+      return;
+    } catch (e) { if (e && e.name === 'AbortError') return; /* výběr místa nejde – stáhnout */ }
+  }
+  const a = h('a', { href: URL.createObjectURL(blob), download: name });
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+
+/* ZIP bez komprese (pro .xlsx): files = [[název, text]] */
+function zipStore(files) {
+  const crcT = zipStore.t || (zipStore.t = Array.from({ length: 256 }, (_, n) => { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; return c >>> 0; }));
+  const crc = d => { let c = 0xffffffff; for (const b of d) c = crcT[(c ^ b) & 255] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; };
+  const enc = new TextEncoder(), parts = [], cen = [];
+  let off = 0;
+  const hdr = (sig, fields) => { const b = new DataView(new ArrayBuffer(fields.reduce((a, f) => a + f[1], 4))); b.setUint32(0, sig, true); let p = 4; for (const [v, n] of fields) { n === 2 ? b.setUint16(p, v, true) : b.setUint32(p, v, true); p += n; } return new Uint8Array(b.buffer); };
+  for (const [name, text] of files) {
+    const nm = enc.encode(name), data = enc.encode(text), c = crc(data);
+    const common = [[0, 2], [0, 2], [0, 2], [0x21, 2], [c, 4], [data.length, 4], [data.length, 4], [nm.length, 2], [0, 2]];
+    parts.push(hdr(0x04034b50, [[20, 2], ...common]), nm, data);
+    cen.push(hdr(0x02014b50, [[20, 2], [20, 2], ...common, [0, 2], [0, 2], [0, 2], [0, 4], [off, 4]]), nm);
+    off += 30 + nm.length + data.length;
+  }
+  const cenLen = cen.reduce((a, b) => a + b.length, 0);
+  const end = hdr(0x06054b50, [[0, 2], [0, 2], [files.length, 2], [files.length, 2], [cenLen, 4], [off, 4], [0, 2]]);
+  const out = new Uint8Array(off + cenLen + end.length);
+  let p = 0;
+  for (const b of [...parts, ...cen, end]) { out.set(b, p); p += b.length; }
+  return out;
+}
+
+/* Jednoduchý sešit Excel (.xlsx): první řádek tučně, widths = šířky sloupců ve znacích */
+function makeXlsx(sheetName, rows, widths = []) {
+  const x = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const col = i => (i >= 26 ? String.fromCharCode(64 + Math.floor(i / 26)) : '') + String.fromCharCode(65 + i % 26);
+  const cell = (v, r, c) => v === '' || v == null ? '' : typeof v === 'number'
+    ? `<c r="${col(c)}${r}"${r === 1 ? ' s="1"' : ''}><v>${v}</v></c>`
+    : `<c r="${col(c)}${r}" t="inlineStr"${r === 1 ? ' s="1"' : ''}><is><t xml:space="preserve">${x(v)}</t></is></c>`;
+  const sheet = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+    + (widths.length ? '<cols>' + widths.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join('') + '</cols>' : '')
+    + '<sheetData>' + rows.map((r, i) => `<row r="${i + 1}">${r.map((v, c) => cell(v, i + 1, c)).join('')}</row>`).join('') + '</sheetData></worksheet>';
+  const ns = 'http://schemas.openxmlformats.org';
+  return zipStore([
+    ['[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="${ns}/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`],
+    ['_rels/.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="${ns}/package/2006/relationships"><Relationship Id="rId1" Type="${ns}/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`],
+    ['xl/workbook.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="${ns}/spreadsheetml/2006/main" xmlns:r="${ns}/officeDocument/2006/relationships"><sheets><sheet name="${x(String(sheetName).replace(/[\\/?*[\]:]/g, ' ').slice(0, 31) || 'List1')}" sheetId="1" r:id="rId1"/></sheets></workbook>`],
+    ['xl/_rels/workbook.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="${ns}/package/2006/relationships"><Relationship Id="rId1" Type="${ns}/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="${ns}/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`],
+    ['xl/styles.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="${ns}/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border/></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`],
+    ['xl/worksheets/sheet1.xml', sheet],
+  ]);
+}
+
 function safeFileName(s) {
   return String(s || 'soubor').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9\-_ ]/gi, '').trim().replace(/\s+/g, '_') || 'soubor';
 }
@@ -194,6 +261,14 @@ function modal({ title, body, buttons = [{ label: 'OK', value: true, primary: tr
     if (first) setTimeout(() => first.focus(), 30);
     if (onOpen) onOpen(box, close);
   });
+}
+
+/* Výběr jedné z možností (velká tlačítka s popisem); vrátí id zvolené, nebo null */
+function chooseDlg(title, opts) {
+  let close;
+  const body = h('div', { class: 'choose-list' }, opts.map(o => h('button', { class: 'choose-it', onclick: () => close(o.id) },
+    h('span', { class: 'choose-tag' }, o.tag), h('span', { class: 'choose-t' }, h('b', {}, o.label), h('small', {}, o.help)))));
+  return modal({ title, body, buttons: [{ label: 'Zrušit', value: null }], onOpen: (box, c) => { close = c; } });
 }
 
 function confirmDlg(text, okLabel = 'Ano', danger = false) {
