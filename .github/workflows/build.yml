@@ -2,7 +2,7 @@ name: Sestavení
 
 on:
   push:
-    branches: [main]
+    branches: [main, vyvoj]   # vyvoj: jen testy; main: testy, program a web
     tags: ['v*']
   workflow_dispatch:
 
@@ -12,8 +12,22 @@ permissions:
   id-token: write
 
 jobs:
+  # Vydává se jen verze, která projde všemi testy (prohlížeč, program, synchronizace)
+  test:
+    name: Testy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm test
+
   windows:
     name: Program čtečky pro Windows
+    needs: test
+    if: github.ref != 'refs/heads/vyvoj'
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -51,6 +65,8 @@ jobs:
 
   pages:
     name: Webový editor (GitHub Pages)
+    needs: test
+    if: github.ref != 'refs/heads/vyvoj'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

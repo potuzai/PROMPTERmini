@@ -13,7 +13,7 @@
   },
   "devDependencies": {
     "@electron/packager": "^18.3.6",
-    "electron": "^38.2.0",
+    "electron": "^45.0.0",
     "http-server": "^14.1.1",
     "playwright": "^1.56.1"
   },
