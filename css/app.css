@@ -209,7 +209,8 @@ kbd { font: 600 11px/1 var(--mono); padding: 3px 5px; border: 1px solid var(--li
 
 .sl-head { flex-direction: row; flex-wrap: wrap; align-items: center; padding: 12px 22px 14px; border-bottom: 0; }
 .sl-head .inp[type=search] { flex: 1 1 260px; max-width: 520px; }
-.sl-head .sl-sort { width: auto; flex: 0 0 auto; margin-left: auto; } /* řazení vpravo */
+.sl-head .sl-sort { width: auto; flex: 0 0 auto; margin-left: auto; min-width: 0; } /* řazení vpravo */
+.sl-sort-l { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sl-head .sl-push { margin-left: auto; }
 .sl-head .sl-push + .sl-sort { margin-left: 0; }
 .sl-row { display: grid; grid-template-columns: minmax(130px, 1fr) minmax(170px, 1.6fr) 110px 70px; gap: 14px; align-items: center; }
@@ -1165,14 +1166,43 @@ input[type=checkbox].switch:focus-visible { outline: 2px solid var(--acc-hi); ou
 }
 @media (max-width: 820px) {
   .menu.m-sheet { position: fixed; left: 8px; right: 8px; width: auto; max-width: none; overflow-y: auto; border-radius: 12px; box-shadow: 0 14px 40px rgba(0,0,0,.65); }   /* shora pod tlačítkem, přes celou šířku */
-  .menu.m-sheet > div:not(.menu-head):not([class*="pg-"]):not(.sgs-tbl) { min-height: 44px; }
+  .menu.m-sheet > div:not(.menu-head):not([class*="pg-"]):not(.sgs-tbl) { min-height: 52px; display: flex; align-items: center; gap: 10px; font-size: 16.5px; }   /* položky pro prst */
+  .menu.m-sheet > div > kbd { margin-left: auto; }
 }
-/* Telefon: okna s otázkou – velká tlačítka přes celou šířku pod sebou, hlavní volba nahoře, Zůstat / Zrušit dole */
+/* Telefon: okna nahoře (klávesnice je nepřekryje), velká tlačítka přes celou šířku pod sebou, hlavní volba nahoře, Zůstat / Zrušit dole */
 @media (max-width: 820px) {
-  .modal-back { align-items: flex-end; padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0px)); }
+  .modal-back { align-items: flex-start; padding: calc(8px + env(safe-area-inset-top, 0px)) 8px 8px; }
   .modal { width: 100%; border-radius: 14px; }
   .modal-title { padding: 16px 18px; font-size: 18px; }
   .modal-body { padding: 16px 18px; font-size: 16px; }
   .modal-buttons { flex-direction: column-reverse; gap: 8px; padding: 12px 14px 14px; }
   .modal-buttons > .btn { width: 100%; min-height: 50px; justify-content: center; font-size: 16px; }
+}
+/* Telefon: ovládání pro prst – nástroje textu, zpěváci, výběr písní do playlistu */
+@media (max-width: 820px) {
+  .m-ed .ed-tools { padding: 8px; gap: 8px; }
+  .m-ed .ed-tools .tl { height: 44px; min-width: 44px; padding: 0 10px; font-size: 17px; }
+  .m-ed .ed-tools .tl .ic { width: 20px; height: 20px; }
+  .m-ed .ed-tools .tl.tl-font { min-width: 150px; font-size: 16px; }
+  .m-ed .ed-tools .tl-size input { width: 3ch; font-size: 17px; }
+  .m-ed .ed-tools .tl-grp { gap: 0; }
+  .m-ed .ed-side { padding: 8px; }
+  .m-ed .ed-side .sw-row { gap: 8px; }
+  .m-ed .ed-side .sw-row .sw { min-height: 44px; padding: 0 14px; font-size: 16px; }
+  .m-ed .ed-side .tl-sgshow { height: 44px; min-width: 44px; }
+  .m-ed .ed-side .ep-lbl-row > span { display: none; }   /* „Zpěváci“ je zřejmé z barevných tlačítek */
+  /* výběr písní do playlistu: hledání, pod ním dlouhý seznam velkých řádků (název a interpret), dole pořadí */
+  .modal:has(.pick-dlg) { max-height: calc(100vh - 16px); }
+  .pick-dlg .row { flex-direction: column; align-items: stretch; gap: 10px; }
+  .pick-dlg .row > *, .pick-dlg .row .inp:first-child { flex: 0 0 auto; min-width: 0; }
+  .pick-list { max-height: none; height: calc(100vh - 400px); min-height: 200px; }
+  .pick-row { grid-template-columns: 26px 1fr auto; gap: 12px; min-height: 56px; padding: 6px 12px; }
+  .pick-row > input[type=checkbox] { width: 22px; height: 22px; }
+  .pick-row .pick-ord:empty { display: none; }
+  .pick-row > :nth-child(4), .pick-row > :nth-child(5), .pick-row > :nth-child(6) { display: none; }   /* ladění, tempo, „v playlistu“ (je vidět šedě) */
+  .pick-row .pick-ord { grid-column: 3; grid-row: 1; }
+  .pick-row .pick-t { grid-column: 2; grid-row: 1; }
+  .pick-t b { font-size: 16px; }
+  .pick-pos { flex-wrap: wrap; font-size: 15px; }
+  .pick-pos .help { display: none; }
 }

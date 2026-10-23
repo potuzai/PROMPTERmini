@@ -171,11 +171,11 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   const plNames = () => p.$$eval('.pl-list .item .sl-title', els => els.map(e => e.textContent));
   assert((await plNames()).join(',') === 'Zábava,Koncert,Akustika', 'playlisty: výchozí řazení od nejnovějšího');
   assert(await p.evaluate(() => document.querySelector('.pl-list').getBoundingClientRect().width > innerWidth * 0.8), 'seznam playlistů je přes celou šířku');
-  await p.selectOption('.pl-list .sl-sort', 'name'); await sleep(150);
+  await p.click('.pl-list .sl-sort'); await p.click('.menu > div:has-text("Název")'); await sleep(150);
   assert((await plNames()).join(',') === 'Akustika,Koncert,Zábava', 'playlisty: řazení podle názvu');
   await p.fill('.pl-list input[type=search]', 'holubi'); await sleep(150);
   assert((await plNames()).join(',') === 'Koncert', 'playlisty: hledání i podle písní v playlistu');
-  await p.fill('.pl-list input[type=search]', ''); await p.selectOption('.pl-list .sl-sort', 'new');
+  await p.fill('.pl-list input[type=search]', ''); await p.click('.pl-list .sl-sort'); await p.click('.menu > div:has-text("Nejnovější")');
   assert(await p.isVisible('.pl-prev h3') && await p.isVisible('.pl-list .item.active'), 'náhled vpravo ukazuje vybraný playlist');
   await p.click('.pl-list .item:has-text("Koncert")'); await sleep(200);
   assert(await p.isVisible('.pl-prev h3:has-text("Koncert")') && await p.isVisible('.pl-prev .pl-item:has-text("Holubí dům")'), 'klik = náhled obsahu playlistu vpravo');
@@ -186,6 +186,17 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   await p.click('.btn.pl-back'); await sleep(300);
   assert(await p.isVisible('.pl-list'), 'zpět na seznam playlistů');
   await p.evaluate(async () => { await Store.remove('playlists', 'plA'); await Store.remove('playlists', 'plZ'); });
+
+  /* ---------- Import setlistu z Excelu (nový playlist, chybějící píseň bez textu, přídavky) ---------- */
+  await p.evaluate(() => {
+    const x = makeXlsx('Setlist', [['Pořadí', 'Název', 'Interpret', 'BPM'], [1, 'Holubí dům', '', ''], ['', 'Přídavky'], [2, 'Neznámá píseň', 'Někdo', 120]]);
+    importFiles([new File([x], 'Setlist test.xlsx')]);
+  });
+  await p.click('.modal button:has-text("Vytvořit playlist")'); await sleep(400);
+  const imp = await p.evaluate(() => { const pl = [...Store.playlists.values()].find(x => x.name === 'Setlist test'); const s = pl && Store.songs.get(pl.items[1]); return pl && [pl.items.length, pl.encore, Store.songs.get(pl.items[0]).title, s.title, s.artist, s.tempo, s.text].join('|'); });
+  assert(imp === '2|1|Holubí dům|Neznámá píseň|Někdo|120|', 'import setlistu z Excelu: playlist, existující i nová píseň, přídavky');
+  await p.evaluate(async () => { const pl = [...Store.playlists.values()].find(x => x.name === 'Setlist test'); await Store.remove('songs', pl.items[1]); await Store.remove('playlists', pl.id); location.hash = '#/playlists'; });
+  await sleep(300);
 
   /* ---------- Zpěváci v šabloně (stránka Obsazení už není) ---------- */
   await p.evaluate(() => { location.hash = '#/templates/default'; });

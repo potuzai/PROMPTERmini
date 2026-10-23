@@ -555,7 +555,7 @@ const SettingsView = {
       h('div', { class: 'set-rows' },
         setRow('Stáhnout zálohu', 'Jeden soubor .json se všemi písněmi, playlisty, šablonami a zpěváky.', h('button', { class: 'btn nogrow', onclick: () => exportBackup() }, '⇩ Stáhnout')),
         setRow('Obnovit ze zálohy', 'Slučovací – nic nesmaže, jen doplní a přepíše stejné položky. Při přihlášení ke kapele se pak odešlou do kapely.', h('button', { class: 'btn nogrow', onclick: () => pickFile('.json').then(f => f && importBackup(f)) }, '⇪ Vybrat soubor')),
-        setRow('Import písní z textu', 'Soubory .txt – každý soubor jedna píseň. Jde i přetáhnout soubory do okna.', h('button', { class: 'btn nogrow', onclick: () => importTxtFiles() }, '⇪ Vybrat soubory')),
+        setRow('Import', IMPORT_HELP + '. Každý .txt = jedna píseň, setlist = nový playlist. Jde i přetáhnout soubory do okna.', h('button', { class: 'btn nogrow', onclick: () => importFiles() }, '⇪ Vybrat soubory')),
         (Store.meta.trash || []).length ? setRow('Smazáno synchronizací', `${Store.meta.trash.length} položek smazal jiný člen nebo zmizely z úložiště kapely (naposledy ${new Date(Store.meta.trash[0].at).toLocaleString('cs-CZ')}).`,
           h('button', { class: 'btn nogrow', onclick: () => restoreSyncTrash() }, '↶ Vrátit')) : null,
         window.native ? setRow('Složka s daty', window.native.dataDir, h('button', { class: 'btn nogrow', onclick: () => window.native.openDataDir() }, 'Otevřít')) : null));

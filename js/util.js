@@ -146,6 +146,69 @@ function makeXlsx(sheetName, rows, widths = []) {
   ]);
 }
 
+/* Rozbalení .zip (sešit .xlsx): { cesta: Uint8Array }; komprimované části rozbalí prohlížeč (DecompressionStream) */
+async function unzip(buf) {
+  const u8 = new Uint8Array(buf), dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength), dec = new TextDecoder();
+  let e = u8.length - 22;
+  while (e >= 0 && dv.getUint32(e, true) !== 0x06054b50) e--;
+  if (e < 0) throw new Error('Soubor není platný sešit .xlsx');
+  const out = {};
+  for (let i = 0, p = dv.getUint32(e + 16, true); i < dv.getUint16(e + 10, true); i++) {
+    const method = dv.getUint16(p + 10, true), size = dv.getUint32(p + 20, true), nl = dv.getUint16(p + 28, true), off = dv.getUint32(p + 42, true);
+    const name = dec.decode(u8.subarray(p + 46, p + 46 + nl));
+    p += 46 + nl + dv.getUint16(p + 30, true) + dv.getUint16(p + 32, true);
+    const start = off + 30 + dv.getUint16(off + 26, true) + dv.getUint16(off + 28, true), raw = u8.subarray(start, start + size);
+    if (method === 0) out[name] = raw;
+    else if (method === 8) out[name] = new Uint8Array(await new Response(new Blob([raw]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer());
+  }
+  return out;
+}
+
+/* První list sešitu Excel: { name, rows } – hodnoty buněk jako text nebo čísla, prázdné buňky jako '' */
+async function readXlsx(buf) {
+  const z = await unzip(buf), dec = new TextDecoder();
+  const xml = n => z[n] ? new DOMParser().parseFromString(dec.decode(z[n]), 'application/xml') : null;
+  const ss = xml('xl/sharedStrings.xml');
+  const shared = ss ? [...ss.getElementsByTagName('si')].map(si => [...si.getElementsByTagName('t')].map(t => t.textContent).join('')) : [];
+  const wb = xml('xl/workbook.xml'), first = wb && wb.getElementsByTagName('sheet')[0];
+  const rels = xml('xl/_rels/workbook.xml.rels'), rid = first && first.getAttribute('r:id');
+  const rel = rels && [...rels.getElementsByTagName('Relationship')].find(r => r.getAttribute('Id') === rid);
+  const sheet = xml(rel ? 'xl/' + rel.getAttribute('Target').replace(/^\/?(xl\/)?/, '') : 'xl/worksheets/sheet1.xml');
+  if (!sheet) throw new Error('V sešitu není žádný list');
+  const rows = [];
+  for (const r of sheet.getElementsByTagName('row')) {
+    const row = [];
+    for (const c of r.getElementsByTagName('c')) {
+      const ref = (c.getAttribute('r') || '').replace(/\d+/g, '');
+      const col = ref ? [...ref].reduce((a, ch) => a * 26 + ch.charCodeAt(0) - 64, 0) - 1 : row.length;
+      const t = c.getAttribute('t'), v = c.getElementsByTagName('v')[0];
+      let val = t === 's' ? shared[+v.textContent] : t === 'inlineStr' ? [...c.getElementsByTagName('t')].map(x => x.textContent).join('') : v ? v.textContent : '';
+      if ((!t || t === 'n') && val !== '' && !isNaN(val)) val = +val;
+      row[col] = val;
+    }
+    rows[(+r.getAttribute('r') || rows.length + 1) - 1] = row;
+  }
+  return { name: first ? first.getAttribute('name') : '', rows: Array.from(rows, r => Array.from(r || [], x => x == null ? '' : x)) };
+}
+
+/* Text CSV (oddělovač ; , nebo tabulátor, uvozovky) → řádky */
+function parseCsv(text) {
+  const line1 = text.split('\n')[0];
+  const sep = [';', '\t', ','].sort((a, b) => line1.split(b).length - line1.split(a).length)[0];
+  const rows = [];
+  let row = [], cell = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (q) { if (ch === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else q = false; } else cell += ch; }
+    else if (ch === '"') q = true;
+    else if (ch === sep) { row.push(cell); cell = ''; }
+    else if (ch === '\n') { row.push(cell.replace(/\r$/, '')); rows.push(row); row = []; cell = ''; }
+    else cell += ch;
+  }
+  if (cell || row.length) { row.push(cell); rows.push(row); }
+  return rows.map(r => r.map(c => c.trim()));
+}
+
 function safeFileName(s) {
   return String(s || 'soubor').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9\-_ ]/gi, '').trim().replace(/\s+/g, '_') || 'soubor';
 }

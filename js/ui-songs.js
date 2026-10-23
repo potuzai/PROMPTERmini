@@ -23,9 +23,7 @@ const SongsView = {
     main.append(h('div', { class: 'view' + (song ? ' has-detail song-open' : ' list-only') }, side, content));
 
     const searchInp = h('input', { class: 'inp', type: 'search', placeholder: 'Hledat interpreta, název, text, štítek…', value: this.search });
-    const sortSel = h('select', { class: 'inp sl-sort', title: 'Řazení' },
-      [['artist', 'Řadit: interpret, název'], ['title', 'Řadit: název'], ['recent', 'Řadit: naposledy upravené']]
-        .map(([v, l]) => h('option', { value: v, selected: (Settings.get('songSort') || 'artist') === v }, l)));
+    const sortSel = sortPicker([['artist', 'Interpret, název'], ['title', 'Název'], ['recent', 'Naposledy upravené']], Settings.get('songSort') || 'artist');
     const list = h('div', { class: 'list' });
     const count = h('div', { class: 'sl-count' });
     const total = h('span', {});
@@ -36,7 +34,7 @@ const SongsView = {
         h('div', { class: 'side-head sl-head' },
           h('button', { class: 'btn primary', onclick: () => this.create() }, '＋ Nová píseň'),
           searchInp,
-          h('button', { class: 'btn sl-push', title: 'Importovat písně z .txt souborů', onclick: () => importTxtFiles() }, '⇪ Import'),
+          h('button', { class: 'btn sl-push', title: 'Import: ' + IMPORT_HELP, onclick: () => importFiles() }, '⇪ Import'),
           sortSel),
         h('div', { class: 'sl-row sl-cols' }, h('span', {}, 'Interpret'), h('span', {}, 'Název'), h('span', {}, 'Ladění · BPM'), h('span', {}, 'Zpívá')),
         list, count),
@@ -1257,6 +1255,16 @@ function swallowClick(el) {
   setTimeout(() => document.removeEventListener('click', stop, true), 1000);
 }
 
+/* Řazení seznamu: tlačítko s nabídkou (myší i prstem stejně, v telefonu nabídka přes celou šířku); hodnota v .value, při změně událost change */
+function sortPicker(opts, value) {
+  const lbl = h('span', { class: 'sl-sort-l' });
+  const paint = () => { lbl.textContent = (opts.find(o => o[0] === b.value) || opts[0])[1]; };
+  const b = h('button', { class: 'btn sl-sort', title: 'Řazení', onclick: () => popupMenu(b, [{ head: 'Řadit podle' },
+    ...opts.map(([v, l]) => ({ label: l, hint: v === b.value ? '✓' : '', action: () => { b.value = v; paint(); b.dispatchEvent(new Event('change')); } }))]) }, ic('sort'), lbl);
+  b.value = value; paint();
+  return b;
+}
+
 /* items: { label, action, hint (klávesa vpravo), danger, cls } nebo { sep: true } = oddělovač, { head: 'text' } = nadpis skupiny */
 function popupMenu(anchor, items, cls = '') {
   $$('.menu').forEach(m => m.remove());
@@ -1392,25 +1400,42 @@ function showMarkupHelp() {
   modal({ title: 'Jak psát text písně', body, wide: true, buttons: [{ label: 'Rozumím', value: true, primary: true }] });
 }
 
-async function importTxtFiles(fileList) {
+/* Import kdekoli v aplikaci (tlačítko Import, přetažení do okna): texty písní (.txt, ChordPro), soubor PROMPTER
+   nebo záloha (.json), setlist z Excelu nebo CSV (→ nový playlist) */
+const IMPORT_ACCEPT = '.txt,.text,.cho,.chordpro,.json,.xlsx,.csv';
+const IMPORT_HELP = 'Texty písní (.txt), soubor PROMPTER (.json), setlist z Excelu (.xlsx, .csv)';
+async function importFiles(fileList) {
   let files = fileList;
   if (!files) {
     files = await new Promise(res => {
-      const inp = h('input', { type: 'file', accept: '.txt,.text,.cho,.chordpro,.json', multiple: true });
+      const inp = h('input', { type: 'file', accept: IMPORT_ACCEPT, multiple: true });
       inp.onchange = () => res([...inp.files]);
       inp.click();
     });
   }
   if (!files || !files.length) return;
-  const clean = files.every(f => /\.json$/i.test(f.name)) ? false : await modal({
-    title: `Import ${files.length} souborů`,
+  const isText = f => !/\.(json|xlsx|xls|csv)$/i.test(f.name);
+  for (const f of files.filter(f => !isText(f))) {
+    try {
+      if (/\.json$/i.test(f.name)) await importBackup(f);
+      else if (/\.xls$/i.test(f.name)) toast(`„${f.name}“: starý formát .xls – v Excelu ho ulož jako .xlsx`, 'err', 7000);
+      else {
+        const base = f.name.replace(/\.[^.]+$/, '').replace(/[_]+/g, ' ').trim();
+        if (/\.csv$/i.test(f.name)) await importSetlist(base, parseCsv(await readFileText(f)));
+        else { const x = await readXlsx(await f.arrayBuffer()); await importSetlist(base || x.name, x.rows); }
+      }
+    } catch (e) { toast(`„${f.name}“ se nepodařilo načíst: ${e.message}`, 'err', 7000); }
+  }
+  files = files.filter(isText);
+  if (!files.length) return;
+  const clean = await modal({
+    title: `Import ${plural(files.length, 'písně', 'písní', 'písní')}`,
     body: h('p', {}, 'Mám text při importu vyčistit (odstranit akordy, rozpoznat sloky a refrény)?'),
     buttons: [{ label: 'Zrušit', value: null }, { label: 'Ponechat beze změny', value: false }, { label: 'Vyčistit', value: true, primary: true }],
   });
   if (clean === null) return;
   let n = 0, last = null;
   for (const f of files) {
-    if (/\.json$/i.test(f.name)) { await importBackup(f); continue; }
     let text = await readFileText(f);
     let title = f.name.replace(/\.[^.]+$/, '').replace(/[_]+/g, ' ').trim();
     let artist = '';

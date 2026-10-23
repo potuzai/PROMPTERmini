@@ -33,12 +33,12 @@ const App = {
     });
     // zavření okna / obnovení stránky s neuloženými změnami: prohlížeč (v programu okno) se zeptá
     window.addEventListener('beforeunload', e => { if (this.isDirty()) { e.preventDefault(); e.returnValue = ''; } });
-    // Drag & drop .txt/.json souborů kamkoli do okna
+    // Přetažení souborů kamkoli do okna = Import
     document.addEventListener('dragover', e => { if (e.dataTransfer && [...e.dataTransfer.types].includes('Files')) e.preventDefault(); });
     document.addEventListener('drop', e => {
       if (!e.dataTransfer || !e.dataTransfer.files.length) return;
       e.preventDefault();
-      importTxtFiles([...e.dataTransfer.files]);
+      importFiles([...e.dataTransfer.files]);
     });
 
     // úvodní stránka = playlisty s čistou adresou (bez #); čtečka u PC rovnou čtečka

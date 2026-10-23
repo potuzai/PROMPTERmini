@@ -19,9 +19,7 @@ const PlaylistsView = {
     main.append(h('div', { class: 'view' + (pl ? ' has-detail pl-open' : ' list-only') }, side, content));
 
     const searchInp = h('input', { class: 'inp', type: 'search', placeholder: 'Hledat playlist, poznámku nebo píseň v něm…', value: this.search });
-    const sortSel = h('select', { class: 'inp sl-sort', title: 'Řazení' },
-      [['new', 'Řadit: nejnovější'], ['old', 'Řadit: nejstarší'], ['name', 'Řadit: název'], ['count', 'Řadit: počet písní']]
-        .map(([v, l]) => h('option', { value: v, selected: (Settings.get('plSort') || 'new') === v }, l)));
+    const sortSel = sortPicker([['new', 'Nejnovější'], ['old', 'Nejstarší'], ['name', 'Název'], ['count', 'Počet písní']], Settings.get('plSort') || 'new');
     const list = h('div', { class: 'list' });
     const count = h('div', { class: 'sl-count' });
     const total = h('span', {});
@@ -32,7 +30,9 @@ const PlaylistsView = {
         h('div', { class: 'sl-titlebar' }, h('h1', {}, 'Playlisty'), total),
         h('div', { class: 'side-head sl-head' },
           h('button', { class: 'btn primary', onclick: () => this.create() }, '＋ Nový playlist'),
-          searchInp, sortSel),
+          searchInp,
+          h('button', { class: 'btn sl-push', title: 'Import: ' + IMPORT_HELP, onclick: () => importFiles() }, '⇪ Import'),
+          sortSel),
         h('div', { class: 'sl-row pl-row sl-cols' }, h('span', {}, 'Datum'), h('span', {}, 'Název'), h('span', {}, 'Písní'), h('span', {}, 'Poznámka')),
         list, count),
       prev));
@@ -480,16 +480,18 @@ const PlaylistsView = {
       this.prevEditInfo = editInfo;
       itemsBox.classList.add('pl-compact');
       // v náhledu je málo místa: disketa (uložit, uložit jako) a ⋯ (čára pro přídavky, tisk, celá stránka)
-      const menuBtn = h('button', { class: 'btn', title: 'Uložit (Ctrl+S) nebo uložit jako nový playlist', onclick: e => popupMenu(e.currentTarget, [
+      // telefon: Uložit jedním klepnutím, Uložit jako v nabídce ⋯
+      const menuBtn = mobile ? saveBtn : h('button', { class: 'btn', title: 'Uložit (Ctrl+S) nebo uložit jako nový playlist', onclick: e => popupMenu(e.currentTarget, [
         { label: 'Uložit', action: () => save(true) },
         { label: 'Uložit jako', action: () => this.saveAsDialog(pl, saveAs) }]) }, '💾 ▾');
       const moreBtn = h('button', { class: 'btn', title: 'Další možnosti: čára pro přídavky, celá stránka úprav, tisk', onclick: e => popupMenu(e.currentTarget, [
+        mobile ? { label: 'Uložit jako', action: () => this.saveAsDialog(pl, saveAs) } : null,
         mobile ? { label: 'Název, datum a poznámka', action: editInfo } : null,
         rows.includes(LINE) ? null : { label: 'Čára pro přídavky', action: () => { rows.push(LINE); commit(); } },
         mobile ? null : { label: 'Celá stránka úprav', action: () => { location.hash = '#/playlists/' + pl.id; } },
         { label: 'Tisk', action: () => this.print(pl) },
         ...(mobile ? [{ label: 'Duplikovat', action: () => this.duplicate(pl) }, { sep: true }, { label: 'Smazat playlist', danger: true, action: () => this.del(pl) }] : [])].filter(Boolean)) }, '⋯');
-      savedBtns.push(menuBtn);
+      if (menuBtn !== saveBtn) savedBtns.push(menuBtn);
       if (mobile) { titleEl.classList.add('pi-open'); titleEl.title = 'Upravit název, datum a poznámku'; titleEl.onclick = editInfo; }
       root.append(...[
         mobile ? h('button', { class: 'ep-back', onclick: () => App.home() }, '◀ Playlisty') : null,
@@ -605,6 +607,53 @@ function setlistXlsx(pl) {
   });
   if (secs) rows.push([], ['', 'Celkem', '', '', '', '', Math.floor(secs / 60) + ':' + String(secs % 60).padStart(2, '0')]);
   return makeXlsx(pl.name || 'Setlist', rows, [8, 36, 26, 24, 10, 8, 8]);
+}
+
+/* Playlist ze setlistu (Excel, CSV): sloupce podle záhlaví (Název, Interpret, Ladění, BPM, Délka – i bez záhlaví);
+   písně se najdou podle názvu (a interpreta), chybějící se založí bez textu; řádek „Přídavky“ = čára pro přídavky */
+async function importSetlist(name, rows) {
+  const norm = v => normalizeForSearch(String(v == null ? '' : v)).replace(/[^a-z0-9]+/g, ' ').trim();
+  rows = rows.filter(r => r.some(c => String(c).trim() !== ''));
+  const hi = rows.findIndex(r => r.some(c => /^(nazev|nazev pisne|pisen|song|title|titul)$/.test(norm(c))));
+  const head = hi >= 0 ? rows[hi].map(norm) : [];
+  const col = re => head.findIndex(c => re.test(c));
+  let cT = col(/^(nazev|nazev pisne|pisen|song|title|titul)$/), cA = col(/^(interpret|kapela|autor|artist|umelec)$/);
+  const cK = col(/^(ladeni|toncina|key)$/), cB = col(/^(bpm|tempo)$/), cD = col(/^(delka|cas|duration|time)$/);
+  const data = rows.slice(hi + 1);
+  if (cT < 0) {   // bez záhlaví: název = první sloupec s textem (ne čísly pořadí), za ním interpret
+    const width = Math.max(...data.map(r => r.length));
+    for (let c = 0; c < width && cT < 0; c++) if (data.filter(r => r[c] !== '' && r[c] != null && isNaN(r[c])).length > data.length / 2) cT = c;
+    if (cT < 0) return toast('V souboru jsem nenašel názvy písní.', 'err');
+    cA = cT + 1;
+  }
+  const dur = v => typeof v === 'number' && v < 1 ? (s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'))(Math.round(v * 86400)) : String(v || '').trim();
+  const songs = Store.sortedSongs(), items = [], fresh = [];
+  let encore = -1;
+  for (const r of data) {
+    const title = String(r[cT] == null ? '' : r[cT]).trim(), artist = cA >= 0 ? String(r[cA] == null ? '' : r[cA]).trim() : '';
+    const t = norm(title);
+    if (!t || t === 'celkem' || t === 'total') continue;
+    if (/^(pridavky?|encore)$/.test(t)) { if (encore < 0) encore = items.length; continue; }
+    const same = songs.filter(s => norm(s.title) === t);
+    let s = same.find(x => !artist || norm(x.artist) === norm(artist)) || same[0] || fresh.find(x => norm(x.title) === t);
+    if (!s) {
+      s = newSong({ title, artist, key: cK >= 0 ? String(r[cK] || '').trim() : '', tempo: cB >= 0 ? String(r[cB] || '').trim() : '', duration: cD >= 0 ? dur(r[cD]) : '' });
+      fresh.push(s);
+    }
+    items.push(s.id);
+  }
+  if (!items.length) return toast('V souboru jsem nenašel žádné písně.', 'err');
+  const ok = await modal({ title: 'Import playlistu „' + name + '“',
+    body: h('p', {}, plural(items.length, 'píseň', 'písně', 'písní') + (encore >= 0 ? ' (s přídavky)' : '') + '. '
+      + (fresh.length ? `${plural(fresh.length, 'píseň', 'písně', 'písní')} v aplikaci zatím ${fresh.length === 1 ? 'není' : 'nejsou'} – ${fresh.length === 1 ? 'založí se' : 'založí se'} bez textu, doplníš ho později.` : 'Všechny písně v aplikaci už jsou.')),
+    buttons: [{ label: 'Zrušit', value: false }, { label: 'Vytvořit playlist', value: true, primary: true }] });
+  if (!ok) return;
+  for (const s of fresh) await Store.put('songs', s, { silent: true });
+  const pl = newPlaylist(name || playlistNameHint(), items);
+  if (encore >= 0 && encore < items.length) pl.encore = encore;
+  await Store.put('playlists', pl);
+  toast(`Playlist „${pl.name}“ vytvořen`, 'ok');
+  location.hash = '#/playlists/' + pl.id;
 }
 
 /* ===== Tisk ===== */
