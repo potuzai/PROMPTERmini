@@ -477,7 +477,7 @@ const PlaylistsView = {
       itemsBox.classList.add('pl-compact');
       // v náhledu je málo místa: disketa (uložit, uložit jako) a ⋯ (čára pro přídavky, tisk, celá stránka)
       const menuBtn = h('button', { class: 'btn', title: 'Uložit (Ctrl+S) nebo uložit jako nový playlist', onclick: e => popupMenu(e.currentTarget, [
-        { label: 'Uložit (Ctrl+S)', action: () => save(true) },
+        { label: 'Uložit', action: () => save(true) },
         { label: 'Uložit jako…', action: () => this.saveAsDialog(pl, saveAs) }]) }, '💾 ▾');
       const moreBtn = h('button', { class: 'btn', title: 'Další možnosti: čára pro přídavky, celá stránka úprav, tisk', onclick: e => popupMenu(e.currentTarget, [
         rows.includes(LINE) ? null : { label: 'Čára pro přídavky', action: () => { rows.push(LINE); commit(); } },
