@@ -16,9 +16,6 @@ const SHOTS = process.env.SHOTS || '/tmp/claude-0/shots';
   await klasickaSablona(p);
   const src = () => p.evaluate(() => SongsView.editor.src);
   const key = async (k, n = 1) => { for (let i = 0; i < n; i++) { await p.keyboard.press(k); await sleep(60); } };
-  // nabídka ⋯ v pravém panelu (volby písně)
-  const pick = async (btn, label) => { await p.click(btn); await p.click(`.menu > div:has-text("${label}")`); };
-  const songMenu = label => pick('.ed-side button[title^="Další volby písně"]', label);
   const curText = () => p.evaluate(() => { const e = document.querySelector('.edit-stage .is-cur'); return e ? e.textContent : ''; });
 
   // nová píseň: prázdná stránka, vložení textu
@@ -167,19 +164,12 @@ const SHOTS = process.env.SHOTS || '/tmp/claude-0/shots';
   await sleep(200);
   assert(!(await p.isVisible('.edit-stage .st-head:has-text("2/2")')), 'samostatně = bez pořadí');
 
-  // zdrojový text
-  await songMenu('Zdrojový text');
-  const ta = await p.inputValue('.modal textarea');
-  assert(ta === await src(), 'zdrojový text odpovídá');
-  await p.fill('.modal textarea', ta + '\n@J Ze zdroje');
-  await p.click('.modal button:has-text("Použít")');
-  await sleep(200);
-  assert(await p.isVisible('.edit-stage .b-line:has-text("Ze zdroje")') || (await src()).includes('@J Ze zdroje'), 'změna zdroje se projeví');
-
   // uložení (ručně, Ctrl+S)
+  await p.keyboard.press('Escape');
+  await p.evaluate(() => { const se = SongsView.editor.se; se.insertLines(['@J Před uložením']); se.wrap.focus(); }); await sleep(200);
   await p.keyboard.press('Control+S'); await sleep(300);
   const saved = await p.evaluate(() => [...Store.songs.values()].find(s => s.title === 'Stránková').text);
-  assert(saved.includes('@J Ze zdroje') && saved.includes('**Druhý řádek**'), 'uložení Ctrl+S');
+  assert(saved.includes('@J Před uložením') && saved.includes('**Druhý řádek**'), 'uložení Ctrl+S');
   await p.screenshot({ path: SHOTS + '/s-3-wide.png' });
   for (const [w, hh, n] of [[1280, 800, 's-4-mid'], [1000, 800, 's-5-narrow']]) {
     await p.setViewportSize({ width: w, height: hh }); await sleep(400);

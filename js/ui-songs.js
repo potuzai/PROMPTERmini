@@ -166,7 +166,6 @@ class SongEditor {
       { label: 'Přidat do playlistu', action: () => addToPlaylistMenu(moreBtn, [this.id]) },
       { sep: true },
       { label: 'Vyčistit text', action: () => this.cleanDialog() },
-      { label: 'Zdrojový text', action: () => this.sourceDialog() },
       { label: 'Nápověda k editoru', action: () => showMarkupHelp() },
       { sep: true },
       { label: 'Smazat píseň', danger: true, action: () => this.del() }]) }, '⋯');
@@ -1007,8 +1006,7 @@ class SongEditor {
       { label: 'Celá píseň', items: () => [
         { label: 'Uložit', hint: 'Ctrl+S', action: () => this.save(true) },
         { label: 'Vrátit poslední změnu', hint: 'Ctrl+Z', action: () => se.undo(-1) },
-        { label: 'Vyčistit text', action: () => this.cleanDialog() },
-        { label: 'Zdrojový text', action: () => this.sourceDialog() }] },
+        { label: 'Vyčistit text', action: () => this.cleanDialog() }] },
     ].filter(Boolean);
     const del = { label: 'Smazat', hint: 'Delete', danger: true, action: () => se.deleteLines() };
     switch (t.kind) {
@@ -1076,17 +1074,6 @@ class SongEditor {
     if (!secs.length) return toast('Nejdřív napiš sekci (např. Refrén), kterou chceš opakovat.', 'warn');
     popupMenu(anchor, secs.map(name => ({ label: '↻ ' + name, action: () => this.se.insertLines(['>> ' + name]) })));
   }
-  async sourceDialog() {
-    this.se.finishEdit(true);
-    const ta = h('textarea', { class: 'inp src-ta', spellcheck: 'false' }, this.src);
-    const ok = await modal({ title: 'Zdrojový text se značkami', wide: true,
-      body: h('div', {}, h('p', { class: 'help' }, 'Pro pokročilé. Značky jsou popsané v nápovědě (?). Běžně stačí upravovat přímo na stránce.'), ta),
-      buttons: [{ label: 'Zrušit', value: false }, { label: 'Použít', primary: true, value: true }] });
-    if (!ok) return;
-    this.se.curKey = null;
-    this.se.commit(ta.value.replace(/\r\n?/g, '\n'));
-  }
-
   /* Označení zpěváků jen pro tuto píseň (jinak platí šablona): tabulka zpěváci × proužek vlevo / vpravo, podklad, písmo */
   singerPopover(anchor) {
     $$('.menu').forEach(m => m.remove());

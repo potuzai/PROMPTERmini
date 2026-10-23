@@ -80,7 +80,7 @@ V editoru je nahoře název a údaje písně (klikem je upravíš), **Uložit ja
 
 Myší jako v textovém editoru: klik do řádku = psaní na tom místě, tažením označíš slova v řádku nebo víc řádků najednou (pak zpěvák, písmo či smazání platí pro celé označení), pravé tlačítko otevře nabídku řádku. Jde to i Shift + klik nebo Shift + ↓.
 
-**Nahoře:** název písně, **💾 Uložit** a **⋯** (uložit jako, přidat do playlistu, písmo této písně, vyčistit text, zdrojový text, export .txt, nápověda, smazat píseň), vpravo **▶ Čtečka**.
+**Nahoře:** název písně, **💾 Uložit** a **⋯** (uložit jako – kopie, soubor PROMPTER, PDF, text; přidat do playlistu, vyčistit text, nápověda, smazat píseň), vpravo **▶ Čtečka**.
 
 **Levý panel:** údaje o písni (interpret, název, ladění, BPM, délka, šablona), struktura písně – jediné místo pro sekce: **＋ Sekce** (u vybraného řádku, nebo přesně z řádků označených tažením), **↻** zopakovat sekci, u každé sekce **⋯** přejmenovat, typ (sloka, refrén, mezičást, předehra, mezihra, sólo…), počet opakování, vlastní barva písma, smazat (klik na sekci ji vybere) a moje poznámky (jen na tomto zařízení).
 
@@ -155,7 +155,7 @@ Myší: klik vybere řádek, druhý klik začne psaní, pravé tlačítko otevř
 
 **Vzhled aplikace** přepneš v **Nastavení › Toto zařízení**: tmavý, světlý (do jasné místnosti), nebo podle systému (přepíná se sám s Windows / telefonem). Barvy stránky na čtečce určuje šablona písně, ne vzhled aplikace.
 
-Pokročilí můžou přes **⋯ › Zdrojový text…** upravit text tak, jak se ukládá (se značkami):
+Text písně se ukládá se značkami (v editoru se nepíšou ručně, vzniknou úpravami na stránce):
 
 | Zápis | Význam |
 |---|---|
