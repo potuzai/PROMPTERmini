@@ -482,7 +482,7 @@ const PlaylistsView = {
       const moreBtn = h('button', { class: 'btn', title: 'Další možnosti: čára pro přídavky, celá stránka úprav, tisk', onclick: e => popupMenu(e.currentTarget, [
         rows.includes(LINE) ? null : { label: 'Čára pro přídavky', action: () => { rows.push(LINE); commit(); } },
         { label: 'Celá stránka úprav', action: () => { location.hash = '#/playlists/' + pl.id; } },
-        { label: 'Tisk…', action: () => this.print(pl) }].filter(Boolean)) }, '⋯');
+        { label: 'Tisk', action: () => this.print(pl) }].filter(Boolean)) }, '⋯');
       savedBtns.push(menuBtn);
       root.append(
         h('div', { class: 'pl-prev-head' }, h('div', { class: 'pl-prev-title' }, titleEl, readyBtn), metaEl),
