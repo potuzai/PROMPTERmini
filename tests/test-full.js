@@ -193,7 +193,7 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   await p.click('.tpl-form button:has-text("Přidat zpěváka")'); await sleep(200);
   await p.fill('.modal input', 'Pepa'); await p.keyboard.press('Enter'); await sleep(300);
   assert(await p.locator('.tpl-form .sgs-n').count() === 4, 'přidaný zpěvák je v tabulce šablony');
-  await p.click('.tpl-form button:has-text("Uložit") >> nth=0'); await sleep(300);
+  await p.click('.ed-save button:has-text("Uložit")'); await sleep(300);
   assert(await p.evaluate(() => (Store.templates.get('default').singers || []).map(s => s.code).join(',')) === 'J,T,V,P', 'zpěvák uložen do šablony');
   assert(await p.evaluate(() => Store.singers().length) === 3, 'společný seznam kapely se nezměnil');
   assert(await p.evaluate(() => Store.singers({ text: '', templateId: 'default' }).length) === 4, 'píseň se šablonou má jejího zpěváka');
@@ -206,16 +206,16 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   await sleep(500);
   const range = p.locator('label.f:has-text("Velikost písma") input[type=range]');
   await range.fill('100');
-  await p.click('.tpl-form button:has-text("Uložit") >> nth=0'); await sleep(300);
+  await p.click('.ed-save button:has-text("Uložit")'); await sleep(300);
   assert(await p.evaluate(() => Store.templates.get('default').fontSize) === 100, 'změna velikosti písma v šabloně se uloží');
   const fsz = await p.evaluate(() => getComputedStyle(document.querySelector('.tpl-preview .stage')).getPropertyValue('--fs'));
   assert(fsz.trim() === '100px', 'náhled šablony se aktualizuje');
-  await p.click('button:has-text("Uložit jako")'); await p.fill('.modal input', 'Moje'); await p.keyboard.press('Enter'); await sleep(500);
+  await pick('button[title="Další volby šablony"]', 'Uložit jako novou šablonu'); await p.fill('.modal input', 'Moje'); await p.keyboard.press('Enter'); await sleep(500);
   const myId = await p.evaluate(() => [...Store.templates.values()].find(t => t.name === 'Moje').id);
   assert(!!myId, 'vytvoření šablony kopií');
   await p.click('button:has-text("Nastavit jako výchozí")'); await sleep(200);
   assert(await p.evaluate(id => Settings.get('defaultTemplate') === id, myId), 'nastavení výchozí šablony');
-  await p.click('.tpl-form button.danger'); await p.click('.modal button:has-text("Smazat")'); await sleep(400);
+  await pick('button[title="Další volby šablony"]', 'Smazat šablonu'); await p.click('.modal button:has-text("Smazat")'); await sleep(400);
   assert(await p.evaluate(id => !Store.templates.has(id) && Settings.get('defaultTemplate') === 'default', myId), 'smazání šablony vrátí výchozí');
 
   /* ---------- Stránkování a zmenšení ---------- */

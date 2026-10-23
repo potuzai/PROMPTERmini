@@ -359,10 +359,6 @@ function singerShowTable(get, set, edit, sgs = Store.singers()) {
   return tbl;
 }
 
-function dimLabel(W, H) {
-  return h('div', { class: 'preview-dim' }, `monitor ${W}×${H} · ${H >= W ? 'na výšku' : 'na šířku'}`);
-}
-
 /* plynulý vodorovný přechod barev (podklad řádku pro více zpěváků) */
 function blend(colors) {
   if (colors.length === 1) return colors[0];
