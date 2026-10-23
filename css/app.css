@@ -164,6 +164,7 @@ code { font-family: var(--mono); font-size: 12.5px; background: var(--well); bor
 .ed-save { display: flex; flex-direction: column-reverse; gap: 8px; }   /* čtečka nahoře, pod ní uložit a další volby */
 .ed-save-row { display: flex; gap: 6px; }
 .ed-save-row .btn:last-child, .ed-save > .btn { flex: 1; justify-content: center; }   /* ⋯ vlevo, Uložit přes zbytek */
+.ed-save > .btn.play { min-height: 42px; font-size: 15px; font-weight: 600; }   /* Čtečka výraznější */
 .se-wrap .stage { box-shadow: 0 0 0 1px rgba(0,0,0,.6), 0 14px 40px rgba(0,0,0,.45); }
 .se-empty { position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%); width: min(80%, 420px); display: flex; flex-direction: column; gap: 6px; text-align: center; color: var(--dim); pointer-events: none; }
 .se-empty b { color: var(--text); font-size: 18px; font-weight: 500; }
