@@ -195,7 +195,14 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   await p.click('.modal button:has-text("Vytvořit playlist")'); await sleep(400);
   const imp = await p.evaluate(() => { const pl = [...Store.playlists.values()].find(x => x.name === 'Setlist test'); const s = pl && Store.songs.get(pl.items[1]); return pl && [pl.items.length, pl.encore, Store.songs.get(pl.items[0]).title, s.title, s.artist, s.tempo, s.text].join('|'); });
   assert(imp === '2|1|Holubí dům|Neznámá píseň|Někdo|120|', 'import setlistu z Excelu: playlist, existující i nová píseň, přídavky');
-  await p.evaluate(async () => { const pl = [...Store.playlists.values()].find(x => x.name === 'Setlist test'); await Store.remove('songs', pl.items[1]); await Store.remove('playlists', pl.id); location.hash = '#/playlists'; });
+  await p.evaluate(() => { importFiles([new File(['Název;Interpret\nHolubí dům;Žlutý pes\n'], 'Z csv.csv')]); });
+  await p.click('.modal button:has-text("Vytvořit playlist")'); await sleep(400);
+  assert(await p.evaluate(() => { const pl = [...Store.playlists.values()].find(x => x.name === 'Z csv'); return !!pl && pl.items.length === 1; }), 'import setlistu z CSV');
+  await p.evaluate(async () => {
+    for (const pl of [...Store.playlists.values()].filter(x => ['Setlist test', 'Z csv'].includes(x.name))) await Store.remove('playlists', pl.id);
+    for (const s of [...Store.songs.values()].filter(x => x.title === 'Neznámá píseň')) await Store.remove('songs', s.id);
+    location.hash = '#/playlists';
+  });
   await sleep(300);
 
   /* ---------- Zpěváci v šabloně (stránka Obsazení už není) ---------- */
