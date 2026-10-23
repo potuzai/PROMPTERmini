@@ -4,7 +4,8 @@
    Pódium: pedál (tlačítka myši) jen listuje a je chráněný proti dvojitému šlápnutí; co čtečku opouští, chce stisk dvakrát. */
 const READER_HELP = [
   ['Pedál (tlačítka myši)', [
-    ['Pravé', 'další stránka, na konci písně další píseň'], ['Levé', 'předchozí stránka'], ['Prostřední', 'seznam písní'],
+    ['Pravé', 'další stránka, na konci písně další píseň'], ['Levé', 'předchozí stránka'],
+    ['Podržet levé, nebo oba najednou', 'setlist a nabídka'], ['Rychlé šlápnutí za sebou', 'každé se počítá – rychlý přesun'], ['Prostřední', 'setlist a nabídka'], ['Prázdný playlist: kterékoli', 'výběr playlistu'],
     ['V nabídce: levé / pravé', 'předchozí / další položka'], ['V nabídce: podržet pravé', 'potvrdit'], ['V nabídce: podržet levé', 'zpět, zavřít nabídku']]],
   ['Airmouse a klávesnice', [
     ['→ ↓ PgDn mezera Enter', 'další stránka'], ['← ↑ PgUp', 'předchozí stránka'], ['Shift + → / ←', 'další / předchozí píseň'],
@@ -16,7 +17,7 @@ const Reader = {
   el: null, wrap: null, stage: null, stageTplKey: '',
   plId: null, items: [], songIdx: 0, pageIdx: 0,
   cache: new Map(), menu: null, cursorTimer: null, fsPending: false,
-  aimT: 0, lastPt: null, mvAcc: 0, navT: 0, pend: null, pendT: 0, shownSong: null,
+  aimT: 0, lastPt: null, mvAcc: 0, press: null, pend: null, pendT: 0, shownSong: null,
 
   init() {
     this.el = h('div', { id: 'reader', class: 'hidden' });
@@ -27,10 +28,12 @@ const Reader = {
     this.el.addEventListener('mousedown', e => this.onMouse(e));
     // tlačítka myši zpět / vpřed (pedál, airmouse) nesmí čtečku opustit
     for (const ev of ['mouseup', 'auxclick']) this.el.addEventListener(ev, e => { if (e.button === 3 || e.button === 4) e.preventDefault(); });
+    this.el.addEventListener('mouseup', e => { if (!this.menu) this.pressUp(this.btn(e)); });
     this.el.addEventListener('touchstart', e => this.onTouch(e), { passive: false });
     this.el.addEventListener('wheel', e => this.onWheel(e), { passive: false });
     this.el.addEventListener('mousemove', e => this.onMove(e));
     document.addEventListener('keydown', e => this.onKey(e));
+    document.addEventListener('keyup', e => { if (this.keyDown && this.keyDown.k === e.key) this.keyDown = null; });
     window.addEventListener('resize', () => {
       if (!this.isOpen()) return;
       // „podle okna“: při změně velikosti / otočení telefonu přestránkovat, jinak jen přizpůsobit
@@ -131,7 +134,8 @@ const Reader = {
     if (!cur) {
       this.wrap.innerHTML = '';
       this.wrap.appendChild(h('div', { class: 'empty', style: { color: '#888', fontSize: '24px' } },
-        h('div', { class: 'empty-ic' }, '🎤'), 'Playlist je prázdný.', h('div', { style: { fontSize: '16px' } }, 'Stiskni L nebo prostřední tlačítko pro výběr playlistu, Esc pro návrat.')));
+        h('div', { class: 'empty-ic' }, '🎤'), 'Playlist je prázdný.', h('div', { style: { fontSize: '18px' } }, 'Šlápni na pedál (nebo stiskni P) a vyber jiný playlist.')));
+      if (this.hud) this.hud.classList.add('off');
       this.stage = null;
       return;
     }
@@ -272,20 +276,32 @@ const Reader = {
   },
 
   /* ----- Ovládání ----- */
-  /* Pedál / tlačítka myši: pravé = další, levé = zpět, prostřední = seznam písní.
-     Druhý stisk do 250 ms se nepočítá (zákmit tlačítka, dvojité šlápnutí). */
+  /* Pedál / tlačítka myši. Každé šlápnutí se počítá zvlášť (i rychlé klikání za sebou); jen zákmit kontaktu
+     do 40 ms po puštění se ignoruje. Podržení = tlačítko opravdu držené dole.
+     V textu: pravé = další, levé = zpět (hned při šlápnutí), prostřední = setlist;
+     podržet levé (0,8 s) nebo šlápnout oba najednou = setlist (předtím provedené listování se vrátí);
+     prázdný playlist: kterékoli tlačítko = výběr playlistu. */
   onMouse(e) {
     if (!this.isOpen() || this.menu) return;   // nabídka má vlastní ovládání
     e.preventDefault();
     if (this.consumeFsPending()) return;
-    const b = this.btn(e);
-    if (b === 1) return this.showJumpMenu();
-    if (b !== 0 && b !== 2 && b !== 3 && b !== 4) return;
-    const now = Date.now();
-    if (now - this.navT < 250) return;
-    this.navT = now;
+    const b = this.btn(e), now = Date.now(), p = this.press;
+    if (b !== 0 && b !== 1 && b !== 2 && b !== 3 && b !== 4) return;
+    if (this.bounce(p, b, now)) return;
+    if (p && p.b !== b && p.down && !p.fired && !p.menu) { p.fired = true; this.setPos(p.pos); return this.showJumpMenu(); }   // oba najednou
+    const np = this.press = { b, start: now, down: true, pos: [this.songIdx, this.pageIdx] };
+    if (!this.items.length) { np.fired = true; return this.showStartMenu(); }
+    if (b === 1) { np.fired = true; return this.showJumpMenu(); }
     if (b === 2 || b === 4) this.next(); else this.prev();
+    clearTimeout(this.holdT);
+    if (b === 0 || b === 3) this.holdT = setTimeout(() => {   // podržený levý = setlist
+      if (this.press === np && np.down && !np.fired) { np.fired = true; this.setPos(np.pos); this.showJumpMenu(); }
+    }, 800);
   },
+  pressUp(b) { const p = this.press; if (p && p.b === b) { p.down = false; p.up = Date.now(); } },
+  /* zákmit kontaktu: stejné tlačítko znovu dole hned po puštění */
+  bounce(p, b, now) { return !!(p && p.b === b && !p.down && now - (p.up || 0) < 40); },
+  setPos([si, pi]) { if (si !== this.songIdx || pi !== this.pageIdx) { this.songIdx = si; this.pageIdx = pi; this.render(); } },
   /* Dotyk (mobil, tablet): pravá část = další, levá = zpět, horní pruh = seznam písní */
   onTouch(e) {
     if (!this.isOpen() || this.menu || !e.touches.length) return;
@@ -314,7 +330,13 @@ const Reader = {
     const k = e.key;
     if (k === 'F11') return; // necháme prohlížeči
     if (this.consumeFsPending() && !['Escape'].includes(k)) { e.preventDefault(); return; }
-    if (e.repeat) { e.preventDefault(); return; }   // držená klávesa nelistuje dál – jedna stránka na stisk
+    if (e.repeat) {   // držená klávesa nelistuje dál – jedna stránka na stisk; držená zpět (0,8 s) = setlist
+      e.preventDefault();
+      const kd = this.keyDown;
+      if (kd && kd.k === k && !kd.fired && ['ArrowLeft', 'ArrowUp', 'PageUp'].includes(k) && Date.now() - kd.t >= 800) { kd.fired = true; this.setPos(kd.pos); this.showJumpMenu(); }
+      return;
+    }
+    this.keyDown = { k, t: Date.now(), fired: false, pos: [this.songIdx, this.pageIdx] };
     const leave = () => this.confirm2('esc', 'Zavřít čtečku? Stiskni znovu Esc', () => this.exit());
     const map = {
       ArrowRight: () => e.shiftKey ? this.nextSong() : this.next(),
@@ -404,6 +426,9 @@ const Reader = {
     if (this.menu.hold) clearTimeout(this.menu.hold.t);
     this.menu.el.remove();
     this.menu = null;
+    // kurzor se po zavření nabídky zase sám schová
+    clearTimeout(this.cursorTimer);
+    if (Settings.get('hideCursor')) this.cursorTimer = setTimeout(() => { if (!this.menu) this.el.classList.add('nocursor'); }, 2000);
     if (userCancel && !this.items.length && !this.plId) this.exit();
   },
   menuTouch() {
@@ -411,37 +436,36 @@ const Reader = {
     const m = this.menu;
     if (m && m.autoClose) this.menuIdleT = setTimeout(() => { if (this.menu === m) this.closeMenu(); }, 20000);
   },
-  /* Nabídka a myš: když kurzor míří (airmouse), klik vybere, na co ukazuje (pravé / vedle okna = zavřít).
-     Pedál: pravé = další položka, levé = předchozí, podržet pravé = potvrdit, podržet levé = zpět; prostřední potvrdí. */
+  /* Nabídka a myš: když kurzor míří (airmouse), klik vybere, na co ukazuje (pravé / vedle okna = zpět).
+     Pedál: šlápnutí pravé = další položka, levé = předchozí (každé zvlášť, i rychle za sebou);
+     podržet pravé (0,6 s) = potvrdit, podržet levé = zpět; prostřední potvrdí. */
   menuDown(ev) {
     const m = this.menu;
     if (!m) return;
     this.menuTouch();
-    const b = this.btn(ev), opt = ev.target.closest('.r-opt');
+    const b = this.btn(ev), opt = ev.target.closest('.r-opt'), now = Date.now(), p = this.press;
+    if (this.bounce(p, b, now)) return;
     if (this.aimed()) {
       if (b === 0 && opt) { m.sel = m.els().indexOf(opt); m.paint(); return m.pick(); }
       if (b === 0 || b === 2) return m.back();
     }
-    if (b === 1) return m.pick();
+    if (b === 1) { this.press = { b, start: now, down: true, fired: true, menu: true }; return m.pick(); }
     if (b !== 0 && b !== 2) return;
-    if (m.hold) clearTimeout(m.hold.t);
-    m.hold = { b, done: false, t: setTimeout(() => {
-      m.hold.done = true; m.el.classList.remove('holding');
-      if (b === 2) m.pick(); else m.back();
-    }, 600) };
+    const np = this.press = { b, start: now, down: true, menu: true };
+    clearTimeout(this.holdT);
     m.el.classList.add('holding');
+    this.holdT = setTimeout(() => {
+      if (this.press !== np || np.fired || !np.down) return;
+      np.fired = true; m.el.classList.remove('holding');
+      if (b === 2) m.pick(); else m.back();
+    }, 600);
   },
-  menuUp() {
-    const m = this.menu;
-    if (!m || !m.hold) return;
-    clearTimeout(m.hold.t);
-    m.el.classList.remove('holding');
-    const { b, done } = m.hold;
-    m.hold = null;
-    if (done) return;
-    const now = Date.now();
-    if (now - this.navT < 250) return;   // zákmit
-    this.navT = now;
+  menuUp(ev) {
+    const m = this.menu, p = this.press, b = this.btn(ev);
+    if (!p || p.b !== b) return;
+    p.down = false; p.up = Date.now();
+    if (!m || p.fired || !p.menu) return;   // podržení už se provedlo (nebo dozvuk podržení z textu)
+    p.fired = true; clearTimeout(this.holdT); m.el.classList.remove('holding');
     m.sel = b === 2 ? Math.min(m.options.length - 1, m.sel + 1) : Math.max(0, m.sel - 1);
     m.paint();
   },
@@ -449,11 +473,20 @@ const Reader = {
     const m = this.menu;
     const k = e.key;
     this.menuTouch();
+    // pedál, který posílá klávesy: držená klávesa se neopakuje (nelistuje), po 0,6 s vpřed = potvrdit, zpět = zpět
+    const fwd = ['ArrowDown', 'ArrowRight', 'PageDown'].includes(k), bwd = ['ArrowUp', 'ArrowLeft', 'PageUp'].includes(k);
+    if ((fwd || bwd) && e.repeat) {
+      e.preventDefault();
+      const kd = this.keyDown;
+      if (kd && kd.k === k && !kd.fired && Date.now() - kd.t >= 600) { kd.fired = true; if (fwd) m.pick(); else m.back(); }
+      return;
+    }
+    if (fwd || bwd) this.keyDown = { k, t: Date.now(), fired: false };
     const step = m.grid && (k === 'ArrowDown' || k === 'ArrowUp') ? 2 : 1;
     if (k === 'ArrowDown' || k === 'ArrowRight' || (k === 'Tab' && !e.shiftKey)) { m.sel = Math.min(m.options.length - 1, m.sel + step); m.paint(); }
     else if (k === 'ArrowUp' || k === 'ArrowLeft' || (k === 'Tab' && e.shiftKey)) { m.sel = Math.max(0, m.sel - step); m.paint(); }
-    else if (k === 'PageDown') { m.sel = Math.min(m.options.length - 1, m.sel + 8); m.paint(); }
-    else if (k === 'PageUp') { m.sel = Math.max(0, m.sel - 8); m.paint(); }
+    else if (k === 'PageDown') { m.sel = Math.min(m.options.length - 1, m.sel + 1); m.paint(); }
+    else if (k === 'PageUp') { m.sel = Math.max(0, m.sel - 1); m.paint(); }
     else if (k === 'Home') { m.sel = 0; m.paint(); }
     else if (k === 'End') { m.sel = m.options.length - 1; m.paint(); }
     else if (k === 'Enter' || k === ' ') m.pick();
@@ -525,17 +558,17 @@ const Reader = {
 
   /* Ovládací lišta dole – ukáže se, když myš sjede do spodní části obrazovky */
   showBar() {
-    if (this.menu || !this.items || !this.items.length) return;
+    if (this.menu) return;
     if (!this.bar) {
       // tlačítka reagují, jen když kurzor míří; jinak stisk propadne jako pedál (listování)
       const b = (icon, title, fn, cls = '') => h('button', { class: 'r-bbtn ' + cls, title, onmousedown: e => { if (!this.aimed()) return; e.preventDefault(); e.stopPropagation(); if (e.button === 0) fn(); } }, ic(icon));
       this.barInfo = h('div', { class: 'r-binfo' });
       this.bar = h('div', { class: 'r-bar' },
-        b('skipb', 'Předchozí píseň (Shift + ←)', () => this.prevSong()), b('left', 'Předchozí stránka', () => this.prev()),
+        this.bPrevSong = b('skipb', 'Předchozí píseň (Shift + ←)', () => this.prevSong()), this.bPrevPage = b('left', 'Předchozí stránka', () => this.prev()),
         this.barInfo,
-        b('right', 'Další stránka', () => this.next()), b('skipf', 'Další píseň (Shift + →)', () => this.nextSong()),
+        this.bNextPage = b('right', 'Další stránka', () => this.next()), this.bNextSong = b('skipf', 'Další píseň (Shift + →)', () => this.nextSong()),
         h('span', { class: 'r-bsep' }),
-        b('list', 'Setlist a nabídka (Tab)', () => this.showJumpMenu(), 'wide'));
+        b('list', 'Setlist a nabídka (Tab)', () => this.items.length ? this.showJumpMenu() : this.showStartMenu(), 'wide'));
       this.progress = h('div', { class: 'r-progress' }, h('i'));
       this.el.append(this.bar, this.progress);
     }
@@ -549,8 +582,13 @@ const Reader = {
     if (!this.bar) return;
     const cur = this.current();
     const n = cur ? cur.lay.pages.length : 1;
+    // stránky jen u písně s víc stránkami; píseň zpět / vpřed jen když nějaká je
+    this.bPrevPage.classList.toggle('off', n < 2); this.bNextPage.classList.toggle('off', n < 2);
+    this.bPrevSong.classList.toggle('off', !cur); this.bNextSong.classList.toggle('off', !cur);
+    this.bPrevSong.disabled = this.songIdx <= 0; this.bNextSong.disabled = this.songIdx >= this.items.length - 1;
     this.barInfo.innerHTML = '';
-    this.barInfo.append(h('b', {}, cur ? cur.song.title : ''), h('span', {}, `Píseň ${this.songIdx + 1} / ${this.items.length} · strana ${this.pageIdx + 1} / ${n}`));
+    if (!cur) this.barInfo.append(h('b', {}, 'Prázdný playlist'), h('span', {}, 'tlačítko vpravo = jiný playlist'));
+    else this.barInfo.append(h('b', {}, cur.song.title), h('span', {}, `Píseň ${this.songIdx + 1} / ${this.items.length}` + (n > 1 ? ` · strana ${this.pageIdx + 1} / ${n}` : '')));
     $('i', this.progress).style.width = (this.items.length ? (this.songIdx + (this.pageIdx + 1) / n) / this.items.length * 100 : 0) + '%';
   },
 

@@ -175,7 +175,7 @@ const URL = 'http://localhost:8123/index.html';
     await q.evaluate(() => { location.hash = '#/reader/p1/0'; }); await sleep(600);
     await q.mouse.move(700, 400); await q.mouse.move(700, 800); await sleep(300);
     assert(await q.isVisible('#reader.bar-on .r-bar') && await q.isVisible('.r-binfo:has-text("Píseň 1 / 2")'), 'pohyb myši dolů ukáže ovládací lištu');
-    await q.click('.r-bar .r-bbtn[title^="Další"]'); await sleep(200);
+    await q.click('.r-bar .r-bbtn[title^="Další píseň"]'); await sleep(200);
     assert(await q.evaluate(() => Reader.songIdx) === 1, 'tlačítko na liště listuje');
     await q.keyboard.press('Tab'); await sleep(200);
     assert(await q.isVisible('.r-opt.cur:has-text("Holubí dům") .r-badge') && await q.isVisible('.r-opt.done:has-text("Kometa")'), 'seznam písní: hraje / odehráno');
