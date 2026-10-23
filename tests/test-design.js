@@ -180,9 +180,9 @@ const URL = 'http://localhost:8123/index.html';
     await q.keyboard.press('Tab'); await sleep(200);
     assert(await q.isVisible('.r-opt.cur:has-text("Holubí dům") .r-badge') && await q.isVisible('.r-opt.done:has-text("Kometa")'), 'seznam písní: hraje / odehráno');
     await q.keyboard.press('Escape'); await q.keyboard.press('q'); await sleep(200);
-    assert(await q.locator('.r-quick .r-grid .r-opt').count() === 7, 'rychlá nabídka: dlaždice');
+    assert(await q.locator('.r-quick .r-grid .r-opt').count() === 4 && await q.isVisible('.r-quick .r-foot .r-tool.danger'), 'rychlá nabídka: 4 dlaždice, Zavřít čtečku v patičce');
     await q.keyboard.press('ArrowDown'); await q.keyboard.press('Enter'); await sleep(200);
-    assert(await q.evaluate(() => Settings.get('readerZoom')) === 0.95, 'šipkou a OK zvolená dlaždice (menší písmo)');
+    assert(await q.evaluate(() => !document.querySelector('.r-quick')), 'šipkou a OK zvolená dlaždice');
     await c2.close();
   } catch (e) { console.log('FAIL: výjimka ' + e.message); process.exitCode = 1; }
   await b.close();

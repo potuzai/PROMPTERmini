@@ -61,7 +61,7 @@ const Screens = {
   },
 
   /* Velikost písma: profil × osobní zvětšení */
-  fontScale(scr, personal) { return (scr.fontPct || 100) / 100 * (personal ? (Settings.get('readerZoom') || 1) : 1); },
+  fontScale(scr) { return (scr.fontPct || 100) / 100; },
   label(scr) { return scr.id === 'auto' ? 'Podle okna (přizpůsobí se displeji)' : `${scr.name} · ${scr.w}×${scr.h} · ${scr.h > scr.w ? 'na výšku' : scr.h < scr.w ? 'na šířku' : 'čtverec'}`; },
 };
 

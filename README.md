@@ -32,14 +32,13 @@ Aplikace pro psaní, úpravy a zobrazování textů písní na čtečce (prompte
 | seznam písní (skok) | prostřední tlačítko | L, Tab, pak číslo nebo šipky |
 | další / předchozí píseň | | Shift + → / ← |
 | výběr playlistu | | P |
-| větší / menší písmo | | + / − (0 = výchozí) |
 | celá obrazovka | | F nebo F11 |
 | stáhnout změny | | S |
 | rychlá nabídka (dlaždice) | | Q nebo klávesa menu |
 | nápověda | | H |
 | zpět / úpravy | | Esc |
 
-Když myš sjede do spodní části obrazovky, objeví se **ovládací lišta** (předchozí / další, pořadí písně a stránky, seznam písní, nabídka) a nahoře tenký pruh s průběhem playlistu. Po chvíli sama zmizí. **Rychlá nabídka** má velké dlaždice: seznam písní, menší / větší písmo, synchronizace, úprava písně, nápověda a zavření čtečky. Vybraný prvek má vždy bílý rámeček, aby byl vidět i z dálky.
+Když myš sjede do spodní části obrazovky, objeví se **ovládací lišta** (předchozí / další, pořadí písně a stránky, seznam písní, nabídka) a nahoře tenký pruh s průběhem playlistu. Po chvíli sama zmizí. **Rychlá nabídka** má velké dlaždice: seznam písní, úprava písně, synchronizace a nápověda; zavření čtečky je v její patičce. Vybraný prvek má vždy bílý rámeček, aby byl vidět i z dálky.
 
 Monitor čtečky během běhu programu neusne. Program se po případném pádu sám obnoví a každý den zálohuje data do `data\zalohy` (drží 14 dní).
 
@@ -100,14 +99,13 @@ Myší jako v textovém editoru: klik do řádku = psaní na tom místě, tažen
 | seznam písní (skok) | prostřední tlačítko | L, Tab, pak číslo nebo šipky |
 | další / předchozí píseň | | Shift + → / ← |
 | výběr playlistu | | P |
-| větší / menší písmo | | + / − (0 = výchozí) |
 | celá obrazovka | | F nebo F11 |
 | stáhnout změny | | S |
 | rychlá nabídka (dlaždice) | | Q nebo klávesa menu |
 | nápověda | | H |
 | zpět / úpravy | | Esc |
 
-Když myš sjede do spodní části obrazovky, objeví se **ovládací lišta** (předchozí / další, pořadí písně a stránky, seznam písní, nabídka) a nahoře tenký pruh s průběhem playlistu. Po chvíli sama zmizí. **Rychlá nabídka** má velké dlaždice: seznam písní, menší / větší písmo, synchronizace, úprava písně, nápověda a zavření čtečky. Vybraný prvek má vždy bílý rámeček, aby byl vidět i z dálky.
+Když myš sjede do spodní části obrazovky, objeví se **ovládací lišta** (předchozí / další, pořadí písně a stránky, seznam písní, nabídka) a nahoře tenký pruh s průběhem playlistu. Po chvíli sama zmizí. **Rychlá nabídka** má velké dlaždice: seznam písní, úprava písně, synchronizace a nápověda; zavření čtečky je v její patičce. Vybraný prvek má vždy bílý rámeček, aby byl vidět i z dálky.
 
 Monitor čtečky během běhu programu neusne. Program se po případném pádu sám obnoví a každý den zálohuje data do `data\zalohy` (drží 14 dní).
 
@@ -195,7 +193,6 @@ Píseň se píše **jen jednou** a sdílí se. Kapela si ale může nadefinovat 
 Obrazovky se sdílí s celou kapelou. **Každé zařízení si vybere, kterou obrazovkou je** (Nastavení › Toto zařízení), a k tomu si může nastavit jen pro sebe:
 
 - **zvýraznit moje řádky** – zvolíš, kdo jsi, a řádky ostatních zpěváků se ztlumí (řádky „všichni“ zůstanou),
-- **velikost písma** (i ve čtečce klávesami + / −),
 - **soukromé poznámky** k písni – v editoru vlevo *Moje poznámky*. Vidíš je jen ty na svém zařízení, ve čtečce nahoře na stránce; do kapely se neposílají.
 
 V editoru pod stránkou přepínáš **Náhled pro: …** a vidíš píseň přesně tak, jak ji uvidí daná obrazovka.

@@ -5,7 +5,7 @@ const READER_KEYS = [
   ['Pravé tlačítko / → / PgDn / mezera', 'další stránka'], ['Levé tlačítko / ← / PgUp', 'předchozí stránka'],
   ['Shift + → / ←', 'další / předchozí píseň'], ['Prostřední tlačítko / L / Tab', 'seznam písní (skok)'],
   ['P', 'výběr playlistu'], ['Q / klávesa menu', 'rychlá nabídka (dlaždice)'], ['F / F11', 'celá obrazovka'],
-  ['+ / − / 0', 'větší / menší / výchozí písmo'], ['S', 'synchronizovat (stáhnout změny)'], ['E', 'upravit aktuální píseň'], ['H', 'tato nápověda'], ['Esc', 'zavřít / zpět'],
+  ['S', 'synchronizovat (stáhnout změny)'], ['E', 'upravit aktuální píseň'], ['H', 'tato nápověda'], ['Esc', 'zavřít / zpět'],
 ];
 
 const Reader = {
@@ -86,7 +86,7 @@ const Reader = {
     const id = (song && song.templateId) || Settings.get('defaultTemplate');
     const tpl = applySongStyle(Store.template(id), song);
     // písmo: profil obrazovky × osobní zvětšení tohoto zařízení
-    const z = Screens.fontScale(Screens.mine(), true);
+    const z = Screens.fontScale(Screens.mine());
     if (z !== 1) tpl.fontSize = Math.round(tpl.fontSize * z);
     return tpl;
   },
@@ -268,21 +268,12 @@ const Reader = {
       p: () => this.showStartMenu(),
       f: () => this.toggleFullscreen(),
       q: () => this.showQuickMenu(), ContextMenu: () => this.showQuickMenu(),
-      '+': () => this.zoom(0.05), '=': () => this.zoom(0.05), '-': () => this.zoom(-0.05),
-      '0': () => { Settings.set('readerZoom', 1); this.cache.clear(); this.stage = null; this.render(); this.flash('Velikost písma 100 %'); },
       e: () => this.editCurrent(),
       s: () => this.syncNow(),
       h: () => this.showHelp(), '?': () => this.showHelp(),
     };
     const fn = map[k] || letters[lk];
     if (fn) { e.preventDefault(); fn(); }
-  },
-
-  zoom(d) {
-    const z = Math.max(0.5, Math.min(2, Math.round(((Settings.get('readerZoom') || 1) + d) * 100) / 100));
-    Settings.set('readerZoom', z);
-    this.cache.clear(); this.stage = null; this.render();
-    this.flash('Velikost písma ' + Math.round(z * 100) + ' %');
   },
 
   async syncNow() {
@@ -407,11 +398,9 @@ const Reader = {
     const tiles = [
       { icon: 'list', label: 'Seznam písní', key: 'Tab', run: () => this.showJumpMenu() },
       { icon: 'edit', label: 'Upravit píseň', key: 'E', run: () => this.editCurrent() },
-      { icon: 'zoomout', label: 'Menší písmo', key: '−', run: () => this.zoom(-0.05) },
-      { icon: 'zoomin', label: 'Větší písmo', key: '+', run: () => this.zoom(0.05) },
       { icon: 'sync', label: 'Synchronizovat', key: 'S', run: () => this.syncNow() },
       { icon: 'help', label: 'Nápověda', key: 'H', run: () => this.showHelp() },
-      { icon: 'x', label: 'Zavřít čtečku', cls: 'danger wide', run: () => this.exit() },
+      { icon: 'x', label: 'Zavřít čtečku', foot: true, cls: 'danger', run: () => this.exit() },   // v patičce okna
     ];
     this.showMenu('Nabídka', tiles, 0, o => { this.closeMenu(); o.run(); }, 'Šipky vybrat · OK potvrdit · Esc zpět',
       { grid: true, cls: 'r-quick', sub: cur ? `${cur.song.title} · ${this.songIdx + 1} / ${this.items.length}` : '' });

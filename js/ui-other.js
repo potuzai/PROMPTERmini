@@ -392,8 +392,6 @@ const SettingsView = {
       const singerSel = h('select', { class: 'inp set-sel' }, h('option', { value: '' }, '— nikdo / nezvýrazňovat —'),
         Store.allSingers().map(sg => h('option', { value: sg.code, selected: sg.code === S.mySinger }, sg.name)));
       singerSel.onchange = () => { Settings.set('mySinger', singerSel.value); Settings.set('highlightMine', !!singerSel.value); };
-      const zoom = h('input', { class: 'inp set-num', type: 'number', min: 50, max: 200, step: 5, value: Math.round((S.readerZoom || 1) * 100) });
-      zoom.onchange = () => Settings.set('readerZoom', Math.max(0.5, Math.min(2, (+zoom.value || 100) / 100)));
       const rotSel = h('select', { class: 'inp set-sel' }, [[0, 'neotáčet'], [90, 'o 90° doprava'], [270, 'o 90° doleva'], [180, 'o 180°']]
         .map(([v, l]) => h('option', { value: v, selected: (S.readerRotate || 0) === v }, l)));
       rotSel.onchange = () => Settings.set('readerRotate', +rotSel.value);
@@ -421,7 +419,6 @@ const SettingsView = {
         h('div', { class: 'set-rows' },
           setRow('Toto zařízení je obrazovka', 'Na webu a v telefonu se stránka přizpůsobí oknu. Obrazovku kapely zvol jen pro pevně umístěný displej.', scrSel),
           setRow('Zvýraznit moje řádky', 'Řádky ostatních zpěváků budou ztlumené (řádky „všichni“ zůstanou).', singerSel),
-          setRow('Velikost písma (%)', 'Osobní zvětšení k velikosti obrazovky. Ve čtečce i klávesami + / −.', zoom),
           setRow('Otočit obraz čtečky', 'Jen když systém monitor sám neotáčí.', rotSel)));
     };
     paint();

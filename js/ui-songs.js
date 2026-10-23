@@ -749,7 +749,7 @@ class SongEditor {
   /* nic vybraného (klik vedle textu) = úpravy z lišty platí pro celou píseň */
   songScope() { return !!this.se && !this.se.editing && !this.se.cur(); }
   baseTpl() { return Store.template(this.inTpl.value || Settings.get('defaultTemplate')); }
-  fz() { const scr = this.screen(); return Screens.fontScale(scr, scr.id === Screens.mine().id); }
+  fz() { return Screens.fontScale(this.screen()); }
   /* volba písně (style): undefined / stejné jako šablona = podle šablony */
   setSong(k, v) {
     const st = Object.assign({}, this.style || {});

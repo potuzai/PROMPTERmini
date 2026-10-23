@@ -111,7 +111,7 @@ class StageEditor {
       text = ls.join('\n');
     }
     const tpl = ed.lookTpl(song);
-    const fz = Screens.fontScale(scr, own);
+    const fz = Screens.fontScale(scr);
     if (fz !== 1) tpl.fontSize = Math.round(tpl.fontSize * fz);
     // náhled přesně pro zvolenou obrazovku (její konce stránek)
     const lay = Render.layout(Object.assign({}, song, { text }), tpl, W, H, screenOpts(scr, ed.id, own));

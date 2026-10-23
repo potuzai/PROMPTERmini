@@ -48,7 +48,6 @@ const DEFAULT_SETTINGS = {
   wheelNav: false,               // listovat kolečkem myši
   hideCursor: true,
   readerSyncOnStart: true,
-  readerZoom: 1,                 // osobní zvětšení písma ve čtečce (1 = 100 %)
   defaultTemplate: 'default',
   lastPlaylist: null,
   pinHash: '',                   // PIN pro úpravy (prázdné = bez PINu)

@@ -378,7 +378,7 @@ function miniPage(box, song, info) {
   const scr = Screens.edit();
   const W = scr.w, H = scr.h;
   const tpl = applySongStyle(Store.template((song && song.templateId) || Settings.get('defaultTemplate')), song);
-  tpl.fontSize = Math.round(tpl.fontSize * Screens.fontScale(scr, false));
+  tpl.fontSize = Math.round(tpl.fontSize * Screens.fontScale(scr));
   const lay = Render.layout(song, tpl, W, H, screenOpts(scr, song.id, true));
   const st = Render.makeStage(tpl, W, H);
   box.innerHTML = '';
