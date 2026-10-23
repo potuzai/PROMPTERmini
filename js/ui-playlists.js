@@ -50,6 +50,16 @@ const PlaylistsView = {
       if (id && id === shown && App.isDirty()) return;   // rozpracovaný náhled nepřekreslovat (ztratily by se změny)
       paintPrev(Store.playlists.get(id));
     };
+    // tužka v řádku (ukáže se po najetí myší): název, datum a poznámka se uloží hned
+    const editRow = async p => {
+      if (p.id === shown && App.isDirty() && this.prevEditInfo) return this.prevEditInfo();   // rozpracovaný náhled: změna se uloží s ním
+      const r = await this.infoDlg('Název, datum a poznámka', p);
+      const cur = r && Store.playlists.get(p.id);
+      if (!cur || (r.name === (cur.name || '') && r.date === (cur.date || '') && r.note === (cur.note || ''))) return;
+      await Store.put('playlists', Object.assign(clone(cur), { name: r.name, date: r.date, note: r.note }));
+      this.paintSide();
+      if (p.id === shown) paintPrev(Store.playlists.get(p.id));
+    };
     const choose = async id => { if (id !== shown && !await App.leaveOk()) return; select(id); };
     const sorted = by => {
       const cmp = (a, b) => String(a || '').localeCompare(String(b || ''), 'cs', { sensitivity: 'base' });
@@ -76,7 +86,8 @@ const PlaylistsView = {
         h('span', { class: 'sl-artist' }, p.date ? new Date(p.date).toLocaleDateString('cs-CZ') : '—'),
         h('b', { class: 'sl-title' }, p.name || '(bez názvu)'),
         h('span', { class: 'sl-key' }, plural(p.items.length, 'píseň', 'písně', 'písní')),
-        h('span', { class: 'sl-artist' }, p.note || ''));
+        h('span', { class: 'sl-artist' }, p.note || ''),
+        isMobile() ? null : h('button', { class: 'btn small icon pl-row-edit', title: 'Upravit název, datum a poznámku', onclick: e => { e.stopPropagation(); editRow(p); } }, ic('edit')));
       el.addEventListener('dragstart', e => { dragId = p.id; el.classList.add('drag'); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', p.id); });
       el.addEventListener('dragend', () => { dragId = null; el.classList.remove('drag'); $$('.over', list).forEach(x => x.classList.remove('over')); });
       if (ready) dropZone(el, () => p.id);
@@ -462,6 +473,7 @@ const PlaylistsView = {
         }
       };
       paintHead();
+      this.prevEditInfo = editInfo;
       itemsBox.classList.add('pl-compact');
       // v náhledu je málo místa: disketa (uložit, uložit jako) a ⋯ (čára pro přídavky, tisk, celá stránka)
       const menuBtn = h('button', { class: 'btn', title: 'Uložit (Ctrl+S) nebo uložit jako nový playlist', onclick: e => popupMenu(e.currentTarget, [
@@ -473,8 +485,7 @@ const PlaylistsView = {
         { label: 'Tisk…', action: () => this.print(pl) }].filter(Boolean)) }, '⋯');
       savedBtns.push(menuBtn);
       root.append(
-        h('div', { class: 'pl-prev-head' }, h('div', { class: 'pl-prev-title' }, titleEl,
-          h('button', { class: 'btn small icon', title: 'Upravit název, datum a poznámku', onclick: editInfo }, '✎'), readyBtn), metaEl),
+        h('div', { class: 'pl-prev-head' }, h('div', { class: 'pl-prev-title' }, titleEl, readyBtn), metaEl),
         h('div', { class: 'pl-prev-btns' },
           h('button', { class: 'btn primary', title: 'Přidat písně z knihovny (hledání, výběr více písní, pořadí)', onclick: pickDialog }, '＋ Přidat'),
           menuBtn, moreBtn, savedInd, h('span', { class: 'grow', style: { flex: 1 } }),
