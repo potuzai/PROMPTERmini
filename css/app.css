@@ -551,27 +551,27 @@ details summary { color: var(--text); }
 .tl-lh input { width: 2.4ch; text-align: left; letter-spacing: -.3px; }   /* dvě číslice, např. 1,2 */
 .tl-lh.on .ic.tl-lh-ic { color: var(--acc-hi); }
 .tl-color .tl-col { font-weight: 700; border-bottom: 3px solid var(--tc, var(--acc)); line-height: 1.1; padding: 0 1px; }   /* barva písma – podtržení = poslední použitá */
-.menu-page { max-height: 86vh; overflow-y: auto; width: 340px; gap: 12px; }   /* nastavení písně: skupiny jako karty, vlevo název, vpravo ovládání */
-.menu-page.wide { width: min(680px, 94vw); }
-.menu-page .pg-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-.menu-page .pg-title { font: 600 15px var(--font); color: var(--text); }
-.menu-page .pg-sub { margin-top: 2px; font-size: 12px; color: var(--faint); }
-.menu-page .pg-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--acc-hi); vertical-align: middle; }
-.menu-page .pg-set { display: grid; grid-template-columns: 1fr; gap: 10px; align-items: start; text-align: left; }
-.menu-page .pg-set.two { grid-template-columns: 1fr 1fr; }
-.menu-page .pg-card { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px 6px; border: 1px solid var(--line); border-radius: var(--rc); background: var(--panel2); }
-.menu-page .pg-g { margin: 0 0 4px; font: 600 11px var(--font); letter-spacing: .05em; text-transform: uppercase; color: var(--dim); }
-.menu-page .pg-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 34px; }
+.menu-page { max-height: 86vh; overflow-y: auto; width: 300px; padding: 8px 10px 10px; gap: 4px; }   /* nastavení písně: úsporně, vlevo název, vpravo ovládání */
+.menu-page .pg-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-bottom: 2px; }
+.menu-page .pg-title { font: 600 13.5px var(--font); color: var(--text); }
+.menu-page .pg-reset { height: 24px; padding: 0 8px; font-size: 12px; }
+.menu-page .pg-set { display: flex; flex-direction: column; align-items: stretch; gap: 0; text-align: left; }
+.menu-page .pg-card { display: flex; flex-direction: column; padding: 4px 0 2px; border-top: 1px solid var(--line); }
+.menu-page .pg-g { margin: 2px 0 1px; font: 600 10.5px var(--font); letter-spacing: .05em; text-transform: uppercase; color: var(--faint); }
+.menu-page .pg-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 30px; }
 .menu-page .pg-l { flex: 1; min-width: 0; font-size: 13px; }
 .menu-page .pg-row.own .pg-l::after { content: ''; display: inline-block; width: 6px; height: 6px; margin-left: 6px; border-radius: 50%; background: var(--acc-hi); vertical-align: middle; }
-.menu-page .pg-sel { width: 128px; min-height: 30px; padding: 2px 6px; font-size: 13px; }
-.menu-page .pg-step { display: flex; align-items: center; width: 128px; border: 1px solid var(--line2); border-radius: var(--r); overflow: hidden; background: var(--well); }
-.menu-page .pg-step .tl { border: 0; border-radius: 0; height: 28px; min-width: 28px; padding: 0; color: var(--dim); background: none; }
-.menu-page .pg-num { display: flex; flex: 1; align-items: center; justify-content: center; gap: 3px; font-size: 13px; color: var(--dim); cursor: text; }
+.menu-page .pg-sel { width: 124px; min-height: 26px; padding: 1px 4px; font-size: 12.5px; }
+.menu-page .pg-step { display: flex; align-items: center; width: 124px; border: 1px solid var(--line2); border-radius: var(--r); overflow: hidden; background: var(--well); }
+.menu-page .pg-step .tl { border: 0; border-radius: 0; height: 24px; min-width: 24px; padding: 0; color: var(--dim); background: none; }
+.menu-page .pg-num { display: flex; flex: 1; align-items: center; justify-content: center; gap: 3px; font-size: 12.5px; color: var(--dim); cursor: text; }
+.menu-page input[type=checkbox].switch { width: 36px; height: 20px; }
+.menu-page input[type=checkbox].switch::after { width: 14px; height: 14px; }
+.menu-page input[type=checkbox].switch:checked::after { transform: translateX(16px); }
 .num-in { width: 4.2ch; padding: 1px 2px; border: 0; border-radius: 3px; background: none; color: var(--text); font: 600 13px var(--font); text-align: right; outline: none; font-variant-numeric: tabular-nums; cursor: text; }   /* číslo jde přepsat */
 .num-in:hover { background: var(--hover); }
 .num-in:focus { background: var(--sel); box-shadow: inset 0 0 0 1px var(--acc); }
-.menu-page .pg-color { width: 40px; height: 26px; padding: 0; border: 1px solid var(--line2); border-radius: var(--r); background: none; cursor: pointer; }
+.menu-page .pg-color { width: 36px; height: 22px; padding: 0; border: 1px solid var(--line2); border-radius: var(--r); background: none; cursor: pointer; }
 /* okno Uložit jako: možnosti jako velká tlačítka se štítkem formátu a popisem */
 .choose-list { display: flex; flex-direction: column; gap: 8px; }
 .choose-it { display: flex; align-items: center; gap: 14px; width: 100%; padding: 11px 14px; border: 1px solid var(--line2); border-radius: var(--r); background: var(--well); color: var(--text); font: 14px var(--font); text-align: left; cursor: pointer; }

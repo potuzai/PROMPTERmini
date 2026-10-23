@@ -637,7 +637,7 @@ class SongEditor {
   settingsPopover(anchor, title, keys, groups) {
     $$('.menu').forEach(m => m.remove());
     const F = k => TPL_FIELDS.find(f => f.k === k);
-    const box = h('div', { class: 'pg-set' + (groups.length > 3 ? ' two' : '') });   // víc skupin = dva sloupce, ať okno není dlouhé
+    const box = h('div', { class: 'pg-set' });
     const paint = () => {
       box.innerHTML = '';
       const tpl = this.lookTpl(), base = this.baseTpl(), st = this.style || {};
@@ -675,12 +675,12 @@ class SongEditor {
       }
       reset.disabled = !keys.some(k => st[k] !== undefined);
     };
-    const reset = h('button', { class: 'btn small nogrow', title: 'Zrušit vlastní nastavení – vše podle šablony', onclick: () => {
+    const reset = h('button', { class: 'btn small nogrow pg-reset', title: 'Zrušit vlastní nastavení této písně – vše podle šablony', onclick: () => {
       const st = Object.assign({}, this.style || {}); keys.forEach(k => delete st[k]);
       this.style = Object.keys(st).length ? st : null; this.markDirty(); this.se.pushHist(); this.se.render(); this.onSelChange(); paint();
-    } }, 'Vše podle šablony');
-    const m = h('div', { class: 'menu menu-form menu-page' + (groups.length > 3 ? ' wide' : '') },
-      h('div', { class: 'pg-top' }, h('div', {}, h('div', { class: 'pg-title' }, title), h('div', { class: 'pg-sub' }, 'Jen pro tuto píseň, jinak podle šablony · ', h('i', { class: 'pg-dot' }), ' vlastní')), reset),
+    } }, 'Podle šablony');
+    const m = h('div', { class: 'menu menu-form menu-page' },
+      h('div', { class: 'pg-top', title: 'Jen pro tuto píseň, jinak platí šablona. Tečka = vlastní nastavení.' }, h('span', { class: 'pg-title' }, title), reset),
       box);
     paint();
     placePopover(m, anchor);
