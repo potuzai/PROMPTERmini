@@ -29,7 +29,7 @@ Aplikace pro psaní, úpravy a zobrazování textů písní na čtečce (prompte
 |---|---|---|
 | další stránka / píseň | **pravé tlačítko** | → ↓ PgDn mezera Enter |
 | předchozí stránka | **levé tlačítko** | ← ↑ PgUp |
-| setlist a nabídka | **podržet levé**, oba najednou, nebo prostřední | L, Tab, Q, klávesa Menu |
+| playlist a nabídka | **podržet levé**, oba najednou, nebo prostřední | L, Tab, Q, klávesa Menu |
 | v nabídce: předchozí / další položka | levé / pravé | ↑ ↓ |
 | v nabídce: potvrdit / zpět | **podržet** pravé / levé | Enter / Esc |
 | další / předchozí píseň | | Shift + → / ← |
@@ -43,7 +43,7 @@ Aplikace pro psaní, úpravy a zobrazování textů písní na čtečce (prompte
 
 **Na pódiu je čtečka blbuvzdorná:** prázdný playlist – kterékoli tlačítko pedálu otevře výběr playlistu; pedál vždy jen listuje – i když kurzor airmouse zůstal stát nad tlačítkem nebo nabídkou; každé šlápnutí se počítá zvlášť, i rychlé klikání za sebou (rychlý přesun na vzdálenou píseň) – ignoruje se jen zákmit kontaktu do 40 ms; podržení je jen opravdu držené tlačítko. Pedál, který posílá klávesy: držená klávesa nelistuje, v nabídce po 0,6 s potvrdí / vrátí a držená klávesa nelistuje dál. Kurzor se ukáže jen při záměrném pohybu myši (chvění airmouse se nepočítá) a teprve tehdy kliknutí ovládá tlačítka. Co čtečku opouští (Esc, E, ukončení celé obrazovky), chce stisk dvakrát; tlačítka myši zpět / vpřed čtečku nezavřou. Seznam písní a nabídka se samy zavřou po 20 s nečinnosti, aby nepřekrývaly text. Když má píseň víc stránek, ukazují je tečky dole; na poslední stránce je vpravo dole další píseň (pokud ji neukazuje zápatí šablony) a při přechodu na jinou píseň se krátce ukáže její pořadí a název. Změny ze synchronizace během hraní nepřeskočí na jinou píseň.
 
-**Úvod čtečky** je výběr playlistu přes celou obrazovku – playlisty jako velké karty (oblíbené s hvězdou první, naposledy hraný vybraný). **Setlist** (Tab, L, prostřední tlačítko) se vysune zprava a text písně zůstane vidět: odehrané písně s ✓, hraje, další, přídavky, tónina / BPM / délka; v jeho patičce je celá nabídka (playlisty, stáhnout změny, upravit, nápověda, zavřít čtečku) – Q nebo klávesa Menu ho otevře rovnou na ní. Dole je **stavový řádek**: pořadí a název písně, tečky stránek a co bude dál (schová se, když šablona ukazuje zápatí; jde vypnout v Nastavení). Když myš sjede dolů, objeví se **ovládací lišta** jako u přehrávače (předchozí / další píseň a stránka, setlist) a nahoře pruh s průběhem playlistu.
+**Úvod čtečky** je výběr playlistu přes celou obrazovku – playlisty jako velké karty (oblíbené s hvězdou první, naposledy hraný vybraný). **Playlist** (Tab, L, prostřední tlačítko, podržet levý pedál) se vysune zprava a text písně zůstane vidět: odehrané písně s ✓, hraje, další, přídavky, tónina / BPM / délka; v jeho patičce je celá nabídka (playlisty, stáhnout změny, upravit, nápověda, zavřít čtečku) – Q nebo klávesa Menu ho otevře rovnou na ní. Dole je **stavový řádek**: pořadí a název písně, tečky stránek a co bude dál (schová se, když šablona ukazuje zápatí; jde vypnout v Nastavení). Když myš sjede dolů, objeví se **ovládací lišta** jako u přehrávače (předchozí / další píseň a stránka, playlist) a nahoře pruh s průběhem playlistu.
 
 Monitor čtečky během běhu programu neusne. Program se po případném pádu sám obnoví a každý den zálohuje data do `data\zalohy` (drží 14 dní).
 
@@ -101,7 +101,7 @@ Myší jako v textovém editoru: klik do řádku = psaní na tom místě, tažen
 |---|---|---|
 | další stránka / píseň | **pravé tlačítko** | → ↓ PgDn mezera Enter |
 | předchozí stránka | **levé tlačítko** | ← ↑ PgUp |
-| setlist a nabídka | **podržet levé**, oba najednou, nebo prostřední | L, Tab, Q, klávesa Menu |
+| playlist a nabídka | **podržet levé**, oba najednou, nebo prostřední | L, Tab, Q, klávesa Menu |
 | v nabídce: předchozí / další položka | levé / pravé | ↑ ↓ |
 | v nabídce: potvrdit / zpět | **podržet** pravé / levé | Enter / Esc |
 | další / předchozí píseň | | Shift + → / ← |
@@ -115,7 +115,7 @@ Myší jako v textovém editoru: klik do řádku = psaní na tom místě, tažen
 
 **Na pódiu je čtečka blbuvzdorná:** prázdný playlist – kterékoli tlačítko pedálu otevře výběr playlistu; pedál vždy jen listuje – i když kurzor airmouse zůstal stát nad tlačítkem nebo nabídkou; každé šlápnutí se počítá zvlášť, i rychlé klikání za sebou (rychlý přesun na vzdálenou píseň) – ignoruje se jen zákmit kontaktu do 40 ms; podržení je jen opravdu držené tlačítko. Pedál, který posílá klávesy: držená klávesa nelistuje, v nabídce po 0,6 s potvrdí / vrátí a držená klávesa nelistuje dál. Kurzor se ukáže jen při záměrném pohybu myši (chvění airmouse se nepočítá) a teprve tehdy kliknutí ovládá tlačítka. Co čtečku opouští (Esc, E, ukončení celé obrazovky), chce stisk dvakrát; tlačítka myši zpět / vpřed čtečku nezavřou. Seznam písní a nabídka se samy zavřou po 20 s nečinnosti, aby nepřekrývaly text. Když má píseň víc stránek, ukazují je tečky dole; na poslední stránce je vpravo dole další píseň (pokud ji neukazuje zápatí šablony) a při přechodu na jinou píseň se krátce ukáže její pořadí a název. Změny ze synchronizace během hraní nepřeskočí na jinou píseň.
 
-**Úvod čtečky** je výběr playlistu přes celou obrazovku – playlisty jako velké karty (oblíbené s hvězdou první, naposledy hraný vybraný). **Setlist** (Tab, L, prostřední tlačítko) se vysune zprava a text písně zůstane vidět: odehrané písně s ✓, hraje, další, přídavky, tónina / BPM / délka; v jeho patičce je celá nabídka (playlisty, stáhnout změny, upravit, nápověda, zavřít čtečku) – Q nebo klávesa Menu ho otevře rovnou na ní. Dole je **stavový řádek**: pořadí a název písně, tečky stránek a co bude dál (schová se, když šablona ukazuje zápatí; jde vypnout v Nastavení). Když myš sjede dolů, objeví se **ovládací lišta** jako u přehrávače (předchozí / další píseň a stránka, setlist) a nahoře pruh s průběhem playlistu.
+**Úvod čtečky** je výběr playlistu přes celou obrazovku – playlisty jako velké karty (oblíbené s hvězdou první, naposledy hraný vybraný). **Playlist** (Tab, L, prostřední tlačítko, podržet levý pedál) se vysune zprava a text písně zůstane vidět: odehrané písně s ✓, hraje, další, přídavky, tónina / BPM / délka; v jeho patičce je celá nabídka (playlisty, stáhnout změny, upravit, nápověda, zavřít čtečku) – Q nebo klávesa Menu ho otevře rovnou na ní. Dole je **stavový řádek**: pořadí a název písně, tečky stránek a co bude dál (schová se, když šablona ukazuje zápatí; jde vypnout v Nastavení). Když myš sjede dolů, objeví se **ovládací lišta** jako u přehrávače (předchozí / další píseň a stránka, playlist) a nahoře pruh s průběhem playlistu.
 
 Monitor čtečky během běhu programu neusne. Program se po případném pádu sám obnoví a každý den zálohuje data do `data\zalohy` (drží 14 dní).
 

@@ -180,9 +180,9 @@ const URL = 'http://localhost:8123/index.html';
     await q.keyboard.press('Tab'); await sleep(200);
     assert(await q.isVisible('.r-opt.cur:has-text("Holubí dům") .r-badge') && await q.isVisible('.r-opt.done:has-text("Kometa")'), 'seznam písní: hraje / odehráno');
     await q.keyboard.press('Escape'); await q.keyboard.press('q'); await sleep(200);
-    assert(await q.isVisible('.r-set .r-foot .r-tool.sel:has-text("Playlisty")') && await q.isVisible('.r-set .r-foot .r-tool.danger'), 'Q: setlist s nabídkou v patičce (výběr na první volbě)');
+    assert(await q.isVisible('.r-set .r-foot .r-tool.sel:has-text("Jiný playlist")') && await q.isVisible('.r-set .r-foot .r-tool.danger'), 'Q: playlist s nabídkou v patičce (výběr na první volbě)');
     await q.keyboard.press('Enter'); await sleep(200);
-    assert(await q.isVisible('.r-start'), 'OK na volbě Playlisty = úvodní výběr playlistu');
+    assert(await q.isVisible('.r-start'), 'OK na volbě Jiný playlist = úvodní výběr playlistu');
     await c2.close();
   } catch (e) { console.log('FAIL: výjimka ' + e.message); process.exitCode = 1; }
   await b.close();
