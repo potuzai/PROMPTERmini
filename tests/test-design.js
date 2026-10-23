@@ -14,9 +14,10 @@ const URL = 'http://localhost:8123/index.html';
     await p.goto(URL + '#/songs');
     await p.waitForSelector('.modal-title:has-text("Vítej")', { timeout: 5000 });
     assert(!(await p.isVisible('.wizard')) && !(await p.isVisible('.modal :text("monitor")')) && !(await p.isVisible('.modal button:has-text("obrazovk")')), 'web: napoprvé jen uvítání, žádné otázky na monitor');
-    assert(await p.evaluate(() => Screens.myId() === 'auto'), 'web: stránka čtečky podle okna (responzivní)');
-    // čtečka v prohlížeči: tvar stránky = tvar okna, při změně okna se přestránkuje
+    assert(await p.evaluate(() => Screens.myId() === 'main'), 'web: čtečka ukazuje stránku hlavní čtečky kapely (jak je nastavená)');
+    // „Podle okna“ (zvolené v Nastavení): tvar stránky = tvar okna, při změně okna se přestránkuje
     await p.click('.modal button:has-text("Jen vyzkoušet")');
+    await p.evaluate(() => Settings.set('screenId', 'auto'));
     await klasickaSablona(p);
     await p.evaluate(async () => { await Store.put('songs', { id: 'rs', title: 'Resp', text: Array.from({ length: 30 }, (_, i) => '@J řádek ' + i).join('\n') }); location.hash = '#/reader/song:rs'; }); await sleep(700);
     const r1 = await p.evaluate(() => { const r = document.querySelector('#reader .stage').getBoundingClientRect(); return { w: r.width, h: r.height, pages: Reader.current().lay.pages.length }; });

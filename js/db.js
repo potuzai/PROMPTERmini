@@ -62,7 +62,7 @@ const DEFAULT_SETTINGS = {
   rememberBand: true,            // „Zůstat přihlášen“ – false = heslo kapely jen do zavření prohlížeče
   deviceRole: '',                // k čemu zařízení slouží: reader | editor | both (nastaví průvodce)
   theme: 'dark',                 // vzhled aplikace: dark | light | auto (podle systému)
-  screenId: '',                  // kterou obrazovkou kapely je toto zařízení; '' = program: hlavní čtečka, web: podle okna
+  screenId: '',                  // kterou obrazovkou kapely je toto zařízení; '' = hlavní čtečka, 'auto' = podle okna
   mySinger: '', highlightMine: false, // zvýraznit řádky, které zpívám já
   privateNotes: {},              // soukromé poznámky k písním (jen toto zařízení)
   gh: { owner: '', repo: '', branch: 'main', token: '', login: '', canPush: null },

@@ -28,8 +28,8 @@ const Screens = {
     const k = 1080 / Math.min(iw, ih);
     return { id: 'auto', name: 'Podle okna', w: Math.round(iw * k), h: Math.round(ih * k), diag: 0, dist: 0, fontPct: 100 };
   },
-  /* obrazovka tohoto zařízení: program = hlavní čtečka, web = podle okna (dokud si ji člověk nezvolí) */
-  myId() { return Settings.get('screenId') || (window.native ? 'main' : 'auto'); },
+  /* obrazovka tohoto zařízení: hlavní čtečka kapely, dokud si člověk nezvolí jinou (nebo „Podle okna“) v Nastavení › Toto zařízení */
+  myId() { return Settings.get('screenId') || 'main'; },
   mine() { return this.get(this.myId()); },
   /* obrazovka, kterou upravuji / ukazuji v náhledu („podle okna“ nemá pevný rozměr → hlavní čtečka) */
   editId() { const id = this.myId(); return id === 'auto' ? 'main' : id; },
