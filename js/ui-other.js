@@ -23,7 +23,7 @@ const TPL_FIELDS = [
   { k: 'barWidth', l: 'Šířka proužku (px)', t: 'range', min: 4, max: 40, step: 1 },
   { g: 'Rozvržení stránky' },
   { k: 'onePage', l: 'Zakázat více stránek (písmo se zmenší, aby se píseň vešla na 1 stránku)', t: 'check' },
-  { k: 'fit', l: 'Když jsou povolené další stránky', t: 'select', o: [['shrink', 'nejdřív zmenšit písmo (nejvýš na nejmenší zmenšení)'], ['paginate', 'hned rozdělit na více stránek']] },
+  { k: 'fit', l: 'Když se nevejde (s povolenými stránkami)', t: 'select', o: [['shrink', 'zmenšit písmo, pak další stránka'], ['paginate', 'hned další stránka']] },
   { k: 'minScale', l: 'Nejmenší písmo', t: 'range', min: 0.4, max: 1, step: 0.05, rel: true, help: 'Jen když jsou povolené další stránky: do této velikosti se písmo zmenší, pak se píseň rozdělí.' },
   { k: 'padX', l: 'Okraj vlevo/vpravo (px)', t: 'range', min: 0, max: 400, step: 2 },
   { k: 'padY', l: 'Okraj nahoře/dole (px)', t: 'range', min: 0, max: 300, step: 2 },

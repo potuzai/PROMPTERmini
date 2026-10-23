@@ -619,7 +619,7 @@ class SongEditor {
   /* Nastavení stránky jen pro tuto píseň – stejné volby jako v šabloně (výchozí hodnoty = šablona) */
   pagePopover(anchor) {
     this.settingsPopover(anchor, 'Stránka této písně', PAGE_KEYS, [
-      ['Délka písně', [['onePage', 'Zakázat více stránek'], ['fit', 'Jinak dlouhá píseň', null, [['shrink', 'zmenšit písmo'], ['paginate', 'na více stránek']]], ['minScale', 'Nejmenší písmo', 'px']]],
+      ['Délka písně', [['onePage', 'Zakázat více stránek'], ['fit', 'Když se nevejde', null, [['shrink', 'zmenšit písmo'], ['paginate', 'další stránka']]], ['minScale', 'Nejmenší písmo', 'px']]],
       ['Rozvržení', [['padX', 'Okraj vlevo a vpravo', 'px'], ['padY', 'Okraj nahoře a dole', 'px'], ['columns', 'Sloupce'], ['colGap', 'Mezera mezi sloupci', 'px']]],
       ['Záhlaví', [['showHeader', 'Zobrazit'], ['headerSize', 'Velikost', 'px'], ['headPadX', 'Okraj vlevo a vpravo', 'px']]],
       ['Zápatí', [['showFooter', 'Zobrazit'], ['footerSize', 'Velikost', 'px'], ['footPadX', 'Okraj vlevo a vpravo', 'px']]],
