@@ -35,14 +35,11 @@ jobs:
         with: { node-version: 22 }
       - run: npm ci
       - run: npm run build:win
-      - run: npm run build:win32
       - shell: bash
         run: |
           cp README.md "dist/PROMPTER mini-win32-x64/NAVOD.md"
-          cp README.md "dist/PROMPTER mini-win32-ia32/NAVOD.md"
       - run: |
           Compress-Archive -Path 'dist/PROMPTER mini-win32-x64' -DestinationPath PROMPTER-mini-Windows-64bit.zip
-          Compress-Archive -Path 'dist/PROMPTER mini-win32-ia32' -DestinationPath PROMPTER-mini-Windows-32bit.zip
       - uses: actions/upload-artifact@v4
         with:
           name: PROMPTER-mini-Windows
@@ -59,7 +56,7 @@ jobs:
           target_commitish: ${{ github.sha }}
           make_latest: true
           body: |
-            **PROMPTER-mini-Windows-64bit.zip**: běžná Windows 10/11 (64bit). **PROMPTER-mini-Windows-32bit.zip**: starší 32bitová Windows (Electron 43 – poslední verze s 32bitovou podporou).
+            **PROMPTER-mini-Windows-64bit.zip**: Windows 10/11 (64bit).
             Rozbal a spusť `PROMPTER mini.exe`. Návod je v souboru NAVOD.md uvnitř složky.
           files: PROMPTER-mini-Windows-*.zip
 

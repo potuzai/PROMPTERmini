@@ -10,7 +10,7 @@ Aplikace pro psaní, úpravy a zobrazování textů písní na čtečce (prompte
 
 ## 1. Čtečka (PC u monitoru)
 
-1. Rozbal `PROMPTER-mini-Windows-64bit.zip` třeba do `C:\PROMPTER mini` (pro starší 32bitová Windows použij `-32bit`).
+1. Rozbal `PROMPTER-mini-Windows-64bit.zip` třeba do `C:\PROMPTER mini`.
 2. Spusť `PROMPTER mini.exe`. Při prvním spuštění Windows může ukázat „Systém Windows ochránil váš počítač“. Klikni na **Další informace → Přesto spustit**.
 3. Při prvním spuštění programu se objeví **průvodce nastavením zařízení** (ovládá se i jen šipkami a OK):
    - **K čemu zařízení slouží**: čtečka na pódiu, počítač pro úpravy, nebo obojí na jednom. Čtečka pak po zapnutí rovnou otevře poslední playlist.
