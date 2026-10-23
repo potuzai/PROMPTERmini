@@ -1231,10 +1231,16 @@ function numField(v, o, onSet) {
    a zavře se kliknutím mimo */
 function placePopover(m, anchor) {
   document.body.appendChild(m);
-  if (isMobile()) m.classList.add('m-sheet');   // telefon: nabídky a volby jako panel ode spodu přes celou šířku
   const r = anchor.getBoundingClientRect(), mh = m.offsetHeight;
-  m.style.left = Math.max(8, Math.min(r.left, innerWidth - m.offsetWidth - 8)) + 'px';
-  m.style.top = (r.bottom + mh + 8 > innerHeight && r.top - mh - 4 >= 8 ? r.top - mh - 4 : Math.max(8, Math.min(r.bottom + 4, innerHeight - mh - 8))) + 'px';
+  if (isMobile()) {   // telefon: přes celou šířku, shora pod tlačítkem (když pod ním není místo, od horního okraje)
+    m.classList.add('m-sheet');
+    const top = innerHeight - r.bottom - 12 >= Math.min(mh, 260) ? r.bottom + 4 : 8;
+    m.style.top = top + 'px';
+    m.style.maxHeight = (innerHeight - top - 8) + 'px';
+  } else {
+    m.style.left = Math.max(8, Math.min(r.left, innerWidth - m.offsetWidth - 8)) + 'px';
+    m.style.top = (r.bottom + mh + 8 > innerHeight && r.top - mh - 4 >= 8 ? r.top - mh - 4 : Math.max(8, Math.min(r.bottom + 4, innerHeight - mh - 8))) + 'px';
+  }
   // klik mimo zavře; druhý klik na tlačítko, které nabídku otevřelo, ji jen zavře (neotevře znovu)
   setTimeout(() => document.addEventListener('mousedown', function off(e) {
     if (m.isConnected && m.contains(e.target)) return;

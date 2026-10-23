@@ -39,7 +39,7 @@ const URL = process.env.APP_URL || 'http://localhost:8123/index.html';
   await p.tap('.m-tabs [data-k=text]'); await sleep(200);
   assert(await p.isVisible('.se-wrap'), 'záložka Text: zpět na stránku');
   await p.tap('.m-head button[title^="Další volby písně"]'); await sleep(200);
-  assert(await p.evaluate(() => { const m = document.querySelector('.menu.m-sheet'); return !!m && Math.abs(m.getBoundingClientRect().bottom - innerHeight) < 2; }), 'nabídka v telefonu ode spodu');
+  assert(await p.evaluate(() => { const m = document.querySelector('.menu.m-sheet'), b = document.querySelector('.m-head button[title^="Další volby písně"]'); return !!m && m.getBoundingClientRect().top >= b.getBoundingClientRect().bottom && m.offsetWidth > innerWidth - 20; }), 'nabídka v telefonu shora pod tlačítkem přes celou šířku');
   await p.tap('.m-head .ep-back'); await sleep(300);
   assert(await p.isVisible('.side'), 'tlačítko zpět vede na seznam');
   assert(await p.evaluate(() => document.getElementById('topbar').getBoundingClientRect().bottom >= innerHeight - 1), 'navigace dole na displeji');
