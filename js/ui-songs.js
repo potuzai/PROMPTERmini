@@ -83,6 +83,7 @@ const SongsView = {
       }
       if (!songs.length) list.appendChild(h('div', { class: 'help', style: { padding: '16px 22px' } }, q ? 'Nic nenalezeno.' : 'Zatím žádné písně. Vytvoř novou nebo importuj .txt soubory.'));
       count.textContent = q ? `${songs.length} z ${Store.songs.size} písní` : 'Klik = náhled · dvojklik = upravit · Enter = upravit';
+      count.classList.toggle('hint', !q);
       total.textContent = plural(Store.songs.size, 'píseň', 'písně', 'písní');
       if (!song) { const keep = songs.find(x => x.id === this.selected) || songs[0]; select(keep ? keep.id : null); }
     };
@@ -174,7 +175,7 @@ class SongEditor {
     // Levý panel: údaje o písni, struktura, moje poznámky
     this.structBox = h('div', { class: 'ep-struct' });
     this.leftPanel = h('div', { class: 'ed-panel ed-left-panel' },
-      this.backBtn(),
+      this.backEl = this.backBtn(),
       h('div', { class: 'ep-group ep-meta' },
         this.inArtist, this.inTitle,   // popis jen uvnitř prázdného pole – šetří místo
         h('div', { class: 'ep-row3' }, f('Ladění', this.inKey), f('BPM', this.inTempo), f('Délka', this.inDur)),
@@ -261,9 +262,14 @@ class SongEditor {
     this.pvGroup = h('div', { class: 'ep-group' }, h('div', { class: 'ep-lbl ep-lbl-row' }, h('span', {}, 'Náhled'),
       tool(ic('sliders'), 'Náhled stránky: pro kterou obrazovku a jako v kterém playlistu', e => this.previewPopover(e.currentTarget), 'tl-sgshow')),
       this.pvInfo = h('div', { class: 'ep-info' }));
-    this.saveBox = h('div', { class: 'ed-save' }, this.savedInd, h('div', { class: 'ed-save-row' }, moreBtn, this.saveBtn), readerBtn);
+    this.moreBtn = moreBtn; this.readerBtn = readerBtn;
+    this.saveRow = h('div', { class: 'ed-save-row' }, moreBtn, this.saveBtn);
+    this.saveBox = h('div', { class: 'ed-save' }, this.savedInd, this.saveRow, readerBtn);
     this.pager = h('div', { class: 'ed-side' });
-    const ed = h('div', { class: 'song-editor' },
+    // telefon: jedna řada nahoře – zpět, Text | Údaje, čtečka, další volby, uložit (rozmístí layoutMobile)
+    this.mTabs = h('div', { class: 'm-tabs' }, [['text', 'Text'], ['info', 'Údaje']].map(([k, l]) => h('button', { 'data-k': k, onclick: () => this.setMTab(k) }, l)));
+    this.mHead = h('div', { class: 'm-head' }, this.mTabs, h('span', { class: 'grow' }));
+    const ed = this.edEl = h('div', { class: 'song-editor' }, this.mHead,
       h('div', { class: 'ed-body' }, this.leftPanel,
         this.center = h('div', { class: 'ed-center' }, this.tools, h('div', { class: 'ed-main' }, h('div', { class: 'ed-stagebox' }, this.stageWrap, this.pageNav), this.pager))));
     this.root.innerHTML = '';
@@ -400,6 +406,30 @@ class SongEditor {
     }
     if (mode === 'float') { const p = Settings.get('edToolsPos') || { x: 12, y: 12 }; this.placeTools(p.x, p.y); }
     else this.tools.style.left = this.tools.style.top = '';
+    this.layoutMobile();
+  }
+  /* Telefon: nahoře zpět, přepínač Text / Údaje a akce; Text = lišta úprav, zpěváci a stránka přes celou výšku,
+     Údaje = údaje písně, šablona, stránka písně, struktura, náhled a poznámky */
+  layoutMobile() {
+    const m = isMobile();
+    this.edEl.classList.toggle('m-ed', m);
+    if (m) {
+      this.mHead.prepend(this.backEl);
+      this.mHead.append(this.readerBtn, this.moreBtn, this.saveBtn);
+      $('.ep-meta', this.leftPanel).after(this.pageGroup);   // za údaje písně
+      this.leftPanel.append(this.pvGroup);
+      this.setMTab(this.mTab || 'text');
+    } else {
+      this.leftPanel.prepend(this.backEl);
+      this.saveRow.replaceChildren(this.moreBtn, this.saveBtn);
+      this.saveBox.append(this.readerBtn);
+    }
+  }
+  setMTab(k) {
+    this.mTab = k;
+    for (const b of this.mTabs.children) b.classList.toggle('on', b.dataset.k === k);
+    this.edEl.classList.toggle('m-info', k === 'info');
+    if (k === 'text' && this.se) requestAnimationFrame(() => this.se.fit());
   }
   placeTools(x, y) {
     const c = this.center, t = this.tools;
@@ -851,6 +881,7 @@ class SongEditor {
         const idxs = se.targets.map((t, i) => [t, i]).filter(([t]) => t.line > it.line && t.line < end && t.kind !== 'repeat').map(x => x[1]);
         if (idxs.length) { se.select(idxs[0]); se.select(idxs[idxs.length - 1], true); } // i jediný řádek jako blok
         else { let idx = se.targets.findIndex(t => t.line >= it.line); se.select(idx < 0 ? se.targets.length - 1 : idx); }
+        if (this.mTab === 'info' && isMobile()) this.setMTab('text');   // telefon: rovnou na text sekce
         this.stageWrap.focus({ preventScroll: true });
       };
       const menu = e => { e.stopPropagation(); e.preventDefault(); this.sectionMenu(e.currentTarget, it); };
@@ -1200,6 +1231,7 @@ function numField(v, o, onSet) {
    a zavře se kliknutím mimo */
 function placePopover(m, anchor) {
   document.body.appendChild(m);
+  if (isMobile()) m.classList.add('m-sheet');   // telefon: nabídky a volby jako panel ode spodu přes celou šířku
   const r = anchor.getBoundingClientRect(), mh = m.offsetHeight;
   m.style.left = Math.max(8, Math.min(r.left, innerWidth - m.offsetWidth - 8)) + 'px';
   m.style.top = (r.bottom + mh + 8 > innerHeight && r.top - mh - 4 >= 8 ? r.top - mh - 4 : Math.max(8, Math.min(r.bottom + 4, innerHeight - mh - 8))) + 'px';

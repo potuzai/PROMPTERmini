@@ -168,11 +168,14 @@ class StageEditor {
     if (!this.stages.length) return;
     const scr = this.ed.screen(), W = scr.w, H = scr.h, n = this.stages.length;
     const r = this.pagesBox.getBoundingClientRect(), pad = n > 1 ? 14 : 0;
-    const s = Math.min(r.width / W, (r.height - 2 * pad) / H) || 1;
+    // telefon: stránka na celou šířku (text dost velký na úpravy), posouvá se prstem
+    const wide = isMobile();
+    const s = (wide ? r.width / W : Math.min(r.width / W, (r.height - 2 * pad) / H)) || 1;
+    this.pagesBox.classList.toggle('wide', wide && H * s > r.height);
     this.stages.forEach(st => {
       const hold = st.parentNode;
       hold.style.width = W * s + 'px'; hold.style.height = H * s + 'px';
-      hold.style.marginTop = n > 1 ? '' : Math.max(0, (r.height - H * s) / 2) + 'px';
+      hold.style.marginTop = n > 1 || wide ? '' : Math.max(0, (r.height - H * s) / 2) + 'px';
       Object.assign(st.style, { left: '0px', top: '0px', transformOrigin: '0 0', transform: `scale(${s})` });
     });
     this.paintCaret();

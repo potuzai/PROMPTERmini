@@ -244,7 +244,7 @@
   }
   function placeFab(p) {
     const f = ui.fab, w = f.offsetWidth || 90, hh = f.offsetHeight || 36;
-    if (!p) { f.style.left = ''; f.style.top = ''; f.style.right = '16px'; f.style.bottom = '16px'; return; }
+    if (!p) { f.style.left = ''; f.style.top = ''; f.style.right = '16px'; f.style.bottom = innerWidth <= 820 ? '78px' : '16px'; return; }   // v telefonu nad spodní navigací
     f.style.right = ''; f.style.bottom = '';
     f.style.left = Math.max(4, Math.min(innerWidth - w - 4, p.x)) + 'px';
     f.style.top = Math.max(4, Math.min(innerHeight - hh - 4, p.y)) + 'px';

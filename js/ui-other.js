@@ -103,10 +103,11 @@ const TemplatesView = {
       .map(x => h('option', { value: x.id, selected: x.id === t.id }, x.name + (x.id === Settings.get('defaultTemplate') ? ' ★' : ''))));
     paintSel();
     tplSel.onchange = () => { const id = tplSel.value; tplSel.value = t.id; location.hash = '#/templates/' + id; };
+    let newBtn;
     const form = h('div', { class: 'ed-panel ed-left-panel tpl-form' },
       h('div', { class: 'ep-group ep-meta' },
         h('div', { class: 'f' }, h('span', {}, 'Šablona'), h('div', { class: 'tpl-row' }, tplSel,
-          h('button', { class: 'btn small nogrow', title: 'Nová šablona s původním nastavením', onclick: () => this.create() }, '＋ Nová'))),
+          newBtn = h('button', { class: 'btn small nogrow', title: 'Nová šablona s původním nastavením', onclick: () => this.create() }, '＋ Nová'))),
         h('label', { class: 'f' }, h('span', {}, 'Název'), nameInp)));
     let grp = null;
     for (const f of TPL_FIELDS) {
@@ -190,12 +191,18 @@ const TemplatesView = {
     };
     paintUse();
     this.paintSide = () => { paintSel(); paintUse(); };
+    const pvGroup = h('div', { class: 'ep-group' }, h('div', { class: 'ep-lbl' }, 'Náhled'), h('label', { class: 'f' }, h('span', {}, 'Píseň'), songSel), pvInfo);
     const side = h('div', { class: 'ed-side' },
       h('div', { class: 'ed-save' }, savedInd, h('div', { class: 'ed-save-row' }, moreBtn, saveBtn)),
-      useBox,
-      h('div', { class: 'grow' }),
-      h('div', { class: 'ep-group' }, h('div', { class: 'ep-lbl' }, 'Náhled'), h('label', { class: 'f' }, h('span', {}, 'Píseň'), songSel), pvInfo));
-    root.appendChild(h('div', { class: 'song-editor tpl-editor' },
+      useBox, h('div', { class: 'grow' }), pvGroup);
+    // telefon: nahoře výběr šablony a uložení, pod tím stránka (pořád na očích), pod ní volby
+    const mobile = isMobile();
+    if (mobile) {
+      $('.ep-meta > .f', form).remove();
+      $('.ep-meta', form).after(useBox, pvGroup);
+    }
+    root.appendChild(h('div', { class: 'song-editor tpl-editor' + (mobile ? ' m-tpl' : '') },
+      mobile ? h('div', { class: 'm-head' }, tplSel, newBtn, moreBtn, saveBtn) : null,
       h('div', { class: 'ed-body' }, form,
         h('div', { class: 'ed-center tpl-preview' }, h('div', { class: 'ed-main' }, h('div', { class: 'ed-stagebox' }, prevWrap, pageNav), side)))));
     new ResizeObserver(() => stage && Render.fit(stage, prevWrap, W, H)).observe(prevWrap);

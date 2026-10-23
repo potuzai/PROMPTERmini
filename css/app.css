@@ -148,6 +148,7 @@ code { font-family: var(--mono); font-size: 12.5px; background: var(--well); bor
 .se-wrap { position: relative; flex: 1; min-width: 0; overflow: hidden; outline: none; }
 .se-pages { position: absolute; inset: 0; overflow-x: hidden; overflow-y: hidden; }
 .se-pages.more { overflow-y: auto; padding: 14px 0; }   /* víc stránek: pod sebou, posun kolečkem */
+.se-pages.wide { overflow-y: auto; }   /* telefon: stránka na šířku displeje, posun prstem */
 .se-page { position: relative; margin: 0 auto; }
 .se-pages.more .se-page + .se-page { margin-top: 30px; }
 .se-pages.more .se-page + .se-page::before { content: ''; position: absolute; left: -28px; right: -28px; top: -16px; border-top: 2px dashed rgba(255,255,255,.35); }   /* konec jedné a začátek další stránky */
@@ -1030,19 +1031,19 @@ input[type=checkbox].switch:focus-visible { outline: 2px solid var(--acc-hi); ou
   .pl-add .qa { flex: 1 1 100%; }
   .pl-add .pos-inp { flex: 1 1 auto; }
   html, body { font-size: 15px; }
-  /* lišta: v telefonu nahoře, jen ikony */
+  /* navigace v telefonu dole (na dosah palce): ikona + popisek, Čtečka uprostřed */
   body { flex-direction: column; }
-  #topbar { width: auto; flex: 0 0 auto; flex-direction: row; height: 52px; padding: 0 6px; gap: 2px; border-bottom: 1px solid var(--line); }
+  #topbar { order: 2; width: auto; flex: 0 0 auto; flex-direction: row; align-items: stretch; padding: 4px 4px calc(4px + env(safe-area-inset-bottom, 0px)); gap: 2px; border-top: 1px solid var(--line); }
   #topbar .logo { display: none; }
-  .tabs { flex-direction: row; gap: 2px; }
-  .tab, .rail-btn, .sync-pill { width: auto; flex: 1 1 0; min-height: 44px; font-size: 0; gap: 0; }
-  .tab.active::before { left: 50%; top: auto; bottom: 0; margin: 0 0 0 -9px; width: 18px; height: 3px; }
-  .rail-btn.play { flex: 0 0 48px; min-height: 40px; }
-  .sync-pill { flex: 0 0 40px; }
+  .tabs { display: contents; }
+  .tab, .rail-btn, .sync-pill { width: auto; flex: 1 1 0; min-width: 0; min-height: 52px; font-size: 10.5px; gap: 3px; }
+  .tab.active::before { left: 50%; top: -4px; margin: 0 0 0 -12px; width: 24px; height: 3px; }
+  .tab[data-k=playlists] { order: 1; } .tab[data-k=songs] { order: 2; } .rail-btn.play { order: 3; } .tab[data-k=templates] { order: 4; } .tab[data-k=settings] { order: 5; } .sync-pill { order: 6; }
+  .rail-btn.play { min-height: 52px; margin: 0 2px; }
+  .sync-pill .lbl { max-width: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   #main { height: auto; flex: 1; min-height: 0; padding: 0; }
   .view { gap: 0; }
   .pl-main, .content, .ed-panel, .ed-center { border-radius: 0; border-left: 0; border-right: 0; }
-  .ed-body { flex-direction: column; overflow-y: auto; gap: 0; }
   /* seznam ↔ detail místo dvou sloupců */
   .side { width: 100%; flex: 1 1 auto; border-right: 0; }
   .sl-cols { display: none; }
@@ -1064,24 +1065,7 @@ input[type=checkbox].switch:focus-visible { outline: 2px solid var(--acc-hi); ou
   .view:not(.has-detail) > .content { display: none; }
   .view:not(.has-detail):not(:has(.side)) > .content, .view > .content:only-child { display: block; }
   /* telefon: název nahoře, pod ním stránka, pod ní nástroje */
-  .song-editor { flex-direction: column; overflow-y: auto; }
-  .ed-panel { display: contents; }
-  .ed-panel > * { margin: 0 14px; }
-  .ed-left-panel > * { order: 1; }
-  .ed-left-panel > .ep-back { order: -1; margin: 10px 14px 6px; }
-  .ed-center { flex: 0 0 auto; order: 0; }
-  .ed-main { flex-direction: column; }
-  .ed-stagebox { flex: 0 0 auto; height: 68vh; }
-  .ed-side { flex: 0 0 auto; border-left: 0; border-top: 1px solid var(--line); }
-  .ed-side .grow { display: none; }
-  .ed-tools { display: flex; overflow-x: auto; padding: 6px 8px; }   /* lišta v jednom řádku, posouvá se prstem */
-  .ed-tools > .ed-undo { position: static; }
-  .ed-tools > .tl-mode { display: none; }
-  .ed-tools-text { flex-wrap: nowrap; }
-  .ed-tools > *, .ed-tools-text > *, .ed-tools .tl, .ed-tools .sw { flex-shrink: 0; }
-  .ep-group { margin-top: 16px; }
   .content { padding: 12px max(12px, env(safe-area-inset-left, 0px)); }
-  .song-editor { padding: 0; gap: 0; }
   .btn { padding: 9px 12px; }           /* větší cíle pro prst */
   .btn.small { padding: 7px 10px; }
   .inp, select.inp { font-size: 16px; } /* iPhone jinak při psaní zvětšuje stránku */
@@ -1093,7 +1077,7 @@ input[type=checkbox].switch:focus-visible { outline: 2px solid var(--acc-hi); ou
   table.tbl { display: block; overflow-x: auto; }
   .modal { width: 96vw; max-height: 92vh; }
   .modal-buttons { flex-wrap: wrap; }
-  #toasts { left: 12px; right: 12px; bottom: 12px; }
+  #toasts { left: 12px; right: 12px; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }   /* nad spodní navigací */
   .toast { max-width: none; }
   .r-menu { font-size: 18px; }
   .r-start .r-grid { grid-template-columns: 1fr; }
@@ -1108,3 +1092,79 @@ input[type=checkbox].switch:focus-visible { outline: 2px solid var(--acc-hi); ou
 .login-err { color: var(--err); min-height: 1.4em; }
 .login-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
 .modal-buttons:empty { display: none; }
+
+/* ===== Telefon: seznamy (Písně, Playlisty) ===== */
+@media (max-width: 820px) {
+  .sl-titlebar { padding: 14px 14px 0; }
+  .sl-titlebar h1 { font-size: 22px; }
+  .sl-head { padding: 10px 14px 12px; gap: 8px; }
+  .sl-head .btn.primary { flex: 1 1 auto; justify-content: center; }
+  .sl-head .sl-sort { flex: 0 1 44%; min-width: 0; margin-left: 0; }
+  .sl-head .sl-push { margin-left: 0; font-size: 0; gap: 0; padding: 9px 11px; }   /* Import jen ikonou */
+  .sl-count.hint { display: none; }   /* nápověda pro myš */
+  .big-list .list .item.sl-row { margin: 0; padding: 11px 14px; border-radius: 0; }
+  /* playlist: název, pod ním datum, vpravo počet písní */
+  .pl-row .sl-key { display: block; grid-column: 2; grid-row: 1 / 3; color: var(--dim); font-size: 13px; }
+  .pl-row .sl-artist.none { display: none; }
+  /* Oblíbené: jen když nějaké jsou (přidávají se hvězdičkou v detailu playlistu) */
+  .pl-drop, .pl-sec-ready.empty, .pl-sec-ready.empty ~ .pl-sec-other { display: none; }
+  .pl-sec { margin: 0; padding: 18px 14px 8px; }
+}
+
+/* ===== Telefon: playlist jako karta (název, akce, pořadí písní) ===== */
+.pl-mob { display: flex; flex-direction: column; gap: 12px; }
+@media (max-width: 820px) {
+  .big-list .list .item.sl-row.active { background: none; box-shadow: none; }   /* výběr pro náhled v telefonu nemá smysl */
+  .pl-mob .pl-prev-head h3 { font-size: 21px; }
+  .pl-mob .pl-compact .pl-item { padding: 8px 6px; }
+}
+
+/* ===== Telefon: editor písně – nahoře jedna řada (zpět, Text | Údaje, čtečka, ⋯, uložit), pod ní celá výška pro práci ===== */
+.m-head, .m-tabs { display: none; }
+@media (max-width: 820px) {
+  .song-editor { height: 100%; overflow: hidden; }
+  .m-head { display: flex; flex: 0 0 auto; align-items: center; gap: 6px; padding: 6px 8px; background: var(--panel); border-bottom: 1px solid var(--line); }
+  .m-head .grow { flex: 1; }
+  .m-head .ep-back { margin: 0; padding: 8px 4px; font-size: 15px; white-space: nowrap; }
+  .m-head > .btn { font-size: 0; gap: 0; min-width: 42px; min-height: 40px; padding: 0 10px; justify-content: center; }   /* jen ikony */
+  .m-head > .btn .ic { width: 19px; height: 19px; }
+  .m-tabs { display: flex; padding: 3px; gap: 2px; border-radius: 999px; background: var(--well); border: 1px solid var(--line); }
+  .m-tabs button { min-height: 32px; padding: 0 14px; border: 0; border-radius: 999px; background: none; color: var(--dim); font: 600 14px var(--font); cursor: pointer; }
+  .m-tabs button.on { background: var(--panel2); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.35); }
+  .m-ed .ed-body { flex: 1; min-height: 0; flex-direction: column; gap: 0; }
+  /* Text: lišta úprav (posun prstem), zpěváci, stránka */
+  .m-ed .ed-left-panel { display: none; }
+  .m-ed .ed-center { flex: 1; min-height: 0; border-radius: 0; }
+  .m-ed .ed-tools { display: flex; justify-content: flex-start; overflow-x: auto; padding: 6px 8px; gap: 6px; scrollbar-width: none; }
+  .m-ed .ed-tools > .ed-undo { position: static; }
+  .m-ed .ed-tools > .tl-mode { display: none; }
+  .m-ed .ed-tools-text { flex-wrap: nowrap; justify-content: flex-start; }
+  .m-ed .ed-tools > *, .m-ed .ed-tools-text > *, .m-ed .ed-tools .tl { flex-shrink: 0; }
+  .m-ed .ed-main { flex-direction: column; }
+  .m-ed .ed-side { order: -1; flex: 0 0 auto; gap: 0; padding: 6px 8px; overflow: visible; border: 0; border-bottom: 1px solid var(--line); }
+  .m-ed .ed-side > .ed-save, .m-ed .ed-side > .grow { display: none; }
+  .m-ed .ed-side > .ep-group { flex-direction: row; align-items: center; gap: 8px; }
+  .m-ed .ed-side .ep-lbl-row { flex: 0 0 auto; }
+  .m-ed .ed-side .sw-row { flex: 1; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .m-ed .ed-side .sw-row .sw { flex: 0 0 auto; }
+  .m-ed .ed-stagebox { flex: 1; min-height: 0; }
+  /* Údaje: celý levý panel přes šířku */
+  .m-ed.m-info .ed-center { display: none; }
+  .m-ed.m-info .ed-left-panel { display: flex; flex: 1 1 auto; min-height: 0; padding: 14px; gap: 20px; border: 0; border-radius: 0; }
+}
+
+/* ===== Telefon: editor šablony – nahoře výběr a uložení, stránka stále na očích, pod ní volby ===== */
+@media (max-width: 820px) {
+  .m-tpl .m-head > select.inp { flex: 1; min-width: 0; }
+  .m-tpl .m-head > .btn.small { font-size: 0; gap: 0; min-width: 42px; min-height: 40px; justify-content: center; }
+  .m-tpl .ed-body { flex: 1; min-height: 0; flex-direction: column; gap: 0; }
+  .m-tpl .ed-center { order: -1; flex: 0 0 38vh; border-radius: 0; }
+  .m-tpl .ed-side { display: none; }
+  .m-tpl .ed-stagebox { flex: 1; }
+  .m-tpl .ed-panel.tpl-form { display: flex; flex: 1 1 auto; min-height: 0; padding: 14px; border: 0; border-radius: 0; border-top: 1px solid var(--line); }
+}
+@media (max-width: 820px) {
+  .menu.m-sheet { position: fixed; left: 0 !important; right: 0; top: auto !important; bottom: 0; width: auto; max-width: none; max-height: 82vh; overflow-y: auto;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)); border-radius: 14px 14px 0 0; box-shadow: 0 -10px 40px rgba(0,0,0,.6); }
+  .menu.m-sheet > div:not(.menu-head):not([class*="pg-"]):not(.sgs-tbl) { min-height: 44px; }
+}

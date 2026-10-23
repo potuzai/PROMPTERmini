@@ -12,6 +12,7 @@ const App = {
     this.applyTheme();
     if (Settings.get('lastSyncAt')) Sync.lastSync = new Date(Settings.get('lastSyncAt'));
     matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => this.applyTheme());
+    matchMedia('(max-width: 820px)').addEventListener('change', () => { if (!this.isDirty()) this.go(true); });   // telefon ↔ počítač: jiné rozložení
     try { await Store.init(); }
     catch (e) {
       document.body.innerHTML = `<div class="empty"><div class="big">⚠</div>Nepodařilo se otevřít úložiště dat.<br><small>${esc(e.message)}</small></div>`;
@@ -141,7 +142,7 @@ const App = {
   buildTopbar() {
     const tabs = [['playlists', '📋 Playlisty'], ['songs', '🎵 Písně'], ['templates', '🎨 Šablony']];
     this.tabEls = {};
-    const tab = (k, l) => (this.tabEls[k] = h('button', { class: 'tab', title: l.replace(/^\S+ /, ''), onclick: () => this.nav(k) }, l));
+    const tab = (k, l) => (this.tabEls[k] = h('button', { class: 'tab', 'data-k': k, title: l.replace(/^\S+ /, ''), onclick: () => this.nav(k) }, l));
     const bar = h('nav', { id: 'topbar' },
       h('div', { class: 'logo', title: 'PROMPTER mini ' + APP_VERSION }, 'PROMPTER mini', h('span', {}, APP_VERSION)),
       h('div', { class: 'tabs' }, tabs.map(([k, l]) => tab(k, l))),
