@@ -278,7 +278,7 @@ const Reader = {
   wakeCursor() {
     this.el.classList.remove('nocursor');
     clearTimeout(this.cursorTimer);
-    if (Settings.get('hideCursor')) this.cursorTimer = setTimeout(() => { if (!this.menu) this.el.classList.add('nocursor'); }, 2000);
+    if (Settings.get('hideCursor')) this.cursorTimer = setTimeout(() => { if (!this.menu && !this.barHover) this.el.classList.add('nocursor'); }, 2000);
   },
 
   /* ----- Ovládání ----- */
@@ -583,14 +583,17 @@ const Reader = {
         h('span', { class: 'r-bsep' }),
         b('list', 'Playlist a nabídka (Tab)', () => this.items.length ? this.showJumpMenu() : this.showStartMenu(), 'wide'));
       this.progress = h('div', { class: 'r-progress' }, h('i'));
+      // kurzor na liště: lišta (i kurzor) nezmizí, dokud z ní neodjede
+      this.bar.addEventListener('mouseenter', () => { this.barHover = true; clearTimeout(this.barT); });
+      this.bar.addEventListener('mouseleave', () => { this.barHover = false; clearTimeout(this.barT); this.barT = setTimeout(() => this.hideBar(), 2600); this.wakeCursor(); });
       this.el.append(this.bar, this.progress);
     }
     this.paintBar();
     this.el.classList.add('bar-on');
     clearTimeout(this.barT);
-    this.barT = setTimeout(() => this.hideBar(), 2600);
+    if (!this.barHover) this.barT = setTimeout(() => this.hideBar(), 2600);
   },
-  hideBar() { this.el.classList.remove('bar-on'); },
+  hideBar() { this.el.classList.remove('bar-on'); this.barHover = false; },
   paintBar() {
     if (!this.bar) return;
     const cur = this.current();
