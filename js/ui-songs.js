@@ -388,11 +388,11 @@ class SongEditor {
     this.center.classList.toggle('tools-float', mode === 'float');
     this.center.classList.toggle('tools-side', side);
     if (side) {
-      // pravý panel shora: čtečka, uložení, stránka písně, zpěváci, úpravy textu; náhled dole
+      // pravý panel shora: čtečka, uložení, úpravy textu, stránka písně, zpěváci; náhled dole
       this.textHead.append(this.undoGrp, this.modeGrp);
       this.textGroup.append(this.tools);
       this.tools.replaceChildren(this.toolsText);
-      this.pager.replaceChildren(this.saveBox, this.pageGroup, this.sgGroup, this.textGroup, this.sideGrow, this.pvGroup);
+      this.pager.replaceChildren(this.saveBox, this.textGroup, this.pageGroup, this.sgGroup, this.sideGrow, this.pvGroup);
     } else {
       this.tools.replaceChildren(this.modeGrp, this.toolsText, this.undoGrp);
       if (this.tools.parentNode !== this.center) this.center.prepend(this.tools);
