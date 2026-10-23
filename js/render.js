@@ -48,6 +48,9 @@ const Render = {
     s.fontStyle = tpl.italic ? 'italic' : '';
     s.setProperty('--bar', tpl.barWidth + 'px');
     s.setProperty('--hs', tpl.headerSize + 'px');
+    s.setProperty('--fts', (tpl.footerSize != null ? tpl.footerSize : tpl.headerSize) + 'px');
+    s.setProperty('--hpx', (tpl.headPadX != null ? tpl.headPadX : tpl.padX) + 'px');
+    s.setProperty('--fpx', (tpl.footPadX != null ? tpl.footPadX : tpl.padX) + 'px');
     s.setProperty('--hcolor', tpl.headerColor || tpl.sectionColor);
     st.classList.toggle('upper', !!tpl.uppercase);
     // místo pro proužky (aby řádky lícovaly), když je má aspoň jeden zpěvák
@@ -276,7 +279,7 @@ function applySongStyle(tpl, song) {
 
 /* volby šablony, které jde přepsat jen pro jednu píseň (style písně) */
 const SONG_TPL_KEYS = ['letterSpacing', 'uppercase', 'italic', 'textColor', 'lineGap', 'barWidth', 'padX', 'padY', 'columns', 'colGap',
-  'onePage', 'fit', 'minScale', 'showHeader', 'showFooter', 'headerSize', 'showSections', 'sectionScale', 'showNotes', 'mirror',
+  'onePage', 'fit', 'minScale', 'showHeader', 'showFooter', 'headerSize', 'footerSize', 'headPadX', 'footPadX', 'showSections', 'sectionScale', 'showNotes', 'mirror',
   'sectionColor', 'verseColor', 'chorusColor', 'bridgeColor', 'instrColor'];
 
 /* vloží text dovnitř značek formátování (na začátek, nebo atEnd na konec): „{90%:**Mezihra**}“ → „{90%:**4× Mezihra**}“ */

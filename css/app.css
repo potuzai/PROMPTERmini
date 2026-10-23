@@ -767,9 +767,11 @@ input[type=checkbox].switch:focus-visible { outline: 2px solid var(--acc-hi); ou
 .stage .sec-off { display: none; }   /* skrytý nadpis sekce */
 .stage .kc { text-transform: none; }   /* {aa:…} malá písmena i při šabloně VELKÝMI */
 .st-head, .st-foot { flex: 0 0 auto; display: flex; justify-content: space-between; align-items: baseline; gap: 20px; font-size: var(--hs); line-height: 1.5; font-weight: 400; color: var(--hcolor); text-align: left; letter-spacing: 0; white-space: nowrap; overflow: hidden; font-family: Arial, sans-serif; }
+.st-head { margin-left: calc(var(--hpx, var(--padx)) - var(--padx)); margin-right: calc(var(--hpx, var(--padx)) - var(--padx)); }   /* vlastní okraj záhlaví */
+.st-foot { margin-left: calc(var(--fpx, var(--padx)) - var(--padx)); margin-right: calc(var(--fpx, var(--padx)) - var(--padx)); font-size: var(--fts, var(--hs)); }
 .st-head { border-bottom: 1px solid color-mix(in srgb, var(--hcolor) 35%, transparent); margin-bottom: calc(var(--hs) * .5); padding-bottom: calc(var(--hs) * .15); }
 .st-head b { color: color-mix(in srgb, var(--hcolor) 40%, currentColor); font-weight: 700; }
-.st-foot { margin-top: calc(var(--hs) * .4); min-height: 1.5em; }
+.st-foot { margin-top: calc(var(--fts, var(--hs)) * .4); min-height: 1.5em; }
 .st-foot .more { color: #ffb547; font-weight: 700; }
 .st-foot b { font-weight: 700; }
 .st-body { flex: 1 1 auto; display: flex; gap: var(--colgap); min-height: 0; overflow: hidden; }

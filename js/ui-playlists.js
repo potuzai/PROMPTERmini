@@ -520,7 +520,7 @@ const PlaylistsView = {
     const v = await chooseDlg('Uložit jako', [
       { id: 'copy', tag: '＋', label: 'Nový playlist v aplikaci', help: 'Kopie pod jiným názvem, původní zůstane beze změny.' },
       { id: 'file', tag: 'PROMPTER', label: 'Soubor PROMPTER', help: 'Playlist se všemi písněmi, jejich formátováním a šablonami. Otevře se v aplikaci i na jiném zařízení.' },
-      { id: 'xlsx', tag: 'XLSX', label: 'Excel', help: 'Setlist jako tabulka: pořadí, název, interpret, ladění, BPM, délka.' },
+      { id: 'xlsx', tag: 'XLSX', label: 'Excel', help: 'Setlist jako tabulka: pořadí, název, interpret, zpěváci, ladění, BPM, délka.' },
       { id: 'pdf', tag: 'PDF', label: 'PDF', help: 'Setlist, texty písní, nebo obojí – jako při tisku.' },
       { id: 'txt', tag: 'TXT', label: 'Texty písní', help: 'Všechny texty v pořadí, bez formátování.' }]);
     if (v === 'copy') return saveAs();
@@ -564,10 +564,17 @@ const PlaylistsView = {
   },
 };
 
-/* Setlist do Excelu: pořadí, název, interpret, ladění, BPM, délka; přídavky a celková délka */
+/* kdo v písni zpívá (jména v pořadí, jak se v textu objeví) */
+function songSingerNames(s) {
+  const map = Store.singerMap(s), codes = [];
+  for (const b of parseSong(s.text).blocks) for (const c of b.singers || []) if (map[c] && !codes.includes(c)) codes.push(c);
+  return codes.map(c => map[c].name).join(', ');
+}
+
+/* Setlist do Excelu: pořadí, název, interpret, zpěváci, ladění, BPM, délka; přídavky a celková délka */
 function setlistXlsx(pl) {
   const enc = plEncore(pl);
-  const rows = [['Pořadí', 'Název', 'Interpret', 'Ladění', 'BPM', 'Délka']];
+  const rows = [['Pořadí', 'Název', 'Interpret', 'Zpěváci', 'Ladění', 'BPM', 'Délka']];
   let n = 0, secs = 0;
   pl.items.forEach((id, i) => {
     const s = Store.songs.get(id);
@@ -575,10 +582,10 @@ function setlistXlsx(pl) {
     if (i === enc) rows.push(['', 'Přídavky']);
     const d = /^(\d+):(\d{1,2})$/.exec(String(s.duration || '').trim());
     if (d) secs += +d[1] * 60 + +d[2];
-    rows.push([++n, s.title || '', s.artist || '', s.key || '', /^\d+$/.test(String(s.tempo || '').trim()) ? +s.tempo : s.tempo || '', s.duration || '']);
+    rows.push([++n, s.title || '', s.artist || '', songSingerNames(s), s.key || '', /^\d+$/.test(String(s.tempo || '').trim()) ? +s.tempo : s.tempo || '', s.duration || '']);
   });
-  if (secs) rows.push([], ['', 'Celkem', '', '', '', Math.floor(secs / 60) + ':' + String(secs % 60).padStart(2, '0')]);
-  return makeXlsx(pl.name || 'Setlist', rows, [8, 36, 26, 10, 8, 8]);
+  if (secs) rows.push([], ['', 'Celkem', '', '', '', '', Math.floor(secs / 60) + ':' + String(secs % 60).padStart(2, '0')]);
+  return makeXlsx(pl.name || 'Setlist', rows, [8, 36, 26, 24, 10, 8, 8]);
 }
 
 /* ===== Tisk ===== */

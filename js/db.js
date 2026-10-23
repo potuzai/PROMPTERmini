@@ -12,6 +12,13 @@ const DEFAULT_SINGERS = [
 ];
 
 /* Výchozí šablona = „Hlavní čtečka“ kapely (platí i bez přihlášení ke kapele) */
+/* záhlaví a zápatí mají vlastní okraje a velikost; starší šablony je nemají – převezmou okraj textu a velikost záhlaví */
+function tplFill(t) {
+  if (t.headPadX == null) t.headPadX = t.padX;
+  if (t.footPadX == null) t.footPadX = t.padX;
+  if (t.footerSize == null) t.footerSize = t.headerSize;
+  return t;
+}
 const DEFAULT_TEMPLATE = {
   id: 'default', name: 'Hlavní čtečka',
   fontFamily: 'Roboto', fontSize: 43, fontWeight: 600, lineHeight: 1, letterSpacing: 0,
@@ -253,7 +260,7 @@ const Store = {
   singerMap(src) { const m = {}; for (const s of this.singers(src)) m[s.code.toUpperCase()] = s; return m; },
 
   template(id) {
-    return Object.assign(clone(DEFAULT_TEMPLATE), this.templates.get(id) || this.templates.get(Settings.get('defaultTemplate')) || this.templates.get('default') || {});
+    return tplFill(Object.assign(clone(DEFAULT_TEMPLATE), this.templates.get(id) || this.templates.get(Settings.get('defaultTemplate')) || this.templates.get('default') || {}));
   },
 
   /* Výchozí řazení: interpret (kapela), pak název – vzestupně; písně bez interpreta na konci */

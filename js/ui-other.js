@@ -22,18 +22,22 @@ const TPL_FIELDS = [
   { k: 'singerShow', t: 'singers' },
   { k: 'barWidth', l: 'Šířka proužku (px)', t: 'range', min: 4, max: 40, step: 1 },
   { g: 'Rozvržení stránky' },
+  { k: 'onePage', l: 'Zakázat více stránek (písmo se zmenší, aby se píseň vešla na 1 stránku)', t: 'check' },
+  { k: 'fit', l: 'Když jsou povolené další stránky', t: 'select', o: [['shrink', 'nejdřív zmenšit písmo (nejvýš na nejmenší zmenšení)'], ['paginate', 'hned rozdělit na více stránek']] },
+  { k: 'minScale', l: 'Nejmenší písmo', t: 'range', min: 0.4, max: 1, step: 0.05, rel: true, help: 'Jen když jsou povolené další stránky: do této velikosti se písmo zmenší, pak se píseň rozdělí.' },
   { k: 'padX', l: 'Okraj vlevo/vpravo (px)', t: 'range', min: 0, max: 400, step: 2 },
   { k: 'padY', l: 'Okraj nahoře/dole (px)', t: 'range', min: 0, max: 300, step: 2 },
   { k: 'columns', l: 'Počet sloupců', t: 'select', o: [[1, '1'], [2, '2'], [3, '3']] },
   { k: 'colGap', l: 'Mezera mezi sloupci (px)', t: 'range', min: 10, max: 200, step: 2 },
   { k: 'stanzaGap', l: 'Mezera mezi slokami (× výška písma)', t: 'range', min: 0, max: 2, step: 0.05 },
-  { k: 'onePage', l: 'Zakázat více stránek (písmo se zmenší, aby se píseň vešla na 1 stránku)', t: 'check' },
-  { k: 'fit', l: 'Když jsou povolené další stránky', t: 'select', o: [['shrink', 'nejdřív zmenšit písmo (nejvýš na nejmenší zmenšení)'], ['paginate', 'hned rozdělit na více stránek']] },
-  { k: 'minScale', l: 'Nejmenší písmo', t: 'range', min: 0.4, max: 1, step: 0.05, rel: true, help: 'Jen když jsou povolené další stránky: do této velikosti se písmo zmenší, pak se píseň rozdělí.' },
-  { g: 'Zobrazení' },
+  { g: 'Záhlaví a zápatí' },
   { k: 'showHeader', l: 'Záhlaví (název, ladění, pořadí)', t: 'check' },
+  { k: 'headerSize', l: 'Velikost záhlaví (px)', t: 'range', min: 14, max: 70, step: 1 },
+  { k: 'headPadX', l: 'Okraj záhlaví vlevo/vpravo (px)', t: 'range', min: 0, max: 400, step: 2 },
   { k: 'showFooter', l: 'Zápatí (strana, další píseň)', t: 'check' },
-  { k: 'headerSize', l: 'Velikost záhlaví/zápatí (px)', t: 'range', min: 14, max: 70, step: 1 },
+  { k: 'footerSize', l: 'Velikost zápatí (px)', t: 'range', min: 14, max: 70, step: 1 },
+  { k: 'footPadX', l: 'Okraj zápatí vlevo/vpravo (px)', t: 'range', min: 0, max: 400, step: 2 },
+  { g: 'Zobrazení' },
   { k: 'showSections', l: 'Zobrazit nadpisy sekcí', t: 'check' },
   { k: 'sectionScale', l: 'Velikost nadpisů sekcí', t: 'range', min: 0.3, max: 1.2, step: 0.05, rel: true },
   { k: 'showNotes', l: 'Zobrazit poznámky (//)', t: 'check' },
@@ -78,7 +82,7 @@ const TemplatesView = {
 
   /* Úprava šablony: na kopii, uloží se tlačítkem Uložit (Ctrl+S); při odchodu se App zeptá */
   editor(root, tpl) {
-    const t = Object.assign(clone(DEFAULT_TEMPLATE), tpl);
+    const t = tplFill(Object.assign(clone(DEFAULT_TEMPLATE), tpl));
     let dirty = false;
     const savedInd = h('span', { class: 'saved-ind' });
     const saveBtn = h('button', { class: 'btn nogrow', title: 'Uložit změny (Ctrl+S)', onclick: () => save(true) }, '💾 Uložit');
