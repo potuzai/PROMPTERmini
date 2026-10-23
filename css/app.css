@@ -227,6 +227,9 @@ kbd { font: 600 11px/1 var(--mono); padding: 3px 5px; border: 1px solid var(--li
 .big-list .list .item.sl-row:hover { background: var(--hover); }
 .sl-row.pl-row { grid-template-columns: 110px minmax(180px, 1.6fr) 90px minmax(100px, 1fr); position: relative; }
 .pl-row-edit { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); display: none; }   /* tužka jen po najetí myší */
+.btn.pl-row-edit { width: 32px; height: 30px; border-color: var(--acc); background: var(--acc); color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.4); }
+.btn.pl-row-edit:hover { background: var(--acc-hi); border-color: var(--acc-hi); }
+.btn.pl-row-edit .ic { width: 16px; height: 16px; }
 .pl-row:hover .pl-row-edit { display: inline-flex; }
 /* Oblíbené playlisty: vlastní pořadí nad ostatními playlisty */
 .pl-sec { display: flex; align-items: baseline; gap: 10px; margin: 0 12px; padding: 26px 10px 8px; border-bottom: 2px solid var(--line2); color: var(--text); }
