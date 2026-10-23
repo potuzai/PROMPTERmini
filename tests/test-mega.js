@@ -31,7 +31,7 @@ const megaSrv = http.createServer((req, res) => {
   if (req.method === 'OPTIONS') { res.writeHead(204, h); return res.end(); }
   let body = ''; req.on('data', d => body += d);
   req.on('end', () => {
-    if (req.method === 'POST') fs.writeFileSync(STATE, body);
+    if (req.method === 'POST') { fs.writeFileSync(STATE + '.srv.tmp', body); fs.renameSync(STATE + '.srv.tmp', STATE); }
     res.writeHead(200, Object.assign({ 'Content-Type': 'application/json' }, h));
     res.end(req.method === 'GET' && fs.existsSync(STATE) ? fs.readFileSync(STATE) : '');
   });
@@ -95,7 +95,7 @@ async function browserMember(browser) {
   await B.w.fill('.modal input[type=email]', 'kapela@test.cz');
   await B.w.fill('.modal input[type=password]', 'heslo123');
   await B.w.click('.modal button:has-text("Přihlásit")');
-  await B.w.waitForFunction(() => Store.songs.has('zluty'), null, { timeout: 15000 });
+  try { await B.w.waitForFunction(() => Store.songs.has('zluty'), null, { timeout: 15000 }); } catch (e) { console.log('stav programu při selhání:', await B.w.evaluate(() => JSON.stringify({ st: Sync.state, err: Sync.lastError, mode: Sync.mode(), songs: [...Store.songs.keys()], modals: [...document.querySelectorAll(".modal")].map(m => m.querySelector(".modal-title").innerText + " email=" + ((m.querySelector("input[type=email]") || {}).value) + " pass=" + !!((m.querySelector("input[type=password]") || {}).value) + " btn=" + [...m.querySelectorAll("button")].map(b => b.innerText + (b.disabled ? "(x)" : "")).join("/") + " err=" + ((m.querySelector(".login-err") || {}).innerText)), toasts: [...document.querySelectorAll(".toast")].map(t => t.innerText) }))); throw e; }
   assert(true, 'člen se přihlásil e-mailem a heslem kapely a stáhl písně');
   assert(await B.w.evaluate(() => ![...Store.songs.values()].some(s => s.sample)), 'ukázková píseň člena se do kapely nenahrála');
   const tplCopies = await B.w.evaluate(() => [...Store.templates.values()].filter(t => t.name.includes('konflikt')).length);
@@ -119,7 +119,7 @@ async function browserMember(browser) {
   await D.p.fill('.modal input[type=email]', 'kapela@test.cz');
   await D.p.fill('.modal input[type=password]', 'heslo123');
   await D.p.click('.modal button:has-text("Přihlásit")');
-  await D.p.waitForFunction(() => Store.songs.has('zluty'), null, { timeout: 15000 });
+  try { await D.p.waitForFunction(() => Store.songs.has('zluty'), null, { timeout: 15000 }); } catch (e) { console.log("stav prohlížeče při selhání:", await D.p.evaluate(() => JSON.stringify({ st: Sync.state, err: Sync.lastError, mode: Sync.mode(), songs: [...Store.songs.keys()], modals: [...document.querySelectorAll(".modal")].map(m => m.querySelector(".modal-title").innerText + " email=" + ((m.querySelector("input[type=email]") || {}).value) + " pass=" + !!((m.querySelector("input[type=password]") || {}).value) + " btn=" + [...m.querySelectorAll("button")].map(b => b.innerText + (b.disabled ? "(x)" : "")).join("/") + " err=" + ((m.querySelector(".login-err") || {}).innerText)), toasts: [...document.querySelectorAll(".toast")].map(t => t.innerText) }))); throw e; }
   assert(true, 'prohlížeč: přihlášení e-mailem a heslem kapely (Mega) a stažení písní');
   assert((await D.p.evaluate(() => Store.songs.get('zluty').text)).includes('doplnila Jana'), 'prohlížeč má aktuální verzi písně');
   assert(await D.p.evaluate(() => Sync.mode()) === 'mega' && await D.p.waitForFunction(() => (document.querySelector('.sync-pill').dataset.state || '').includes('synchronizováno'), null, { timeout: 8000 }).then(() => true, () => false), 'prohlížeč: stav „synchronizováno“');
@@ -130,8 +130,9 @@ async function browserMember(browser) {
   await D.p.waitForSelector('.se-wrap .edit-stage');
   await D.p.focus('.se-wrap'); await D.p.keyboard.press('End');
   await D.p.evaluate(() => SongsView.editor.se.startEdit(null, 'end')); await D.p.keyboard.type('z prohlížeče'); await D.p.keyboard.press('Escape');
+  await D.p.waitForFunction(() => SongsView.editor.src.includes('z prohlížeče'), null, { timeout: 10000 });   // pomalejší stroj: počkat na zápis do editoru
   await D.p.keyboard.press('Control+S');
-  await D.p.waitForFunction(() => Store.pendingCount() === 0 && Sync.state === 'idle', null, { timeout: 20000 });
+  await D.p.waitForFunction(() => Store.songs.get('zluty').text.includes('z prohlížeče') && Store.pendingCount() === 0 && Sync.state === 'idle', null, { timeout: 30000 });
   await A.w.evaluate(() => Sync.run());
   assert((await A.w.evaluate(() => Store.songs.get('zluty').text)).includes('z prohlížeče'), 'úprava z prohlížeče se dostala do programu');
   // program → prohlížeč

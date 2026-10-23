@@ -8,10 +8,21 @@ const STATE = isBrowser ? null : process.env.MEGA_MOCK_STATE;
 const env = () => isBrowser ? (window.MEGA_MOCK_ENV || {}) : process.env;
 const fresh = () => ({ account: { email: 'kapela@test.cz', password: 'heslo123' }, nodes: { root: { name: 'Cloud Drive', parent: null, dir: true, ts: 0 } }, calls: { login: 0, reload: 0 } });
 const xhr = (method, body) => { const x = new XMLHttpRequest(); x.open(method, window.MEGA_MOCK_URL, false); x.send(body); return x.responseText; };
+// víc procesů sdílí jeden soubor: zápis přes přejmenování (nikdy se nepřečte rozepsaný), prázdný „cloud“ jen když soubor ještě není
 const load = () => {
-  try { const t = isBrowser ? xhr('GET') : fs.readFileSync(STATE, 'utf8'); return t ? JSON.parse(t) : fresh(); } catch (e) { return fresh(); }
+  for (let i = 0; ; i++) {
+    try {
+      if (!isBrowser && !fs.existsSync(STATE)) return fresh();
+      const t = isBrowser ? xhr('GET') : fs.readFileSync(STATE, 'utf8');
+      return t ? JSON.parse(t) : fresh();
+    } catch (e) { if (i > 50) throw e; const until = Date.now() + 10; while (Date.now() < until); }
+  }
 };
-const save = st => { if (isBrowser) xhr('POST', JSON.stringify(st)); else fs.writeFileSync(STATE, JSON.stringify(st)); };
+const save = st => {
+  if (isBrowser) return xhr('POST', JSON.stringify(st));
+  const tmp = STATE + '.' + process.pid + '.tmp';
+  fs.writeFileSync(tmp, JSON.stringify(st)); fs.renameSync(tmp, STATE);
+};
 const rnd = () => Array.from({ length: 5 }, () => Math.floor(Math.random() * 256).toString(16).padStart(2, '0')).join('');
 const toB64 = u8 => { let b = ''; for (const c of u8) b += String.fromCharCode(c); return btoa(b); };
 const fromB64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));

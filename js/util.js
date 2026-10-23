@@ -322,7 +322,7 @@ function modal({ title, body, buttons = [{ label: 'OK', value: true, primary: tr
     back.addEventListener('mousedown', e => { if (e.target === back) close(null); });
     document.body.appendChild(back);
     const first = box.querySelector('input,select,textarea');
-    if (first) setTimeout(() => first.focus(), 30);
+    if (first) setTimeout(() => { if (!box.contains(document.activeElement)) first.focus(); }, 30);   // kdo už do okna píše, tomu kurzor nebrat
     if (onOpen) onOpen(box, close);
   });
 }
