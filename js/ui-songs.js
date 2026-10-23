@@ -1125,14 +1125,9 @@ class SongEditor {
   }
 
   async cleanDialog() {
-    const o = { chords: 'remove', detectSections: true, trimSpaces: true, collapseBlank: true };
-    const chordOpt = (v, l) => h('label', { class: 'chk' }, h('input', { type: 'radio', name: 'cl-chords', checked: o.chords === v, onchange: () => { o.chords = v; } }), l);
+    const o = { detectSections: true, trimSpaces: true, collapseBlank: true };
     const box = h('div', {},
-      h('p', { class: 'help' }, 'Upraví celý text písně. Vrátit jde přes Ctrl+Z nebo ↶.'),
-      h('h3', {}, 'Akordy, tabulatury a poznámky pro nástroje'),
-      chordOpt('remove', 'Odstranit'),
-      chordOpt('none', 'Nechat beze změny'),
-      h('h3', {}, 'Další úpravy'),
+      h('p', { class: 'help' }, 'Upraví celý text písně (akordy a tabulatury z vloženého textu vždy smaže). Vrátit jde přes Ctrl+Z nebo ↶.'),
       ...[['detectSections', 'Rozpoznat sloky a refrény (1., R:, Ref., [Chorus]…)'],
         ['trimSpaces', 'Sjednotit mezery a odstranit tabulátory'], ['collapseBlank', 'Sloučit více prázdných řádků']]
         .map(([k, l]) => h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: true, onchange: e => { o[k] = e.target.checked; } }), l)));

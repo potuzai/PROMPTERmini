@@ -284,18 +284,15 @@ function plainSongText(text) {
 }
 
 function cleanText(text, opts = {}) {
-  // chords: 'remove' = smazat akordy, tabulatury a starší poznámky pro nástroje (%G, %%G … %%), 'none' = nechat
-  const o = Object.assign({ chords: 'remove', detectSections: true, trimSpaces: true, collapseBlank: true }, opts);
-  if (opts.removeChords === false && !opts.chords) o.chords = 'none';
-  let lines = String(text || '').replace(/\r\n?/g, '\n').replace(/\t/g, '    ').replace(/ /g, ' ').split('\n');
-  if (o.chords === 'remove') {
-    let blk = false;
-    lines = lines.filter(l => {
-      const t = l.trim();
-      if (t.startsWith('%%')) { blk = !blk; return false; }
-      return !blk && !t.startsWith('%') && !(t && (isChordLine(l) || TAB_RE.test(l)));
-    }).map(l => l.replace(/\[([^\]\s]{1,10})\]/g, (all, inner) => CHORD_RE.test(inner) ? '' : all));
-  }
+  // akordy, tabulatury a starší poznámky pro nástroje (%G, %%G … %%) se vždy smažou – nezobrazují se
+  const o = Object.assign({ detectSections: true, trimSpaces: true, collapseBlank: true }, opts);
+  let lines = String(text || '').replace(/\r\n?/g, '\n').replace(/\t/g, '    ').replace(/\u00a0/g, ' ').split('\n');
+  let blk = false;
+  lines = lines.filter(l => {
+    const t = l.trim();
+    if (t.startsWith('%%')) { blk = !blk; return false; }
+    return !blk && !t.startsWith('%') && !(t && (isChordLine(l) || TAB_RE.test(l)));
+  }).map(l => l.replace(/\[([^\]\s]{1,10})\]/g, (all, inner) => CHORD_RE.test(inner) ? '' : all));
   if (o.trimSpaces) {
     lines = lines.map(l => l.replace(/\s+/g, ' ').trim());
   }
