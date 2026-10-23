@@ -2,8 +2,8 @@
 <html lang="cs">
 <head>
   <meta charset="utf-8">
-  <!-- skripty jen z aplikace (žádné vložené ani cizí); síť jen přes https (Mega, GitHub) -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https:; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <!-- skripty jen z aplikace (žádné vložené ani cizí); síť jen přes https (Mega, GitHub), http jen na localhost (testy, vývoj) -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https: http://localhost:*; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>PROMPTER mini</title>
   <link rel="icon" href="img/icon.svg">
