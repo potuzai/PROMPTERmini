@@ -155,7 +155,7 @@ const TemplatesView = {
     }
     // uložení až na konci seznamu voleb
     form.appendChild(h('div', { class: 'row', style: { marginTop: '12px', alignItems: 'center' } }, saveBtn,
-      h('button', { class: 'btn nogrow', title: 'Uložit jako novou šablonu (původní zůstane beze změny)', onclick: () => saveAs() }, 'Uložit jako…'), savedInd));
+      h('button', { class: 'btn nogrow', title: 'Uložit jako novou šablonu (původní zůstane beze změny)', onclick: () => saveAs() }, 'Uložit jako'), savedInd));
 
     const prevWrap = h('div', { class: 'preview-wrap' });
     const songSel = h('select', { class: 'inp', style: { width: 'auto' } }, Store.sortedSongs().map(s => h('option', { value: s.id, selected: s.id === this.previewSong }, s.title)));
@@ -294,7 +294,7 @@ const SettingsView = {
     const adv = h('details', { class: 'set-adv' }, h('summary', {}, 'Pokročilé'),
       h('div', { class: 'set-rows' },
         mega ? setRow('Složka kapely v Mega', `„${(Settings.data.mega || {}).folder || 'PROMPTERmini'}“ – měň jen tehdy, když má kapela písně v jinak pojmenované složce.`,
-          h('button', { class: 'btn nogrow', onclick: () => changeBandFolder() }, 'Změnit…')) : null,
+          h('button', { class: 'btn nogrow', onclick: () => changeBandFolder() }, 'Změnit')) : null,
         mega ? setRow('Diagnostika Mega', 'Co aplikace v účtu Mega vidí. Při potížích se synchronizací pošli výpis.', h('button', { class: 'btn nogrow', onclick: () => megaDiagDialog() }, 'Zobrazit')) : null,
         mega ? setRow('Neoficiální knihovna', 'Připojení k Mega používá neoficiální knihovnu. Kdyby ho Mega rozbila, přepni na GitHub – písně v aplikaci zůstanou.', null) : null),
       mode === 'github' ? this.ghBlock() : mode === 'folder' ? this.folderBlock() : null);
@@ -331,14 +331,14 @@ const SettingsView = {
     };
     const sugg = window.native.suggestFolders();
     return h('div', {},
-      h('div', { class: 'row' }, inp, h('button', { class: 'btn primary nogrow', onclick: async () => choose(await window.native.pickFolder()) }, '📁 Vybrat složku…')),
+      h('div', { class: 'row' }, inp, h('button', { class: 'btn primary nogrow', onclick: async () => choose(await window.native.pickFolder()) }, '📁 Vybrat složku')),
       sugg.length ? h('p', { class: 'help' }, 'Nalezené cloudové složky v tomto PC: ', sugg.map(p => h('code', { style: { marginRight: '6px' } }, p))) : null,
       h('details', {}, h('summary', {}, 'Návod – MEGA Desktop'),
         h('ol', { class: 'help set-steps', html: `
           <li>Nainstaluj <b>MEGA Desktop App</b> a ve složce MEGA na disku vytvoř složku např. <code>Kapela-pisne</code>.</li>
           <li>Na mega.io ji sdílej členům (pravé tlačítko → <b>Sdílet</b>, právo <b>Číst a zapisovat</b>). Nepoužívej „Sdílet odkaz“ – ten může otevřít kdokoli.</li>
           <li>Každý člen přijme pozvánku a v MEGA Desktop App si sdílenou složku synchronizuje do svého PC.</li>
-          <li>Tady klikni na <b>Vybrat složku…</b> a zvol ji.</li>` })),
+          <li>Tady klikni na <b>Vybrat složku</b> a zvol ji.</li>` })),
       h('p', { class: 'help' }, 'Data čtečky zůstávají i v její vlastní složce „data“ – když cloud vypadne, čtečka hraje dál.'));
   },
 

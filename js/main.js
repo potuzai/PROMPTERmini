@@ -117,7 +117,7 @@ const App = {
     if (!e || !e.dirty()) return true;
     const v = await modal({ title: 'Neuložené změny', body: h('p', {}, `${e.what} má neuložené změny. Co s nimi?`),
       buttons: [{ label: 'Zůstat', value: null }, { label: 'Zahodit', value: 'drop', danger: true },
-        e.saveAs ? { label: 'Uložit jako…', value: 'as' } : null, { label: 'Uložit', value: 'save', primary: true }].filter(Boolean) });
+        e.saveAs ? { label: 'Uložit jako', value: 'as' } : null, { label: 'Uložit', value: 'save', primary: true }].filter(Boolean) });
     if (!v) return false;
     if (v === 'save') await e.save();
     if (v === 'as' && !await e.saveAs(true)) return false;

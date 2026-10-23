@@ -120,7 +120,7 @@ const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode
   assert(await p.isVisible('.pl-songs'), 'Zůstat nechá úpravu otevřenou');
   await p.click('.bottom-actions button:has-text("Uložit")'); await p.waitForTimeout(300);
   assert(await plStored() === 2, 'tlačítko Uložit playlist uloží');
-  // nový playlist jako kopie existujícího (okno s názvem, datem, poznámkou a „Kopie z playlistu…“)
+  // nový playlist jako kopie existujícího (okno s názvem, datem, poznámkou a „Kopie z playlistu“)
   const origPl = await p.evaluate(() => location.hash);
   await p.evaluate(() => location.hash = '#/playlists');
   await p.waitForTimeout(200);

@@ -162,11 +162,11 @@ class SongEditor {
     // Uložení, další volby písně a čtečka: vpravo dole pod stránkou
     this.saveBtn = h('button', { class: 'btn', title: 'Uložit změny (Ctrl+S)', onclick: () => this.save(true) }, '💾 Uložit');
     const moreBtn = h('button', { class: 'btn', title: 'Další volby písně: uložit jako (kopie, soubor, PDF), playlist, vyčištění textu, smazání', onclick: e => popupMenu(e.currentTarget, [
-      { label: 'Uložit jako…', action: () => this.saveAsDialog() },
-      { label: 'Přidat do playlistu…', action: () => addToPlaylistMenu(moreBtn, [this.id]) },
+      { label: 'Uložit jako', action: () => this.saveAsDialog() },
+      { label: 'Přidat do playlistu', action: () => addToPlaylistMenu(moreBtn, [this.id]) },
       { sep: true },
-      { label: 'Vyčistit text…', action: () => this.cleanDialog() },
-      { label: 'Zdrojový text…', action: () => this.sourceDialog() },
+      { label: 'Vyčistit text', action: () => this.cleanDialog() },
+      { label: 'Zdrojový text', action: () => this.sourceDialog() },
       { label: 'Nápověda k editoru', action: () => showMarkupHelp() },
       { sep: true },
       { label: 'Smazat píseň', danger: true, action: () => this.del() }]) }, '⋯');
@@ -184,7 +184,7 @@ class SongEditor {
             const cur = this.baseTpl();
             popupMenu(e.currentTarget, [
               { label: `Uložit do šablony „${cur.name}“`, hint: 'všem písním s ní', action: () => this.saveToTemplate() },
-              { label: 'Uložit jako novou šablonu…', action: () => this.saveAsTemplate() }]);
+              { label: 'Uložit jako novou šablonu', action: () => this.saveAsTemplate() }]);
           } }, ic('save'))))),
       h('div', { class: 'ep-group' }, h('div', { class: 'ep-lbl ep-lbl-row' }, h('span', {}, 'Struktura'),
         h('button', { class: 'btn small nogrow', title: 'Nová sekce u vybraného řádku – označené řádky (tažením myší) budou celá sekce', onclick: () => this.addSection() }, '＋ Sekce'),
@@ -204,10 +204,10 @@ class SongEditor {
     this.tools = h('div', { class: 'ed-tools' }, this.modeGrp, this.toolsText = h('div', { class: 'ed-tools-text' },
       this.fontSel = h('select', { class: 'tl tl-font', title: 'Písmo označených slov, řádku, nebo bez výběru celé písně', onmousedown: () => this.keepSel(), onchange: () => this.setFont(this.fontSel.value) }),
       h('div', { class: 'tl-grp seg-row' },
+        this.colorBtn = tool(h('span', { class: 'tl-col' }, 'A'), 'Barva písma označených slov, řádku, nebo bez výběru celé písně', e => this.colorPopover(e.currentTarget), 'tl-color'),
         tool(h('b', {}, 'B'), 'Tučně (Ctrl+B) – označená slova, řádek, nebo bez výběru celá píseň', () => this.fmt('bold')),
         tool(h('i', {}, 'I'), 'Kurzíva (Ctrl+I) – označená slova, řádek, nebo bez výběru celá píseň', () => this.fmt('italic')),
         tool('Aa', 'VELKÁ / malá písmena – klik přepne označená slova, řádek, nebo bez výběru celou píseň', () => this.toggleCase()),
-        this.colorBtn = tool(h('span', { class: 'tl-col' }, 'A'), 'Barva písma označených slov, řádku, nebo bez výběru celé písně', e => this.colorPopover(e.currentTarget), 'tl-color'),
       ),
       h('div', { class: 'tl-grp seg-row tl-lh-grp' },
         tool('−', 'Menší písmo (o 2 px)', () => this.stepSize(-2), 'tl-step'),
@@ -613,7 +613,7 @@ class SongEditor {
     const m = h('div', { class: 'menu menu-form menu-color' },
       h('div', { class: 'menu-head' }, song ? 'Barva písma celé písně' : 'Barva písma'),
       h('div', { class: 'col-sw' }, sw.map(c => h('button', { class: 'col-dot', title: c, style: { background: c }, onmousedown: e => e.preventDefault(), onclick: () => apply(c) }))),
-      h('label', { class: 'chk' }, custom, 'Vlastní barva…'),
+      h('label', { class: 'chk' }, custom, 'Vlastní barva'),
       h('button', { class: 'btn small nogrow', onmousedown: e => e.preventDefault(), onclick: () => apply('') }, song ? 'Podle šablony' : 'Bez vlastní barvy'));
     placePopover(m, anchor);
   }
@@ -987,7 +987,7 @@ class SongEditor {
     const insertItems = () => [
       { label: 'Řádek pod', action: () => se.startEdit(null, 'end') },
       { label: 'Mezeru (nová sloka) pod', action: () => se.insertLines(['', ''], {}) },
-      { label: 'Sekce…', action: () => this.addSection() },
+      { label: 'Sekce', action: () => this.addSection() },
       { label: 'Opakování sekce', items: () => sections().map(n => ({ label: '↻ ' + n, action: () => se.insertLines(['>> ' + n]) })), empty: 'Nejdřív musí být v písni nadpis sekce (např. Refrén).' },
       { label: 'Poznámku pod', action: () => se.insertLines(['// '], { edit: true }) },
       { label: 'Novou stránku před tento řádek', action: () => se.insertLines([this.breakLine()], { before: true }) },
@@ -1007,8 +1007,8 @@ class SongEditor {
       { label: 'Celá píseň', items: () => [
         { label: 'Uložit', hint: 'Ctrl+S', action: () => this.save(true) },
         { label: 'Vrátit poslední změnu', hint: 'Ctrl+Z', action: () => se.undo(-1) },
-        { label: 'Vyčistit text…', action: () => this.cleanDialog() },
-        { label: 'Zdrojový text…', action: () => this.sourceDialog() }] },
+        { label: 'Vyčistit text', action: () => this.cleanDialog() },
+        { label: 'Zdrojový text', action: () => this.sourceDialog() }] },
     ].filter(Boolean);
     const del = { label: 'Smazat', hint: 'Delete', danger: true, action: () => se.deleteLines() };
     switch (t.kind) {
@@ -1251,7 +1251,7 @@ function addToPlaylistMenu(anchor, songIds) {
     await Store.put('playlists', p);
     toast(`Přidáno do „${p.name}“`, 'ok');
   } }));
-  items.unshift({ label: '＋ Nový playlist…', action: async () => {
+  items.unshift({ label: '＋ Nový playlist', action: async () => {
     const name = await promptDlg('Název nového playlistu', playlistNameHint());
     if (!name) return;
     const p = await Store.put('playlists', newPlaylist(name, [...songIds]));

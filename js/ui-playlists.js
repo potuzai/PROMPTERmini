@@ -165,7 +165,7 @@ const PlaylistsView = {
     paintFrom();
     const body = h('div', { class: 'pl-info-dlg' }, f('Název playlistu', n), f('Datum', d), f('Poznámka', o),
       copy && Store.playlists.size ? h('div', { class: 'pl-from' }, fromLbl,
-        h('button', { class: 'btn', title: 'Nový playlist začne písněmi (a čárou pro přídavky) z vybraného playlistu', onclick: pick }, '⧉ Kopie z playlistu…')) : null);
+        h('button', { class: 'btn', title: 'Nový playlist začne písněmi (a čárou pro přídavky) z vybraného playlistu', onclick: pick }, '⧉ Kopie z playlistu')) : null);
     const ok = await modal({ title, body, buttons: [{ label: 'Zrušit', value: false }, { label: okLabel, value: true, primary: true }] });
     return ok ? { name: n.value.trim(), date: d.value, note: o.value.trim(), from } : null;
   },
@@ -455,7 +455,7 @@ const PlaylistsView = {
         paintReady();
       } });
     paintReady();
-    const saveAsBtn = h('button', { class: 'btn', title: 'Uložit jako: nový playlist v aplikaci, soubor PROMPTER, Excel, PDF nebo texty', onclick: () => this.saveAsDialog(pl, saveAs) }, 'Uložit jako…');
+    const saveAsBtn = h('button', { class: 'btn', title: 'Uložit jako: nový playlist v aplikaci, soubor PROMPTER, Excel, PDF nebo texty', onclick: () => this.saveAsDialog(pl, saveAs) }, 'Uložit jako');
 
     if (compact) {
       // název, datum a poznámka: tužka otevře okno; vše ostatní přímo v náhledu
@@ -478,7 +478,7 @@ const PlaylistsView = {
       // v náhledu je málo místa: disketa (uložit, uložit jako) a ⋯ (čára pro přídavky, tisk, celá stránka)
       const menuBtn = h('button', { class: 'btn', title: 'Uložit (Ctrl+S) nebo uložit jako nový playlist', onclick: e => popupMenu(e.currentTarget, [
         { label: 'Uložit', action: () => save(true) },
-        { label: 'Uložit jako…', action: () => this.saveAsDialog(pl, saveAs) }]) }, '💾 ▾');
+        { label: 'Uložit jako', action: () => this.saveAsDialog(pl, saveAs) }]) }, '💾 ▾');
       const moreBtn = h('button', { class: 'btn', title: 'Další možnosti: čára pro přídavky, celá stránka úprav, tisk', onclick: e => popupMenu(e.currentTarget, [
         rows.includes(LINE) ? null : { label: 'Čára pro přídavky', action: () => { rows.push(LINE); commit(); } },
         { label: 'Celá stránka úprav', action: () => { location.hash = '#/playlists/' + pl.id; } },
@@ -508,7 +508,7 @@ const PlaylistsView = {
         savedInd, saveBtn, saveAsBtn,
         h('button', { class: 'btn danger', onclick: () => this.del(pl) }, '🗑 Smazat')),
       h('div', { class: 'pl-col pl-songs' },
-        h('div', { class: 'pl-add' }, quickAdd(), h('button', { class: 'btn', onclick: pickDialog }, '⧉ Vybrat z knihovny…')),
+        h('div', { class: 'pl-add' }, quickAdd(), h('button', { class: 'btn', onclick: pickDialog }, '⧉ Vybrat z knihovny')),
         h('div', { class: 'head' }, h('b', {}, 'Pořadí písní'), countLbl, h('span', { class: 'grow', style: { flex: 1 } }), colsBtn, lineBtn),
         itemsBox));
     paintItems(); paintSaved();

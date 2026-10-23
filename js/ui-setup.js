@@ -141,7 +141,7 @@ function setupWizard() {
       } }, p.label)));
       // které obrazovce kapely tento displej odpovídá
       const scrSel = h('select', { class: 'inp' }, Screens.list().map(sc => h('option', { value: sc.id, selected: sc.id === st.scr }, sc.name)),
-        h('option', { value: 'new', selected: st.scr === 'new' }, '＋ Nová obrazovka…'));
+        h('option', { value: 'new', selected: st.scr === 'new' }, '＋ Nová obrazovka'));
       const scrName = h('input', { class: 'inp', placeholder: 'např. Tablet – kytara', value: st.scrName });
       const nameF = field('Název nové obrazovky', scrName);
       nameF.hidden = st.scr !== 'new';
