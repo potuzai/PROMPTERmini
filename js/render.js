@@ -109,7 +109,7 @@ const Render = {
     if (!inlineHtml(txt, singerMap).replace(/<[^>]*>|&nbsp;|\u200b/g, '').trim()) txt = insideMarks(txt, '\u00a0', true);   // prázdný řádek s formátováním (písmo, velikost…) má výšku řádku
     let inner = inlineHtml(txt, singerMap) || '&nbsp;';
     // počet opakování sekce hned u jejího prvního řádku
-    if (b.secCount > 1) inner = `<span class="rep-n" style="color:${tpl.instrColor || '#ff0000'}">${b.secCount}×</span> ` + inner;
+    if (b.secCount > 1) inner = `<span class="rep-n" style="color:${cssColor(tpl.instrColor, '#ff0000')}">${b.secCount}×</span> ` + inner;
     el.innerHTML = inner;
     lineMarks(el);
     // označená slova jiného zpěváka: stejné označení jako celé řádky (barva písma / podklad), proužky jen u řádků

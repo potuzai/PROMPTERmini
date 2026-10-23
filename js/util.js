@@ -24,6 +24,12 @@ function h(tag, attrs = {}, ...children) {
   return el;
 }
 
+/* Barva z dat (šablona, zpěvák) do HTML/CSS: jen #rgb(a), rgb()/hsl() s čísly, nebo název barvy – nic jiného se do stylu nedostane */
+function cssColor(c, fallback = '') {
+  c = String(c ?? '').trim();
+  return /^#[0-9a-f]{3,8}$/i.test(c) || /^(rgb|hsl)a?\([\d.,%\s/-]+\)$/i.test(c) || /^[a-z]{3,20}$/i.test(c) ? c : fallback;
+}
+
 function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
@@ -47,11 +53,6 @@ function plural(n, one, few, many) { return n + ' ' + (n === 1 ? one : n >= 2 &&
 function screenPx() { return [Math.round(screen.width * devicePixelRatio), Math.round(screen.height * devicePixelRatio)]; }
 
 function isMobile() { return window.matchMedia('(max-width: 820px)').matches; }
-
-function debounce(fn, ms) {
-  let t;
-  return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
-}
 
 function clone(o) { return JSON.parse(JSON.stringify(o)); }
 

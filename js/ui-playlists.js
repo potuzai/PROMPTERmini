@@ -207,10 +207,12 @@ const PlaylistsView = {
     const markDirty = () => { dirty = snap() !== base; paintSaved(); };
     const save = async manual => {
       if (!dirty && !manual) return;
-      dirty = false; base = snap();
-      const saved = await Store.put('playlists', clone(pl));
+      const now = snap();
+      let saved;
+      try { saved = await Store.put('playlists', clone(pl)); }
+      catch (e) { toast('Playlist se nepodařilo uložit: ' + e.message, 'err', 8000); return false; }
       pl.updatedAt = saved.updatedAt; pl.updatedBy = saved.updatedBy;
-      paintSaved();
+      base = now; markDirty();
       if (manual) toast('Uloženo', 'ok', 1500);
     };
     const saveAs = async stay => {   // nový playlist ze současného stavu; původní zůstane, jak byl uložený

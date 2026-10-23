@@ -307,7 +307,6 @@ kbd { font: 600 11px/1 var(--mono); padding: 3px 5px; border: 1px solid var(--li
 .pl-item.pl-line { border-top: 2px dashed var(--acc); background: none; padding-top: 8px; margin-top: 4px; }
 .pl-item.pl-line .t b { color: var(--acc-hi); text-transform: uppercase; font-size: 12px; letter-spacing: .05em; }
 .pl-item.encore .num, .pl-item.encore .t b { color: var(--dim); font-style: italic; }
-.pl-col .head .pl-sort { flex: 0 0 auto; width: auto; height: 28px; padding: 0 8px; font-size: 12.5px; }
 .pl-col .head .dim { white-space: nowrap; }
 .key-badge.k-D { background: #ff9f43; }
 .key-badge.k-E { background: #ffd93d; }
@@ -381,7 +380,6 @@ kbd { font: 600 11px/1 var(--mono); padding: 3px 5px; border: 1px solid var(--li
 table.tbl { border-collapse: collapse; width: 100%; background: var(--panel); border: 1px solid var(--line); }
 .tbl th, .tbl td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); }
 .tbl th { font-weight: 600; font-size: 12px; color: var(--dim); background: var(--panel2); }
-.sg-sample { padding: 6px 12px; background: #000; border-radius: var(--r); font-weight: 700; font-family: Arial, sans-serif; font-size: 18px; border-left: 8px solid; }
 
 /* ===== Modální okna, toasty, nabídky ===== */
 .modal-back { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; z-index: 1000; }
@@ -425,8 +423,6 @@ table.tbl { border-collapse: collapse; width: 100%; background: var(--panel); bo
 .sgs-del:hover { background: var(--hover); color: var(--err); }
 .sgs-c { display: flex; justify-content: center; cursor: pointer; }
 .menu-singer { width: auto; min-width: 360px; }
-.sw-opt { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 30px; cursor: pointer; }   /* volba s přepínačem (text vlevo, přepínač vpravo) */   /* stejné odsazení i při najetí myší (okno neposkakuje) */
-.menu-chk { padding: 6px 10px !important; }
 .led { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
 /* nápověda „Jak psát text písně“ */
 .help-guide { display: flex; flex-direction: column; gap: 14px; }
@@ -531,7 +527,6 @@ details summary { color: var(--text); }
 .tools-float .tl-lh .ic.tl-lh-ic { width: 17px; height: 17px; }
 .tools-float .tl-al-grp { grid-template-columns: repeat(3, 1fr); gap: 2px; }
 .tools-float .ed-undo { border-top: 1px solid var(--line); padding-top: 8px; }
-.tl-sep { width: 1px; height: 22px; background: var(--line2); }
 .tl { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 30px; height: 32px; padding: 0 8px; border: 1px solid var(--line2); border-radius: var(--r); background: var(--well); color: var(--text); font: 13.5px var(--font); cursor: pointer; white-space: nowrap; }
 .tl:hover { background: var(--hover); }
 .tl:active { background: var(--sel); }

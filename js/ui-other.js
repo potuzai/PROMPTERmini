@@ -77,9 +77,10 @@ const TemplatesView = {
     const markDirty = () => { dirty = JSON.stringify(t) !== base; paintSaved(); };
     const save = async manual => {
       if (!dirty && !manual) return;
-      dirty = false; base = JSON.stringify(t);
-      await Store.put('templates', clone(t));
-      paintSaved();
+      const snap = JSON.stringify(t);
+      try { await Store.put('templates', clone(t)); }
+      catch (e) { toast('Šablonu se nepodařilo uložit: ' + e.message, 'err', 8000); return false; }
+      base = snap; markDirty();
       if (manual) toast('Uloženo', 'ok', 1500);
     };
     const saveAs = async stay => {   // nová šablona ze současného nastavení; původní zůstane, jak byla uložená
@@ -365,7 +366,7 @@ const SettingsView = {
   },
 
   ghBlock() {
-    const g = clone(Settings.get('gh'));
+    const g = GH.cfg();
     const repoIn = h('input', { class: 'inp', value: g.owner && g.repo ? `${g.owner}/${g.repo}` : '', placeholder: 'uživatel/kapela-pisne nebo odkaz na repozitář' });
     const tokenIn = h('input', { class: 'inp', type: 'password', value: g.token || '', placeholder: 'github_pat_…' });
     const status = h('div', { class: 'help', style: { marginTop: '8px' } });
@@ -373,7 +374,7 @@ const SettingsView = {
       const m = /(?:github\.com[/:])?([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+?)(?:\.git)?\/?$/.exec(repoIn.value.trim());
       if (!m || !tokenIn.value.trim()) return toast('Vyplň repozitář (uživatel/název) i token.', 'warn');
       const prev = clone(Settings.get('gh')), prevMode = Settings.get('syncMode');
-      Settings.set('gh', Object.assign({}, prev, { owner: m[1], repo: m[2], token: tokenIn.value.trim(), branch: prev.branch || 'main' }));
+      Settings.set('gh', Object.assign({}, prev, { owner: m[1], repo: m[2], token: Secret.protect(tokenIn.value.trim()), branch: prev.branch || 'main' }));
       Settings.set('syncMode', 'github');
       status.textContent = 'Ověřuji přístup…';
       try {

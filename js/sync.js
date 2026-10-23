@@ -9,8 +9,9 @@ class GhError extends Error {
 }
 
 const GH = {
-  cfg() { return Settings.get('gh'); },
-  configured() { const c = this.cfg(); return !!(c.owner && c.repo && c.token); },
+  // token je v nastavení zašifrovaný stejně jako heslo k Mega (starší nastavení ho má v čitelné podobě – i to funguje)
+  cfg() { const c = Settings.get('gh'); return Object.assign({}, c, { token: c.token ? Secret.unprotect(c.token) : '' }); },
+  configured() { const c = Settings.get('gh'); return !!(c.owner && c.repo && c.token); },
 
   async req(method, path, body) {
     const c = this.cfg();

@@ -18,6 +18,13 @@ const App = {
       document.body.innerHTML = `<div class="empty"><div class="big">⚠</div>Nepodařilo se otevřít úložiště dat.<br><small>${esc(e.message)}</small></div>`;
       return;
     }
+    // neočekávaná chyba (např. zápis dat) nesmí zapadnout jen v konzoli
+    window.addEventListener('unhandledrejection', e => {
+      const r = e.reason;
+      if (r && r.name === 'AbortError') return;
+      console.error(r);
+      toast('Něco se nepovedlo: ' + ((r && r.message) || r), 'err', 8000);
+    });
     window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); this.installEvt = e; });
     // Webová verze: požádat prohlížeč, aby data nikdy nemazal
     if (!window.native && navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
@@ -120,7 +127,7 @@ const App = {
       buttons: [{ label: 'Zůstat', value: null }, { label: 'Zahodit', value: 'drop', danger: true },
         e.saveAs ? { label: 'Uložit jako', value: 'as' } : null, { label: 'Uložit', value: 'save', primary: true }].filter(Boolean) });
     if (!v) return false;
-    if (v === 'save') await e.save();
+    if (v === 'save' && await e.save(true) === false) return false;   // uložení selhalo – zůstat
     if (v === 'as' && !await e.saveAs(true)) return false;
     this.edit = null;
     return true;
@@ -178,7 +185,7 @@ const App = {
 
   onStore(type, id) {
     if (Reader.isOpen()) return;
-    const [view, param] = this.parseHash();
+    const [view] = this.parseHash();
     if (type === 'sync') {
       Store.dropOldTemplates();   // zrušené vestavěné šablony mohly přijít ze sdílených dat
       // změny od ostatních – překreslit, ale neztratit rozpracované úpravy
@@ -237,3 +244,5 @@ const App = {
 };
 
 document.addEventListener('DOMContentLoaded', () => App.init());
+// Offline režim pro webovou verzi (GitHub Pages)
+if ('serviceWorker' in navigator && location.protocol.startsWith('http') && !window.native) navigator.serviceWorker.register('sw.js').catch(() => {});

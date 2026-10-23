@@ -69,7 +69,14 @@ function dailyBackup() {
   } catch (e) { console.error('Záloha selhala', e); }
 }
 
-ipcMain.handle('all', (e, store) => {
+/* IPC přijímá jen vlastní stránka aplikace (index.html), ne jiná okna ani cizí obsah */
+const APP_URL = decodeURI(require('url').pathToFileURL(path.join(__dirname, '..', 'index.html')).href).toLowerCase();
+const isApp = url => { try { return decodeURI(String(url || '').split(/[?#]/)[0]).toLowerCase() === APP_URL; } catch (err) { return false; } };
+const trusted = e => { if (!isApp(e.senderFrame && e.senderFrame.url)) throw new Error('Nepovolený odesílatel'); };
+const handle = (ch, fn) => ipcMain.handle(ch, (e, ...a) => { trusted(e); return fn(e, ...a); });
+const onSync = (ch, fn) => ipcMain.on(ch, (e, ...a) => { try { trusted(e); } catch (err) { e.returnValue = null; return; } fn(e, ...a); });
+
+handle('all', (e, store) => {
   if (store === 'meta') { const m = readJson(META_FILE); return m ? [m] : []; }
   if (!STORES.includes(store)) return [];
   const out = [];
@@ -80,38 +87,38 @@ ipcMain.handle('all', (e, store) => {
   }
   return out;
 });
-ipcMain.handle('put', (e, store, obj) => {
+handle('put', (e, store, obj) => {
   if (store === 'meta') return writeAtomic(META_FILE, JSON.stringify(obj));
   writeAtomic(storeFile(store, obj.id), JSON.stringify(obj, null, 2) + '\n');
 });
-ipcMain.handle('del', (e, store, id) => { try { fs.unlinkSync(storeFile(store, id)); } catch (err) { if (err.code !== 'ENOENT') throw err; } });
-ipcMain.on('loadSettings', e => { try { e.returnValue = fs.readFileSync(SETTINGS_FILE, 'utf8'); } catch (err) { e.returnValue = null; } });
-ipcMain.on('saveSettings', (e, txt) => { try { writeAtomic(SETTINGS_FILE, txt); e.returnValue = true; } catch (err) { e.returnValue = false; } });
-ipcMain.handle('openDataDir', () => shell.openPath(DATA));
+handle('del', (e, store, id) => { try { fs.unlinkSync(storeFile(store, id)); } catch (err) { if (err.code !== 'ENOENT') throw err; } });
+onSync('loadSettings', e => { try { e.returnValue = fs.readFileSync(SETTINGS_FILE, 'utf8'); } catch (err) { e.returnValue = null; } });
+onSync('saveSettings', (e, txt) => { try { writeAtomic(SETTINGS_FILE, txt); e.returnValue = true; } catch (err) { e.returnValue = false; } });
+handle('openDataDir', () => shell.openPath(DATA));
 /* Uložit soubor do zařízení (systémové okno Uložit); PDF = stránka připravená k tisku */
 async function askSavePath(e, name) {
   const ext = path.extname(name).slice(1) || '*';
-  const r = await dialog.showSaveDialog(BrowserWindow.fromWebContents(e.sender), { defaultPath: path.join(app.getPath('documents'), name), filters: [{ name: ext.toUpperCase(), extensions: [ext] }] });
+  const r = await dialog.showSaveDialog(BrowserWindow.fromWebContents(e.sender), { defaultPath: path.join(app.getPath('documents'), path.basename(String(name))), filters: [{ name: ext.toUpperCase(), extensions: [ext] }] });
   return r.canceled ? null : r.filePath;
 }
-ipcMain.handle('saveFile', async (e, name, bytes) => {
+handle('saveFile', async (e, name, bytes) => {
   const file = await askSavePath(e, name);
   if (!file) return null;
   fs.writeFileSync(file, Buffer.from(bytes));
   return path.basename(file);
 });
-ipcMain.handle('savePdf', async (e, name) => {
+handle('savePdf', async (e, name) => {
   const file = await askSavePath(e, name);
   if (!file) return null;
   fs.writeFileSync(file, await e.sender.printToPDF({ printBackground: true, pageSize: 'A4' }));
   return path.basename(file);
 });
-ipcMain.handle('setAutoStart', (e, on) => app.setLoginItemSettings({ openAtLogin: !!on }));
-ipcMain.on('getAutoStart', e => { e.returnValue = app.getLoginItemSettings().openAtLogin; });
-ipcMain.handle('setFullscreen', (e, on) => { const w = BrowserWindow.fromWebContents(e.sender); if (w) w.setFullScreen(!!on); });
-ipcMain.on('isFullscreen', e => { const w = BrowserWindow.fromWebContents(e.sender); e.returnValue = !!(w && w.isFullScreen()); });
-ipcMain.handle('quit', () => app.quit());
-ipcMain.on('dataDir', e => { e.returnValue = DATA; });
+handle('setAutoStart', (e, on) => app.setLoginItemSettings({ openAtLogin: !!on }));
+onSync('getAutoStart', e => { e.returnValue = app.getLoginItemSettings().openAtLogin; });
+handle('setFullscreen', (e, on) => { const w = BrowserWindow.fromWebContents(e.sender); if (w) w.setFullScreen(!!on); });
+onSync('isFullscreen', e => { const w = BrowserWindow.fromWebContents(e.sender); e.returnValue = !!(w && w.isFullScreen()); });
+handle('quit', () => app.quit());
+onSync('dataDir', e => { e.returnValue = DATA; });
 
 /* ===== Sdílená složka (Mega, Proton Drive, OneDrive…) =====
    Struktura: <složka>/songs/*.json, playlists/, templates/, config/ – stejné soubory jako v „data“ */
@@ -126,7 +133,7 @@ function checkDir(dir) {
   if (!dir || !path.isAbsolute(dir)) throw new Error('Složka není nastavena');
   if (!fs.existsSync(dir)) throw new Error('Složka neexistuje nebo není dostupná: ' + dir);
 }
-ipcMain.handle('folderList', (e, dir) => {
+handle('folderList', (e, dir) => {
   checkDir(dir);
   // skip = soubory, které teď nejde přečíst; keep = chybějící podsložky – nic z toho se nesmí brát jako smazané
   const files = {}, extras = [], skip = [], keep = [];
@@ -151,11 +158,11 @@ function extraPath(dir, rel) {
   if (!m || m[2].includes('..')) throw new Error('Neplatná cesta ' + rel);
   return path.join(dir, m[1], m[2]);
 }
-ipcMain.handle('folderRead', (e, dir, rel) => {
+handle('folderRead', (e, dir, rel) => {
   checkDir(dir);
   return fs.readFileSync(REL_RE.test(rel) ? sharedPath(dir, rel) : extraPath(dir, rel), 'utf8');
 });
-ipcMain.handle('folderWrite', (e, dir, rel, text) => {
+handle('folderWrite', (e, dir, rel, text) => {
   checkDir(dir);
   const file = sharedPath(dir, rel);
   fs.mkdirSync(path.dirname(file), { recursive: true });
@@ -164,19 +171,19 @@ ipcMain.handle('folderWrite', (e, dir, rel, text) => {
   const readme = path.join(dir, 'CTI-ME.txt');
   if (!fs.existsSync(readme)) fs.writeFileSync(readme, 'Tuto složku spravuje aplikace PROMPTER mini.\r\nSoubory needituj ručně. Složku sdílej jen s členy kapely.\r\n');
 });
-ipcMain.handle('folderDelete', (e, dir, rel) => {
+handle('folderDelete', (e, dir, rel) => {
   checkDir(dir);
   const file = REL_RE.test(rel) ? sharedPath(dir, rel) : extraPath(dir, rel);
   try { fs.unlinkSync(file); } catch (err) { if (err.code !== 'ENOENT') throw err; }
 });
-ipcMain.handle('pickFolder', async e => {
+handle('pickFolder', async e => {
   const r = await dialog.showOpenDialog(BrowserWindow.fromWebContents(e.sender), {
     title: 'Vyber sdílenou složku pro písně (např. ve složce MEGA nebo Proton Drive)',
     properties: ['openDirectory', 'createDirectory'],
   });
   return r.canceled ? null : r.filePaths[0];
 });
-ipcMain.on('suggestFolders', e => {
+onSync('suggestFolders', e => {
   // Typická umístění synchronizovaných složek na Windows
   const home = app.getPath('home');
   const cands = ['MEGA', 'MEGAsync', 'Proton Drive', 'OneDrive', 'Dropbox', 'Google Drive', 'pCloud Drive'];
@@ -189,7 +196,7 @@ ipcMain.on('suggestFolders', e => {
   e.returnValue = out;
 });
 let watcher = null, watchedDir = '';
-ipcMain.on('watchFolder', (e, dir) => {
+onSync('watchFolder', (e, dir) => {
   if (dir === watchedDir) return;
   if (watcher) { try { watcher.close(); } catch (err) { /* nic */ } watcher = null; }
   watchedDir = dir;
@@ -207,21 +214,21 @@ ipcMain.on('watchFolder', (e, dir) => {
 
 /* ===== Mega přímo z programu ===== */
 const Mega = require('./mega');
-ipcMain.handle('megaTest', (e, cfg) => Mega.test(cfg));
-ipcMain.handle('megaSnapshot', (e, cfg) => Mega.snapshot(cfg));
-ipcMain.handle('megaRead', (e, cfg, p, v) => Mega.read(cfg, p, v));
-ipcMain.handle('megaCommit', (e, cfg, up, del) => Mega.commit(cfg, up, del));
-ipcMain.handle('megaLogout', () => Mega.logout());
-ipcMain.handle('megaDiag', (e, cfg) => Mega.diag(cfg));
+handle('megaTest', (e, cfg) => Mega.test(cfg));
+handle('megaSnapshot', (e, cfg) => Mega.snapshot(cfg));
+handle('megaRead', (e, cfg, p, v) => Mega.read(cfg, p, v));
+handle('megaCommit', (e, cfg, up, del) => Mega.commit(cfg, up, del));
+handle('megaLogout', () => Mega.logout());
+handle('megaDiag', (e, cfg) => Mega.diag(cfg));
 
 /* Šifrování hesel a tokenů v nastavení (Windows: DPAPI – rozšifruje jen tento uživatel na tomto PC) */
-ipcMain.on('protect', (e, text) => {
+onSync('protect', (e, text) => {
   try {
     if (text && safeStorage.isEncryptionAvailable()) { e.returnValue = 'enc:' + safeStorage.encryptString(text).toString('base64'); return; }
   } catch (err) { /* nedostupné */ }
   e.returnValue = text ? 'b64:' + Buffer.from(text, 'utf8').toString('base64') : '';
 });
-ipcMain.on('unprotect', (e, val) => {
+onSync('unprotect', (e, val) => {
   try {
     if (!val) e.returnValue = '';
     else if (val.startsWith('enc:')) e.returnValue = safeStorage.decryptString(Buffer.from(val.slice(4), 'base64'));
@@ -242,7 +249,7 @@ function createWindow() {
     fullscreen, backgroundColor: '#000000', autoHideMenuBar: true, show: false,
     title: 'PROMPTER mini',
     icon: path.join(__dirname, '..', 'img', 'icon.png'),
-    webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, spellcheck: false, backgroundThrottling: false },
+    webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, webSecurity: true, spellcheck: false, backgroundThrottling: false },
   });
   Menu.setApplicationMenu(null);
   win.once('ready-to-show', () => win.show());
@@ -256,8 +263,8 @@ function createWindow() {
   });
   // Odkazy (návod GitHub) do běžného prohlížeče; prázdné okno (tisk playlistu) povolit
   win.webContents.setWindowOpenHandler(({ url }) => {
-    if (/^https?:/.test(url)) { shell.openExternal(url); return { action: 'deny' }; }
-    return { action: 'allow', overrideBrowserWindowOptions: { autoHideMenuBar: true, fullscreen: false } };
+    if (/^https?:\/\//i.test(url)) shell.openExternal(url);
+    return { action: 'deny' };   // žádná další okna (tisk i PDF běží v hlavním okně)
   });
   // zavření okna s neuloženými změnami (stránka zrušila „beforeunload“): zeptat se, jestli opravdu zavřít
   win.webContents.on('will-prevent-unload', e => {
@@ -265,7 +272,13 @@ function createWindow() {
       title: 'Neuložené změny', message: 'Máš neuložené změny.', detail: 'Vrať se a ulož je (Ctrl+S), nebo okno zavři a změny zahoď.' });
     if (r === 1) e.preventDefault();   // preventDefault = nechat stránku zavřít
   });
-  win.webContents.on('will-navigate', (e, url) => { if (!url.startsWith('file:')) { e.preventDefault(); shell.openExternal(url); } });
+  // stránka nesmí odejít jinam: odkazy https do prohlížeče, nic jiného (ani jiné místní soubory)
+  win.webContents.on('will-navigate', (e, url) => {
+    if (isApp(url)) return;
+    e.preventDefault();
+    if (/^https?:\/\//i.test(url)) shell.openExternal(url);
+  });
+  win.webContents.session.setPermissionRequestHandler((wc, perm, cb) => cb(perm === 'fullscreen' || perm === 'clipboard-sanitized-write'));
   // Když by se stránka zhroutila, automaticky ji obnovit
   win.webContents.on('render-process-gone', () => setTimeout(() => { if (!win.isDestroyed()) win.reload(); }, 500));
   win.webContents.on('unresponsive', () => setTimeout(() => { if (!win.isDestroyed()) win.reload(); }, 3000));

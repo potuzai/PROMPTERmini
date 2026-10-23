@@ -205,7 +205,7 @@ function inlineHtml(text, singerMap) {
     const list = parseCodes(codes);
     const sg = singerMap[list[0]];
     if (!sg) return inner;
-    const st = `color:${sg.color};${sg.bold ? 'font-weight:900;' : ''}${sg.italic ? 'font-style:italic;' : ''}`;
+    const st = `color:${cssColor(sg.color, 'inherit')};${sg.bold ? 'font-weight:900;' : ''}${sg.italic ? 'font-style:italic;' : ''}`;
     return `<span class="sg-in" data-c="${list.join('+')}" style="${st}">${inner}</span>`;
   };
   for (let prev = null; prev !== s;) {
@@ -214,7 +214,7 @@ function inlineHtml(text, singerMap) {
     s = s.replace(/\{(#[0-9a-fA-F]{6}):([^{}]*)\}/g, (all, c, inner) => `<span class="tc" data-tc="${c.toLowerCase()}" style="color:${c}">${inner}</span>`);
     s = s.replace(/\{([⇤↔⇥]):([^{}]*)\}/g, (all, a, inner) => `<span class="al" data-al="${a}">${inner}</span>`);   // zarovnání řádku
     s = s.replace(/\{⤓(\d(?:\.\d{1,2})?):([^{}]*)\}/g, (all, v, inner) => `<span class="spb" data-sp="${v}">${inner}</span>`);   // mezera pod řádkem
-    s = s.replace(/\{ƒ([^:{}]+):([^{}]*)\}/g, (all, f, inner) => `<span class="ff" data-ff="${f}" style="font-family:&quot;${f}&quot;, sans-serif">${inner}</span>`);   // jiné písmo
+    s = s.replace(/\{ƒ([^:{}]+):([^{}]*)\}/g, (all, f, inner) => `<span class="ff" data-ff="${f}" style="font-family:&quot;${f.replace(/&[#\w]+;|[;\\]/g, '')}&quot;, sans-serif">${inner}</span>`);   // jiné písmo (název bez uvozovek a středníků)
     s = s.replace(/\{⇿(-?\d(?:\.\d{1,3})?):([^{}]*)\}/g, (all, v, inner) => `<span class="lsp" data-ls="${v}" style="letter-spacing:${v}em">${inner}</span>`);   // rozestup písmen
     s = s.replace(/\{aa:([^{}]*)\}/g, (all, inner) => `<span class="kc">${inner}</span>`);   // {aa:…} písmena tak, jak jsou napsaná (i když šablona píše VELKÝMI)
     s = s.replace(/\{([A-Za-z0-9+]+):([^{}]*)\}/g, singer);

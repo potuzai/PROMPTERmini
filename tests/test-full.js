@@ -187,6 +187,22 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   assert(await p.isVisible('.pl-list'), 'zpět na seznam playlistů');
   await p.evaluate(async () => { await Store.remove('playlists', 'plA'); await Store.remove('playlists', 'plZ'); });
 
+  /* ---------- Bezpečnost: barva zpěváka a písmo z dat se nedostanou do HTML jako kód; selhání zápisu nic neztratí ---------- */
+  const xss = await p.evaluate(() => {
+    const d = document.createElement('div');
+    d.innerHTML = inlineHtml('{Q:ahoj} {ƒAr"ial;x:ahoj}', { Q: { code: 'Q', color: '"><img src=x onerror=alert(1)>' } });
+    return [d.querySelectorAll('img').length, d.querySelector('.sg-in').getAttribute('style'), d.querySelector('.ff').getAttribute('style'), cssColor('#12aB34'), cssColor('red'), cssColor('url(x)', 'X')].join('|');
+  });
+  assert(xss === '0|color:inherit;|font-family:"Arialx", sans-serif|#12aB34|red|X', 'barva a písmo z dat jsou ošetřené (žádný vložený kód)');
+  const failSave = await p.evaluate(async () => {
+    const orig = Backend.put; Backend.put = () => Promise.reject(new Error('disk plný'));
+    const id = [...Store.songs.keys()][0], before = Store.songs.get(id);
+    let err = ''; try { await Store.put('songs', Object.assign({}, before, { title: 'X' })); } catch (e) { err = e.message; }
+    Backend.put = orig;
+    return err + '|' + (Store.songs.get(id) === before);
+  });
+  assert(failSave === 'disk plný|true', 'selhání zápisu: chyba dojde k volajícímu, data v aplikaci se nezmění');
+
   /* ---------- Import setlistu z Excelu (nový playlist, chybějící píseň bez textu, přídavky) ---------- */
   await p.evaluate(() => {
     const x = makeXlsx('Setlist', [['Pořadí', 'Název', 'Interpret', 'BPM'], [1, 'Holubí dům', '', ''], ['', 'Přídavky'], [2, 'Neznámá píseň', 'Někdo', 120]]);

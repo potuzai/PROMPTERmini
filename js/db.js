@@ -85,7 +85,8 @@ const Settings = {
   },
   save() {
     const txt = JSON.stringify(this.data);
-    if (window.native) window.native.saveSettings(txt); else localStorage.setItem(this._key, txt);
+    if (window.native) window.native.saveSettings(txt);
+    else try { localStorage.setItem(this._key, txt); } catch (e) { console.warn('Nastavení se nepodařilo uložit', e); }   // soukromé okno / plné úložiště
   },
   get(k) {
     // Rozměr monitoru čtečky je sdílený pro celou kapelu (ukládá se se sdílenými daty)
@@ -216,8 +217,8 @@ const Store = {
       obj.updatedAt = new Date().toISOString();
       obj.updatedBy = currentUserName();
     }
+    await Backend.put(type, obj);   // nejdřív na disk: když zápis selže, v aplikaci se nic nezmění a chyba dojde až k uživateli
     this[type].set(obj.id, obj);
-    await Backend.put(type, obj);
     const p = this.path(type, obj.id);
     if (this.meta.tombstones[p]) { delete this.meta.tombstones[p]; await this.saveMeta(); }
     if (!opts.silent) this.emit(type, obj.id);
@@ -226,8 +227,8 @@ const Store = {
   },
 
   async remove(type, id, opts = {}) {
-    this[type].delete(id);
     await Backend.del(type, id);
+    this[type].delete(id);
     const p = this.path(type, id);
     if (!opts.fromSync && this.meta.remote[p]) { this.meta.tombstones[p] = true; }
     if (opts.fromSync) { delete this.meta.remote[p]; delete this.meta.local[p]; }

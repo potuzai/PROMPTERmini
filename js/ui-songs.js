@@ -987,15 +987,18 @@ class SongEditor {
     if (!this.dirty && !manual) return;
     if (!Store.songs.has(this.id)) return;
     this.se.finishEdit(true);
-    const s = this.collect();
-    this.dirty = false;
-    this.base = this.snap();
-    await Store.put('songs', s);
+    const s = this.collect(), base = this.snap();
+    try { await Store.put('songs', s); }
+    catch (e) { toast('Píseň se nepodařilo uložit: ' + e.message, 'err', 8000); return false; }   // změny zůstanou neuložené
+    this.base = base;
+    this.markDirty();   // co se napsalo během ukládání, zůstane jako neuložené
+    if (this.dirty) return true;
     this.savedInd.textContent = 'Uloženo';
     this.savedInd.title = fmtDate(s.updatedAt);
     this.savedInd.classList.remove('dirty');
     this.saveBtn.classList.remove('primary');
     if (manual) toast('Uloženo', 'ok', 1500);
+    return true;
   }
 
   /* ----- Nabídka OK pro vybraný řádek (vše ovladatelné šipkami) ----- */
