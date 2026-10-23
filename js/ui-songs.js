@@ -262,7 +262,7 @@ class SongEditor {
     this.pvGroup = h('div', { class: 'ep-group' }, h('div', { class: 'ep-lbl ep-lbl-row' }, h('span', {}, 'Náhled'),
       tool(ic('sliders'), 'Náhled stránky: pro kterou obrazovku a jako v kterém playlistu', e => this.previewPopover(e.currentTarget), 'tl-sgshow')),
       this.pvInfo = h('div', { class: 'ep-info' }));
-    this.saveBox = h('div', { class: 'ed-save' }, this.savedInd, h('div', { class: 'ed-save-row' }, this.saveBtn, moreBtn), readerBtn);
+    this.saveBox = h('div', { class: 'ed-save' }, this.savedInd, h('div', { class: 'ed-save-row' }, moreBtn, this.saveBtn), readerBtn);
     this.pager = h('div', { class: 'ed-side' });
     const ed = h('div', { class: 'song-editor' },
       h('div', { class: 'ed-body' }, this.leftPanel,
