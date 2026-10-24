@@ -534,9 +534,10 @@ const Reader = {
     if (Sync.enabled()) opts.push({ id: '__sync', icon: 'sync', label: 'Stáhnout změny', key: 'S', foot: true });
     if (App.canEdit()) opts.push({ id: '__edit', icon: 'edit', label: 'Upravit písně', foot: true });
     opts.push({ id: '__help', icon: 'help', label: 'Nápověda', foot: true });
-    if (window.native) opts.push({ id: '__quit', icon: 'power', label: 'Ukončit', foot: true, cls: 'danger' });
+    if (window.native) opts.push({ id: '__min', icon: 'down', label: 'Minimalizovat', foot: true }, { id: '__quit', icon: 'power', label: 'Ukončit', foot: true, cls: 'danger' });
     this.showMenu('Vyber playlist', opts, Math.max(0, opts.findIndex(o => o.id === last)), o => {
       if (o.id === '__quit') return window.native.quit();
+      if (o.id === '__min') return window.native.minimize();
       if (o.id === '__edit') { this.closeMenu(); return this.exit(); }
       if (o.id === '__sync') return this.syncNow();
       if (o.id === '__help') return this.showHelp(() => this.showStartMenu());

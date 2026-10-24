@@ -203,6 +203,19 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   });
   assert(failSave === 'disk plný|true', 'selhání zápisu: chyba dojde k volajícímu, data v aplikaci se nezmění');
 
+  /* ---------- Virtuální klávesnice: tlačítko u aktivního pole, české znaky, Enter potvrdí okno, Esc zavře ---------- */
+  {
+    const pr = p.evaluate(() => promptDlg('Název', ''));
+    await p.waitForSelector('.modal input'); await p.click('.modal input');
+    assert(await p.isVisible('.vkb-btn.on') && !(await p.isVisible('.vkb.on')), 'klávesnice: u pole jen tlačítko, sama se neotevře');
+    await p.click('.vkb-btn');
+    for (const k of ['ž', 'l', 'u']) await p.click(`.vkb-k:text-is("${k}")`);
+    await p.click('.vkb-k[title^="Velká"] >> nth=0'); await p.click('.vkb-k:text-is("Ť")');
+    await p.click('.vkb-k[title="Smazat"]'); await p.click('.vkb-k[title="Enter"]');
+    const typed = await pr;
+    assert(typed === 'žlu' && !(await p.isVisible('.vkb.on')), 'klávesnice: české znaky, velká písmena, mazání, Enter potvrdí okno' + (typed === 'žlu' ? '' : ' (napsáno: ' + JSON.stringify(typed) + ')'));
+  }
+
   /* ---------- Import setlistu z Excelu (nový playlist, chybějící píseň bez textu, přídavky) ---------- */
   await p.evaluate(() => {
     const x = makeXlsx('Setlist', [['Pořadí', 'Název', 'Interpret', 'BPM'], [1, 'Holubí dům', '', ''], ['', 'Přídavky'], [2, 'Neznámá píseň', 'Někdo', 120]]);

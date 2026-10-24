@@ -59,7 +59,9 @@ function setupWizard() {
   const hint = h('span', { class: 'wz-hint' });
   const nextBtn = h('button', { class: 'btn primary', onclick: () => next() }, 'Pokračovat');
   const el = h('div', { class: 'wizard', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Nastavení zařízení' },
-    h('div', { class: 'wz-brand' }, h('span', { class: 'wz-logo' }), 'PROMPTER mini · nastavení zařízení'),
+    h('div', { class: 'wz-brand' }, h('span', { class: 'wz-logo' }), 'PROMPTER mini · nastavení zařízení', h('span', { class: 'grow' }),
+      h('button', { class: 'btn', title: 'Zavřít průvodce – nastavit jde kdykoli v Nastavení › Toto zařízení (Esc)', onclick: () => later() }, 'Později'),
+      window.native ? h('button', { class: 'btn danger', title: 'Ukončit program', onclick: () => window.native.quit() }, ic('power'), 'Ukončit') : null),
     stepsEl,
     h('div', { class: 'wz-card' }, title, sub, body, h('div', { class: 'wz-foot' }, backBtn, hint, nextBtn)));
   document.body.appendChild(el);
@@ -207,7 +209,9 @@ function setupWizard() {
     if (st.role === 'reader') location.hash = '#/reader/' + (Settings.get('lastPlaylist') || '');
     else App.go(true);
   }
-  // OK (Enter) mimo pole = pokračovat, Esc = zpět
+  // zavřít bez uložení odpovědí (průvodce se nabídne znovu při dalším spuštění)
+  function later() { App.wizardLater = true; el.remove(); document.removeEventListener('keydown', onKey, true); App.go(true); }
+  // OK (Enter) mimo pole = pokračovat, Esc = zpět (na první stránce zavřít)
   const onKey = e => {
     if (!el.isConnected || $('.modal')) return;
     const inField = e.target.matches('input, select, textarea');
@@ -218,7 +222,7 @@ function setupWizard() {
       return;
     }
     if (e.key === 'Enter' && !(e.target.matches('button') && !e.target.classList.contains('wz-opt'))) { e.preventDefault(); e.stopPropagation(); next(); }
-    else if (e.key === 'Escape' && st.step) { e.preventDefault(); go(st.step - 1); }
+    else if (e.key === 'Escape') { e.preventDefault(); if (st.step) go(st.step - 1); else later(); }
     else if (inField) e.stopPropagation();
   };
   document.addEventListener('keydown', onKey, true);

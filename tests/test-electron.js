@@ -26,5 +26,24 @@ const launch = () => _electron.launch({ args: ['--no-sandbox', require('path').j
   const w2 = await app2.firstWindow();
   await w2.waitForFunction(() => typeof Store !== 'undefined' && Store.ready, null, { timeout: 15000 });
   assert(await w2.evaluate(() => Store.songs.get('eltest')?.title) === 'Electron test', 'data přežila restart');
+  // cesta ven z programu i bez klávesy Windows (airmouse): Program v liště, ve čtečce Minimalizovat / Ukončit
+  await w2.evaluate(() => { if (Reader.isOpen()) Reader.exit(); location.hash = '#/songs'; }); await w2.waitForTimeout(400);
+  await w2.waitForSelector('.wizard', { timeout: 3000 }).catch(() => {});
+  // okno programu po restartu nemusí mít v testu fokus – klávesu Esc dostane stránka přímo
+  await w2.evaluate(() => (document.activeElement || document.body).dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })));
+  await w2.waitForTimeout(600);   // a znovu se sám neotevře
+  assert(!(await w2.isVisible('.wizard')), 'průvodce jde zavřít (Esc na první stránce = Později)');
+  assert(await w2.isVisible('#topbar .rail-prog'), 'v liště je Program');
+  await w2.click('#topbar .rail-prog');
+  assert(await w2.locator('.menu > div', { hasText: 'Minimalizovat' }).count() === 1 && await w2.locator('.menu > div', { hasText: 'Ukončit program' }).count() === 1, 'Program: minimalizovat a ukončit');
+  await w2.keyboard.press('Escape');
+  assert(await w2.evaluate(() => typeof window.native.minimize === 'function' && typeof window.native.makeShortcuts === 'function'), 'program umí minimalizovat a vytvořit zástupce');
+  // příkazy smí posílat jen stránka aplikace
+  assert(await app2.evaluate(async ({ BrowserWindow }, preload) => {
+    const x = new BrowserWindow({ show: false, webPreferences: { preload, sandbox: true, contextIsolation: true } });
+    await x.loadURL('data:text/html,<p>cizi</p>');
+    const r = await x.webContents.executeJavaScript('window.native ? window.native.all("songs").then(() => "povoleno", e => "odmítnuto") : "bez native"');
+    x.destroy(); return r !== 'povoleno';
+  }, require('path').join(__dirname, '..', 'electron', 'preload.js')), 'cizí stránka nedostane data programu');
   await app2.close();
 })();

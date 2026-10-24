@@ -66,6 +66,7 @@ const DEFAULT_SETTINGS = {
   privateNotes: {},              // soukromé poznámky k písním (jen toto zařízení)
   gh: { owner: '', repo: '', branch: 'main', token: '', login: '', canPush: null },
   lastSyncAt: '',                // poslední úspěšná synchronizace (ISO)
+  vkb: true,                     // tlačítko virtuální klávesnice u textových polí (mimo telefon)
   songSort: 'artist', plSort: 'new', plCols: false, editScreen: '', printOpts: null,   // poslední volby v seznamech, editoru a tisku
 };
 const OBSOLETE_SETTINGS = ['bandName', 'bandLink', 'editorFontSize', 'pasteClean'];   // klíče zrušených funkcí

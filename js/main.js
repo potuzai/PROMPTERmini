@@ -29,6 +29,7 @@ const App = {
     // Webová verze: požádat prohlížeč, aby data nikdy nemazal
     if (!window.native && navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
     this.buildTopbar();
+    Vkb.init();
     Reader.init();
     Sync.on(() => { this.paintSync(); if (SettingsView.onSync) SettingsView.onSync(); });
     Store.on((type, id) => this.onStore(type, id));
@@ -155,10 +156,22 @@ const App = {
       h('div', { class: 'tabs' }, tabs.map(([k, l]) => tab(k, l))),
       h('button', { class: 'rail-btn play', title: 'Otevřít čtečku (výběr playlistu)', onclick: () => { location.hash = '#/reader/' + (Settings.get('lastPlaylist') || ''); } }, '▶', h('span', {}, 'Čtečka')),
       tab('settings', '⚙ Nastavení'),
-      this.syncPill = h('button', { class: 'sync-pill', title: 'Stav synchronizace – kliknutím synchronizuješ', onclick: () => this.syncClick() }, h('span', { class: 'dot' }), h('span', { class: 'lbl' }, '')));
+      this.syncPill = h('button', { class: 'sync-pill', title: 'Stav synchronizace – kliknutím synchronizuješ', onclick: () => this.syncClick() }, h('span', { class: 'dot' }), h('span', { class: 'lbl' }, '')),
+      // program pro Windows: cesta ven i bez myši a klávesy Windows (airmouse) – minimalizovat, okno, ukončit
+      window.native ? h('button', { class: 'rail-btn rail-prog', title: 'Program: minimalizovat, celá obrazovka, ukončit', onclick: e => this.programMenu(e.currentTarget) }, '⏻', h('span', {}, 'Program')) : null);
     document.body.prepend(bar);
     this.paintSync();
   },
+
+  programMenu(anchor) {
+    const n = window.native, full = n.isFullscreen();
+    popupMenu(anchor, [
+      { label: 'Minimalizovat (do Windows)', action: () => n.minimize() },
+      { label: full ? 'Ukončit celou obrazovku' : 'Celá obrazovka', action: () => n.setFullscreen(!full) },
+      { sep: true },
+      { label: 'Ukončit program', danger: true, action: () => this.quit() }]);
+  },
+  async quit() { if (await this.leaveOk()) window.native.quit(); },   // neuložené změny se nejdřív nabídnou k uložení
 
   paintSync() {
     const st = Sync.state;
@@ -236,8 +249,8 @@ const App = {
     (views[view] || PlaylistsView).render(main, param);
     this.here = location.href;
     // první spuštění: program (čtečka) → průvodce zařízením; web → jen uvítání a připojení ke kapele
-    if (!Settings.get('welcomed')) setTimeout(() => {
-      if (Settings.get('welcomed') || $('.modal') || $('.wizard')) return; // jen jednou
+    if (!Settings.get('welcomed') && !this.wizardLater) setTimeout(() => {
+      if (Settings.get('welcomed') || this.wizardLater || $('.modal') || $('.wizard')) return; // jen jednou; „Později“ platí do příštího spuštění
       if (window.native) setupWizard(); else welcomeDialog();
     }, 200);
   },

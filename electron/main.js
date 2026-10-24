@@ -118,6 +118,9 @@ onSync('getAutoStart', e => { e.returnValue = app.getLoginItemSettings().openAtL
 handle('setFullscreen', (e, on) => { const w = BrowserWindow.fromWebContents(e.sender); if (w) w.setFullScreen(!!on); });
 onSync('isFullscreen', e => { const w = BrowserWindow.fromWebContents(e.sender); e.returnValue = !!(w && w.isFullScreen()); });
 handle('quit', () => app.quit());
+// do Windows: z celé obrazovky nejdřív do okna, pak minimalizovat (vrátí se z hlavního panelu)
+handle('minimize', e => { const w = BrowserWindow.fromWebContents(e.sender); if (!w) return; if (w.isFullScreen()) w.setFullScreen(false); w.minimize(); });
+handle('makeShortcuts', () => makeShortcuts(true));
 onSync('dataDir', e => { e.returnValue = DATA; });
 
 /* ===== Sdílená složka (Mega, Proton Drive, OneDrive…) =====
@@ -212,6 +215,27 @@ onSync('watchFolder', (e, dir) => {
   } catch (err) { /* fs.watch nepodporováno – stačí pravidelná kontrola */ }
 });
 
+/* ===== Zástupci (plocha a nabídka Start) =====
+   Program je přenosný (složka se zipem), proto si zástupce vytvoří sám: poprvé při prvním spuštění,
+   potom jen opraví ty, které vedou na starou cestu (složka přesunutá). Smazaného zástupce znovu nevnucuje. */
+function makeShortcuts(force) {
+  if (!app.isPackaged || process.platform !== 'win32') return { ok: false, reason: 'Jen v programu pro Windows' };
+  const mark = path.join(app.getPath('userData'), 'zastupci.json');
+  let done = false; try { done = JSON.parse(fs.readFileSync(mark, 'utf8')).created; } catch (err) { /* poprvé */ }
+  const target = process.execPath;
+  const opts = { target, cwd: path.dirname(target), description: 'PROMPTER mini – čtečka a editor textů písní', icon: target, iconIndex: 0 };
+  const links = [path.join(app.getPath('desktop'), 'PROMPTER mini.lnk'), path.join(app.getPath('appData'), 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'PROMPTER mini.lnk')];
+  let made = 0;
+  for (const l of links) {
+    try {
+      if (force || !done) { if (shell.writeShortcutLink(l, fs.existsSync(l) ? 'replace' : 'create', opts)) made++; }
+      else if (fs.existsSync(l) && shell.readShortcutLink(l).target !== target) shell.writeShortcutLink(l, 'replace', opts);
+    } catch (err) { console.error('Zástupce', l, err); }
+  }
+  try { fs.writeFileSync(mark, JSON.stringify({ created: true })); } catch (err) { /* nevadí */ }
+  return { ok: made > 0 };
+}
+
 /* ===== Mega přímo z programu ===== */
 const Mega = require('./mega');
 handle('megaTest', (e, cfg) => Mega.test(cfg));
@@ -287,6 +311,7 @@ function createWindow() {
 app.on('second-instance', () => { if (win) { if (win.isMinimized()) win.restore(); win.focus(); } });
 app.whenReady().then(() => {
   dailyBackup();
+  makeShortcuts(false);
   powerSaveBlocker.start('prevent-display-sleep'); // monitor čtečky nikdy neusne
   createWindow();
 });
