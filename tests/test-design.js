@@ -174,15 +174,39 @@ const URL = 'http://localhost:8123/index.html';
     await q.keyboard.press('Control+S'); await sleep(200);
     await q.evaluate(() => { location.hash = '#/reader/p1/0'; }); await sleep(600);
     await q.mouse.move(700, 400); await q.mouse.move(700, 800); await sleep(300);
-    assert(await q.isVisible('#reader.bar-on .r-bar') && await q.isVisible('.r-binfo:has-text("Píseň 1 / 2")'), 'pohyb myši dolů ukáže ovládací lištu');
+    assert(await q.isVisible('#reader.bar-on .r-bar') && await q.isVisible('.r-bcur .r-bmeta:has-text("1/2")'), 'pohyb myši dolů ukáže ovládací lištu');
+    assert(await q.isVisible('.r-bside.next:has-text("Holubí dům")') && await q.isVisible('.r-bside.prev:has-text("—")') && await q.isVisible('.r-bbtn.wide small:has-text("podrž levé")'), 'lišta: předchozí a další píseň, popisek u tlačítka nabídky');
     await q.click('.r-bar .r-bbtn[title^="Další píseň"]'); await sleep(200);
     assert(await q.evaluate(() => Reader.songIdx) === 1, 'tlačítko na liště listuje');
+    assert(await q.isVisible('.r-bside.prev:has-text("Kometa")'), 'lišta: předchozí píseň');
     await q.keyboard.press('Tab'); await sleep(200);
     assert(await q.isVisible('.r-opt.cur:has-text("Holubí dům") .r-badge') && await q.isVisible('.r-opt.done:has-text("Kometa")'), 'seznam písní: hraje / odehráno');
+    assert(await q.locator('.r-set .r-opt .r-meta .rm-key').count() === 2, 'seznam písní: ladění, BPM, délka a zpěváci v řádku');
+    // vpřed + zpět najednou = tlačítka dole, znovu = zpět na píseň
+    await q.keyboard.down('ArrowRight'); await q.keyboard.down('ArrowLeft'); await q.keyboard.up('ArrowLeft'); await q.keyboard.up('ArrowRight'); await sleep(150);
+    assert(await q.isVisible('.r-set .r-foot .r-tool.sel:has-text("Pokračovat")'), 'oba najednou: skok na tlačítka dole');
+    await q.keyboard.down('ArrowLeft'); await q.keyboard.down('ArrowRight'); await q.keyboard.up('ArrowRight'); await q.keyboard.up('ArrowLeft'); await sleep(150);
+    assert(await q.isVisible('.r-set .r-opt.cur.sel'), 'oba znovu: zpět na píseň v seznamu');
     await q.keyboard.press('Escape'); await q.keyboard.press('q'); await sleep(200);
-    assert(await q.isVisible('.r-set .r-foot .r-tool.sel:has-text("Jiný playlist")') && await q.isVisible('.r-set .r-foot .r-tool.danger'), 'Q: playlist s nabídkou v patičce (výběr na první volbě)');
-    await q.keyboard.press('Enter'); await sleep(200);
-    assert(await q.isVisible('.r-start'), 'OK na volbě Jiný playlist = úvodní výběr playlistu');
+    assert(await q.isVisible('.r-set .r-foot .r-tool.sel:has-text("Pokračovat")') && await q.isVisible('.r-set .r-foot .r-tool:has-text("Další")') && !await q.isVisible('.r-set .r-foot .r-tool.danger'), 'Q: dole Pokračovat (vybrané), Jiný playlist, Další');
+    await q.keyboard.press('ArrowRight'); await sleep(50);
+    assert(await q.isVisible('.r-set .r-foot .r-tool.sel:has-text("Jiný playlist")'), 'šipka posune výběr (při puštění)');
+    // podržená klávesa potvrdí to, na čem výběr stojí – neposune se dál
+    await q.keyboard.down('ArrowRight'); await sleep(80);
+    for (let i = 0; i < 8; i++) { await q.evaluate(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', repeat: true, bubbles: true }))); await sleep(90); }
+    await q.keyboard.up('ArrowRight'); await sleep(200);
+    assert(await q.isVisible('.r-start'), 'podržet vpřed na Jiný playlist = úvodní výběr playlistu (ne další položka)');
+    const start = await q.evaluate(() => [...document.querySelectorAll('.r-start .r-list .r-opt .r-l')].map(e => e.textContent));
+    assert(start[0] === 'Všechny písně' && start.includes('Všechny playlisty'), 'úvod: nejdřív Všechny písně, ostatní playlisty pod rozbalením: ' + start.join(' | '));
+    assert(await q.isVisible('.r-start .r-foot .r-tool.sel:has-text("Pokračovat")'), 'úvod: vybrané Pokračovat');
+    await q.keyboard.press('Enter'); await sleep(300);
+    assert(await q.evaluate(() => Reader.isOpen() && !Reader.menu && Reader.plId === 'p1' && Reader.songIdx === 1), 'Pokračovat: kde se skončilo');
+    await q.keyboard.press('p'); await sleep(200);
+    await q.click('.r-start .r-tool:has-text("Další")'); await sleep(200);
+    const more = await q.evaluate(() => [...document.querySelectorAll('.r-more .r-opt .r-l')].map(e => e.textContent));
+    assert(more.join('|') === 'Upravit písně|Upravit playlisty|Nápověda|Zavřít čtečku', 'úvod › Další: ' + more.join('|'));
+    await q.keyboard.press('Escape'); await sleep(150);
+    assert(await q.isVisible('.r-start'), 'Esc v nabídce Další = zpět na výběr playlistu');
     await c2.close();
   } catch (e) { console.log('FAIL: výjimka ' + e.message); process.exitCode = 1; }
   await b.close();

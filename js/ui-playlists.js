@@ -7,6 +7,15 @@ const plEncore = pl => typeof pl.encore === 'number' ? Math.max(0, Math.min(pl.e
 const durSec = s => { const m = /^\s*(\d+)(?:[:.,](\d{1,2}))?\s*$/.exec((s && s.duration) || ''); return m ? +m[1] * 60 + +(m[2] || 0) : 0; };
 const fmtDur = sec => sec >= 3600 ? `${Math.floor(sec / 3600)} h ${Math.round(sec % 3600 / 60)} min` : `${Math.round(sec / 60)} min`;
 const LINE = '__line__';
+const ALL_ID = 'all';   // automatický playlist ze všech písní (podle interpreta) – jen ke čtení, i ve čtečce
+// základní údaje písně vždy na stejném místě; nevyplněné jako pomlčka (v náhledu ve dvou řádcích pod sebou)
+function plSongInfo(s, two) {
+  const key = h('span', { class: 'pi-key', title: 'Ladění' }, s && s.key ? keyBadge(s.key) : h('i', { class: 'none' }, '—'));
+  const bpm = h('span', { class: 'pi-bpm', title: 'Tempo' }, s && s.tempo ? s.tempo + ' BPM' : h('i', { class: 'none' }, '— BPM'));
+  const dur = h('span', { class: 'pi-dur', title: 'Délka' }, s && durSec(s) ? s.duration : h('i', { class: 'none' }, '—:——'));
+  const sing = h('span', { class: 'pi-sing sl-dots', title: 'Zpívá' }, s ? songSingers(s).map(g => h('i', { title: g.name, style: { background: g.color } })) : null);
+  return two ? [h('span', { class: 'pi-meta' }, h('span', {}, key, bpm), h('span', {}, dur, sing))] : [key, bpm, dur, sing];
+}
 const PlaylistsView = {
 
   search: '',
@@ -16,7 +25,7 @@ const PlaylistsView = {
     const pl = plId && Store.playlists.get(plId);
     const side = h('div', { class: 'side big-list pl-list' });
     const content = h('div', { class: 'content' });
-    main.append(h('div', { class: 'view' + (pl ? ' has-detail pl-open' : ' list-only') }, side, content));
+    main.append(h('div', { class: 'view' + (pl || plId === ALL_ID ? ' has-detail pl-open' : ' list-only') }, side, content));
 
     const searchInp = h('input', { class: 'inp', type: 'search', placeholder: 'Hledat playlist, poznámku nebo píseň v něm…', value: this.search });
     const sortSel = sortPicker([['new', 'Nejnovější'], ['old', 'Nejstarší'], ['name', 'Název'], ['count', 'Počet písní']], Settings.get('plSort') || 'new');
@@ -42,13 +51,14 @@ const PlaylistsView = {
       prev.innerHTML = '';
       shown = p ? p.id : null;
       if (!p) { prev.appendChild(h('div', { class: 'help pl-prev-empty' }, 'Klikni na playlist a tady uvidíš, co obsahuje.')); return; }
+      if (p === ALL_ID) return this.allSongs(prev);
       this.editor(prev, p, { compact: true });
     };
     const select = id => {
       this.selected = id;
       $$('.item', list).forEach(el => el.classList.toggle('active', el.dataset.id === id));
       if (id && id === shown && App.isDirty()) return;   // rozpracovaný náhled nepřekreslovat (ztratily by se změny)
-      paintPrev(Store.playlists.get(id));
+      paintPrev(id === ALL_ID ? ALL_ID : Store.playlists.get(id));
     };
     // tužka v řádku (ukáže se po najetí myší): název, datum a poznámka se uloží hned
     const editRow = async p => {
@@ -101,6 +111,12 @@ const PlaylistsView = {
       const ready = [...Store.playlists.values()].filter(isReady).sort((a, b) => a.ready - b.ready).filter(hit);
       const pls = sorted(sortSel.value).filter(p => !isReady(p)).filter(hit);
       readyIds = ready.map(p => p.id);
+      // vždy první: Všechny písně (sestavuje se sám ze všech písní)
+      if (!q || normalizeForSearch('všechny písně').includes(q)) list.appendChild(h('div', { class: 'item sl-row pl-row pl-all', 'data-id': ALL_ID,
+        title: 'Automatický playlist ze všech písní (podle interpreta) – klik = náhled, dvojklik = celá stránka',
+        onclick: () => isMobile() ? (location.hash = '#/playlists/' + ALL_ID) : choose(ALL_ID), ondblclick: () => { location.hash = '#/playlists/' + ALL_ID; } },
+        h('span', { class: 'sl-artist none' }, 'vždy'), h('b', { class: 'sl-title' }, 'Všechny písně'),
+        h('span', { class: 'sl-key' }, plural(Store.songs.size, 'píseň', 'písně', 'písní')), h('span', { class: 'sl-artist' }, 'automaticky · podle interpreta')));
       if (!q || ready.length) {
         const sec = h('div', { class: 'pl-sec pl-sec-ready' + (ready.length ? '' : ' empty') }, h('b', {}, h('i', {}, '★'), 'Oblíbené'), ready.length ? h('span', {}, String(ready.length)) : null);
         dropZone(sec, () => readyIds[0] || null);
@@ -121,18 +137,46 @@ const PlaylistsView = {
       count.textContent = q ? `${shown} z ${Store.playlists.size} playlistů` : 'Klik = náhled · dvojklik = upravit · přetažením do „Oblíbené“';
       count.classList.toggle('hint', !q);   // nápověda pro myš (v telefonu skrytá)
       total.textContent = plural(Store.playlists.size, 'playlist', 'playlisty', 'playlistů');
-      const keep = [...ready, ...pls].find(p => p.id === this.selected) || ready[0] || pls[0];
+      const keep = this.selected === ALL_ID ? { id: ALL_ID } : [...ready, ...pls].find(p => p.id === this.selected) || ready[0] || pls[0];
       select(keep ? keep.id : null);
     };
     searchInp.addEventListener('input', () => { this.search = searchInp.value; this.paintSide(); });
     sortSel.addEventListener('change', () => { Settings.set('plSort', sortSel.value); this.paintSide(); });
     this.paintSide();
 
+    if (plId === ALL_ID) {
+      if (isMobile()) { const box = h('div', { class: 'pl-mob' }); content.appendChild(box); this.allSongs(box, { mobile: true }); return; }
+      content.appendChild(h('button', { class: 'btn pl-back', onclick: () => App.home() }, '◀ Playlisty'));
+      this.allSongs(content);
+      return;
+    }
     if (!pl) return;
     // telefon: přehledná karta (jako náhled vpravo na počítači), akce pod ⋯
     if (isMobile()) { const box = h('div', { class: 'pl-mob' }); content.appendChild(box); this.editor(box, pl, { compact: true, mobile: true }); return; }
     content.appendChild(h('button', { class: 'btn pl-back', onclick: () => App.home() }, '◀ Playlisty'));
     this.editor(content, pl);
+  },
+
+  /* Všechny písně: automatický playlist ze všech písní podle interpreta – jen prohlížení a spuštění ve čtečce */
+  allSongs(root, opts = {}) {
+    App.edit = null;
+    const songs = Store.sortedSongs(), total = songs.reduce((t, s) => t + durSec(s), 0);
+    const box = h('div', { class: 'list pl-compact pl-all-list' });
+    const play = i => () => { location.hash = '#/reader/' + ALL_ID + '/' + i; };
+    songs.forEach((s, i) => box.appendChild(h('div', { class: 'pl-item', ondblclick: play(i) },
+      h('span', { class: 'num' }, String(i + 1)),
+      h('div', { class: 't' }, h('b', { class: 'pi-open', title: 'Otevřít píseň', onclick: () => { location.hash = '#/songs/' + s.id; } }, s.title), ' ', h('span', { class: 'dim' }, s.artist || '')),
+      ...plSongInfo(s, true),
+      h('button', { class: 'btn small icon play', title: 'Spustit od této písně', onclick: play(i) }, '▶'))));
+    if (!songs.length) box.appendChild(h('div', { class: 'empty', style: { height: 'auto', padding: '40px 10px' } }, 'Zatím žádné písně.'));
+    root.append(...[
+      opts.mobile ? h('button', { class: 'ep-back', onclick: () => App.home() }, '◀ Playlisty') : null,
+      h('div', { class: 'pl-prev-head' }, h('div', { class: 'pl-prev-title' }, h('h3', {}, 'Všechny písně')),
+        h('div', { class: 'pl-prev-meta' }, 'Sestavuje se sám ze všech písní · řazení podle interpreta')),
+      h('div', { class: 'pl-prev-btns' }, h('span', { class: 'grow', style: { flex: 1 } }),
+        h('button', { class: 'btn play', onclick: () => { location.hash = '#/reader/' + ALL_ID; } }, '▶ Čtečka')),
+      h('div', { class: 'pl-prev-tools' }, h('span', { class: 'dim' }, plural(songs.length, 'píseň', 'písně', 'písní') + (total ? ' · ' + fmtDur(total) : ''))),
+      box].filter(Boolean));
   },
 
   /* „Oblíbené“: before = id playlistu, před který vložit; null = na konec; false = vrátit mezi ostatní */
@@ -295,14 +339,6 @@ const PlaylistsView = {
     new ResizeObserver(() => paintCols()).observe(itemsBox);
     let dragFrom = null;
 
-    // základní údaje písně vždy na stejném místě; nevyplněné jako pomlčka (v náhledu ve dvou řádcích pod sebou)
-    const songInfo = (s, two) => {
-      const key = h('span', { class: 'pi-key', title: 'Ladění' }, s && s.key ? keyBadge(s.key) : h('i', { class: 'none' }, '—'));
-      const bpm = h('span', { class: 'pi-bpm', title: 'Tempo' }, s && s.tempo ? s.tempo + ' BPM' : h('i', { class: 'none' }, '— BPM'));
-      const dur = h('span', { class: 'pi-dur', title: 'Délka' }, s && durSec(s) ? s.duration : h('i', { class: 'none' }, '—:——'));
-      const sing = h('span', { class: 'pi-sing sl-dots', title: 'Zpívá' }, s ? songSingers(s).map(g => h('i', { title: g.name, style: { background: g.color } })) : null);
-      return two ? [h('span', { class: 'pi-meta' }, h('span', {}, key, bpm), h('span', {}, dur, sing))] : [key, bpm, dur, sing];
-    };
     const paintItems = () => {
       itemsBox.innerHTML = '';
       const at = rows.indexOf(LINE);
@@ -333,7 +369,7 @@ const PlaylistsView = {
             } }, String(idx + 1)),
             h('div', { class: 't' }, h('b', compact && s ? { class: 'pi-open', title: 'Otevřít píseň', onclick: () => { location.hash = '#/songs/' + id; } } : {}, s ? s.title : '(smazaná píseň)'),
               ' ', h('span', { class: 'dim' }, s ? s.artist || '' : '')),
-            ...songInfo(s, compact),
+            ...plSongInfo(s, compact),
             compact ? null : h('button', { class: 'btn small icon', title: 'Upravit píseň', onclick: () => { location.hash = '#/songs/' + id; } }, '✎'),
             h('button', { class: 'btn small icon play', title: 'Spustit od této písně', onclick: () => { location.hash = `#/reader/${pl.id}/${idx}`; } }, '▶'),
             h('button', { class: 'btn small icon danger', title: 'Odebrat z playlistu', onclick: async () => {

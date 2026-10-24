@@ -17,6 +17,7 @@ contextBridge.exposeInMainWorld('native', {
   isFullscreen: () => ipcRenderer.sendSync('isFullscreen'),
   quit: () => ipcRenderer.invoke('quit'),
   minimize: () => ipcRenderer.invoke('minimize'),
+  gpuStatus: () => ipcRenderer.sendSync('gpuStatus'),
   makeShortcuts: () => ipcRenderer.invoke('makeShortcuts'),
   folderList: dir => ipcRenderer.invoke('folderList', dir),
   folderRead: (dir, rel) => ipcRenderer.invoke('folderRead', dir, rel),

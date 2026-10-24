@@ -168,7 +168,7 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
     location.hash = '#/playlists';
   });
   await sleep(400);
-  const plNames = () => p.$$eval('.pl-list .item .sl-title', els => els.map(e => e.textContent));
+  const plNames = () => p.$$eval('.pl-list .item:not(.pl-all) .sl-title', els => els.map(e => e.textContent));
   assert((await plNames()).join(',') === 'Zábava,Koncert,Akustika', 'playlisty: výchozí řazení od nejnovějšího');
   assert(await p.evaluate(() => document.querySelector('.pl-list').getBoundingClientRect().width > innerWidth * 0.8), 'seznam playlistů je přes celou šířku');
   await p.click('.pl-list .sl-sort'); await p.click('.menu > div:has-text("Název")'); await sleep(150);
@@ -354,7 +354,7 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   // pedál posílající klávesy: držená klávesa v seznamu nelistuje, potvrdí
   await p.evaluate(() => { Reader.menu.sel = 0; Reader.menu.paint(); });
   await p.keyboard.down('PageDown'); for (let i = 0; i < 25; i++) { await sleep(35); await p.keyboard.down('PageDown'); } await p.keyboard.up('PageDown'); await sleep(200);
-  assert(await p.evaluate(() => !Reader.menu) && (await pos())[0] === 1, 'držená klávesa pedálu v seznamu potvrdí (nelistuje)');
+  assert(await p.evaluate(() => !Reader.menu) && (await pos())[0] === 0, 'držená klávesa pedálu v seznamu potvrdí položku, na které stojí (neposune se dál)');
   // podržet levý pedál v textu = setlist, listování zpět se vrátí
   await sleep(400); await p.evaluate(() => { Reader.songIdx = 1; Reader.pageIdx = 0; Reader.render(); });
   await p.mouse.down({ button: 'left' }); await sleep(950);

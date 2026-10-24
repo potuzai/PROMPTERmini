@@ -3,7 +3,7 @@
    Vše jde později změnit v Nastavení › Toto zařízení. */
 
 const DEVICE_ROLES = [
-  { id: 'reader', icon: 'stagemon', name: 'Čtečka na pódiu', desc: 'Po zapnutí rovnou otevře čtečku s posledním playlistem. Úpravy můžeš zamknout PINem.' },
+  { id: 'reader', icon: 'stagemon', name: 'Čtečka na pódiu', desc: 'Po zapnutí otevře čtečku s výběrem playlistu. Do úprav jen s PINem.' },
   { id: 'editor', icon: 'monitor', name: 'Počítač pro úpravy', desc: 'Psaní textů, playlisty, šablony. Čtečku jen jako náhled nebo na druhém monitoru.' },
   { id: 'both', icon: 'both', name: 'Obojí na jednom', desc: 'Doma upravuješ, na koncertě přepneš do čtečky. Hodí se pro jeden notebook.' },
 ];
@@ -178,14 +178,15 @@ function setupWizard() {
       const rows = [['Zařízení', roleName(st.role), 0]];
       rows.push(['Obrazovka kapely', st.scr === 'new' ? (st.scrName.trim() || 'Nová obrazovka') + ' (nová)' : Screens.get(st.scr).name, 2], ['Monitor', (isPortrait() ? 'Na výšku' : 'Na šířku') + (st.rot ? ` · otočit o ${st.rot === 90 ? '90° ↻' : '90° ↺'}` : ''), 1],
         ['Displej', `${st.w} × ${st.h} px · ${st.diag}″ · ${st.dist} m`, 2]);
-      rows.push(['Po zapnutí', st.role === 'reader' ? 'Otevřít čtečku s posledním playlistem' : 'Otevřít seznam písní', 0]);
-      const pin = h('input', { class: 'inp wz-pin', type: 'password', inputmode: 'numeric', placeholder: 'bez PINu', 'aria-label': 'PIN pro úpravy', value: st.pin });
+      rows.push(['Po zapnutí', st.role === 'reader' ? 'Otevřít čtečku (výběr playlistu)' : 'Otevřít seznam písní', 0]);
+      const stage = st.role === 'reader', hasPin = !!Settings.get('pinHash');
+      const pin = h('input', { class: 'inp wz-pin', type: 'password', inputmode: 'numeric', placeholder: hasPin ? 'ponechat' : stage ? 'povinný' : 'bez PINu', 'aria-label': 'PIN pro úpravy', value: st.pin });
       pin.oninput = () => { st.pin = pin.value; };
       body.append(
         h('div', { class: 'wz-sum' }, rows.map(([k, v, s]) => h('div', {}, h('span', {}, k), h('b', {}, v), h('button', { type: 'button', class: 'linkbtn', onclick: () => go(s) }, 'Změnit')))),
         h('div', { class: 'wz-row' }, ic('sun'), h('div', { class: 'wz-row-t' }, h('b', {}, 'Vzhled aplikace'), h('span', {}, 'Světlý se hodí do jasné místnosti, „podle systému“ se přepíná sám.')),
           segControl(THEMES, st.theme, v => { st.theme = v; Settings.set('theme', v); App.applyTheme(); })),
-        h('div', { class: 'wz-row' }, ic('lock'), h('div', { class: 'wz-row-t' }, h('b', {}, 'Zamknout úpravy PINem'), h('span', {}, st.role === 'reader' ? 'Doporučeno: na pódiu nikdo omylem nesmaže píseň.' : 'Nepovinné – bez PINu půjde jen číst.')), pin),
+        h('div', { class: 'wz-row' }, ic('lock'), h('div', { class: 'wz-row-t' }, h('b', {}, 'Zamknout úpravy PINem'), h('span', {}, stage ? (hasPin ? 'Čtečka má PIN – prázdné pole ho ponechá.' : 'Povinné u čtečky: bez PINu se do úprav nikdo nedostane, na pódiu se nic omylem nezmění.') : 'Nepovinné – s PINem půjde bez něj jen číst.')), pwField(pin)),
         h('div', { class: 'wz-row' }, ic('users'), h('div', { class: 'wz-row-t' }, h('b', {}, 'Kapela'), h('span', {}, 'E-mail a heslo kapely – písně a playlisty se pak samy synchronizují. Jde to i později.')),
           h('div', { class: 'wz-btns' },
             h('button', { type: 'button', class: 'btn', onclick: () => finish('join') }, '🔑 Přihlásit ke kapele'))));
@@ -195,6 +196,11 @@ function setupWizard() {
   }
 
   function finish(band) {
+    if (st.role === 'reader' && !st.pin && !Settings.get('pinHash')) {   // čtečka: do úprav jen s PINem
+      toast('Čtečka na pódiu potřebuje PIN pro úpravy – vyplň ho', 'warn', 5000);
+      const p = $('.wz-pin', el); if (p) p.focus();
+      return;
+    }
     applyDeviceRole(st.role);
     const dims = { w: Math.max(320, st.w | 0), h: Math.max(240, st.h | 0), diag: +st.diag, dist: +st.dist };
     if (st.scr === 'new') Screens.add(Object.assign({ name: st.scrName.trim() || 'Nová obrazovka' }, dims)).then(sc => Settings.set('screenId', sc.id));
@@ -206,7 +212,7 @@ function setupWizard() {
     el.remove();
     document.removeEventListener('keydown', onKey, true);
     if (band === 'join') return loginDialog();
-    if (st.role === 'reader') location.hash = '#/reader/' + (Settings.get('lastPlaylist') || '');
+    if (st.role === 'reader') location.hash = '#/reader/';
     else App.go(true);
   }
   // zavřít bez uložení odpovědí (průvodce se nabídne znovu při dalším spuštění)

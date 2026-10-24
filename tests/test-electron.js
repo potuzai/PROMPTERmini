@@ -38,6 +38,11 @@ const launch = () => _electron.launch({ args: ['--no-sandbox', require('path').j
   assert(await w2.locator('.menu > div', { hasText: 'Minimalizovat' }).count() === 1 && await w2.locator('.menu > div', { hasText: 'Ukončit program' }).count() === 1, 'Program: minimalizovat a ukončit');
   await w2.keyboard.press('Escape');
   assert(await w2.evaluate(() => typeof window.native.minimize === 'function' && typeof window.native.makeShortcuts === 'function'), 'program umí minimalizovat a vytvořit zástupce');
+  assert(await w2.evaluate(() => typeof window.native.gpuStatus().compositing === 'string'), 'program zná stav grafiky');
+  // čtečka: jedno tlačítko Minimalizovat ↔ Celá obrazovka podle stavu okna
+  await w2.evaluate(() => { location.hash = '#/reader/'; }); await w2.waitForTimeout(500);
+  const tool = await w2.evaluate(() => [window.native.isFullscreen(), [...document.querySelectorAll('.r-start .r-tool span')].map(e => e.textContent)]);
+  assert(tool[1].includes(tool[0] ? 'Minimalizovat' : 'Celá obrazovka') && !tool[1].includes(tool[0] ? 'Celá obrazovka' : 'Minimalizovat'), 'čtečka: Minimalizovat / Celá obrazovka podle stavu: ' + JSON.stringify(tool));
   // příkazy smí posílat jen stránka aplikace
   assert(await app2.evaluate(async ({ BrowserWindow }, preload) => {
     const x = new BrowserWindow({ show: false, webPreferences: { preload, sandbox: true, contextIsolation: true } });

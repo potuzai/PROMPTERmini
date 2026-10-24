@@ -51,7 +51,7 @@ const App = {
 
     // úvodní stránka = playlisty s čistou adresou (bez #); čtečka u PC rovnou čtečka
     if (!location.hash || location.hash === '#' || location.hash === '#/') {
-      if (Settings.get('startInReader') || (window.native && window.native.readerMode)) history.replaceState(null, '', '#/reader/' + (Settings.get('lastPlaylist') || ''));
+      if (Settings.get('startInReader') || (window.native && window.native.readerMode)) history.replaceState(null, '', '#/reader/');   // čtečka vždy začíná výběrem playlistu
       else if (location.hash) history.replaceState(null, '', this.homeUrl());
     }
     // „Zůstat přihlášen“ vypnuté: přihlášení si půjčit od jiného otevřeného okna; když žádné není → přihlásit znovu
@@ -101,14 +101,28 @@ const App = {
     await modal({ title: '📲 Nainstalovat aplikaci', body: h('ol', { style: { lineHeight: 1.8 } }, steps.map(t => h('li', {}, t))) });
   },
 
-  canEdit() { return !Settings.get('pinHash') || sessionStorage.getItem('unlocked') === '1'; },
+  /* Čtečka na pódiu (role z průvodce / Nastavení › Toto zařízení): do úprav jen s PINem – bez PINu se nejdřív zvolí */
+  isStage() { return Settings.get('deviceRole') === 'reader'; },
+  canEdit() { return sessionStorage.getItem('unlocked') === '1' || (!Settings.get('pinHash') && !this.isStage()); },
 
   async unlock() {
+    if (!Settings.get('pinHash')) return this.newPin();
     const inp = h('input', { class: 'inp', type: 'password', placeholder: 'PIN' });
-    const v = await modal({ title: '🔒 Úpravy jsou chráněné PINem', body: inp, buttons: [{ label: 'Jen číst (čtečka)', value: null }, { label: 'Odemknout', primary: true, value: () => inp.value }] });
+    const v = await modal({ title: '🔒 Úpravy jsou chráněné PINem', body: pwField(inp), buttons: [{ label: 'Jen číst (čtečka)', value: null }, { label: 'Odemknout', primary: true, value: () => inp.value }] });
     if (v && pinHash(v) === Settings.get('pinHash')) { sessionStorage.setItem('unlocked', '1'); return true; }
     if (v) toast('Špatný PIN', 'err');
     return false;
+  },
+  // čtečka bez PINu: úpravy se otevřou až po zvolení PINu (příště už jen s ním)
+  async newPin() {
+    const a = h('input', { class: 'inp', type: 'password', placeholder: 'nový PIN' }), b = h('input', { class: 'inp', type: 'password', placeholder: 'PIN znovu' });
+    const body = h('div', { class: 'pin-new' }, h('p', {}, 'Toto zařízení je čtečka na pódiu – do úprav se dostaneš jen s PINem. Zatím žádný nemá, zvol ho (čísla nebo text) a zapamatuj si ho.'), pwField(a), pwField(b));
+    const v = await modal({ title: '🔒 PIN pro úpravy', body, buttons: [{ label: 'Zpět do čtečky', value: null }, { label: 'Nastavit a odemknout', primary: true, value: () => a.value }] });
+    if (!v) { if (v === '') toast('PIN nesmí být prázdný', 'err'); return false; }
+    if (v !== b.value) { toast('PINy se neshodují', 'err'); return false; }
+    Settings.set('pinHash', pinHash(v)); sessionStorage.setItem('unlocked', '1');
+    toast('PIN nastaven – úpravy odemčené', 'ok');
+    return true;
   },
 
   /* Úvodní stránka (playlisty) – adresa bez # */
@@ -154,7 +168,7 @@ const App = {
     const bar = h('nav', { id: 'topbar' },
       h('div', { class: 'logo', title: 'PROMPTER mini ' + APP_VERSION }, 'PROMPTER mini', h('span', {}, APP_VERSION)),
       h('div', { class: 'tabs' }, tabs.map(([k, l]) => tab(k, l))),
-      h('button', { class: 'rail-btn play', title: 'Otevřít čtečku (výběr playlistu)', onclick: () => { location.hash = '#/reader/' + (Settings.get('lastPlaylist') || ''); } }, '▶', h('span', {}, 'Čtečka')),
+      h('button', { class: 'rail-btn play', title: 'Otevřít čtečku (výběr playlistu)', onclick: () => { location.hash = '#/reader/'; } }, '▶', h('span', {}, 'Čtečka')),
       tab('settings', '⚙ Nastavení'),
       this.syncPill = h('button', { class: 'sync-pill', title: 'Stav synchronizace – kliknutím synchronizuješ', onclick: () => this.syncClick() }, h('span', { class: 'dot' }), h('span', { class: 'lbl' }, '')),
       // program pro Windows: cesta ven i bez myši a klávesy Windows (airmouse) – minimalizovat, okno, ukončit
@@ -219,6 +233,7 @@ const App = {
   async go(force) {
     const [view, param, extra] = this.parseHash();
     if (view === 'reader') {
+      if (this.isStage() && !param.startsWith('song:')) sessionStorage.removeItem('unlocked');   // čtečka na pódiu: úpravy zase zamknout
       if (param) Reader.open(param, parseInt(extra || '0', 10));
       else Reader.open(null);
       return;
@@ -230,7 +245,7 @@ const App = {
       if (this.unlocking) return;   // okno s PINem už je otevřené
       this.unlocking = true;
       const ok = await this.unlock().finally(() => { this.unlocking = false; });
-      if (!ok) { location.hash = '#/reader/' + (Settings.get('lastPlaylist') || ''); return; }
+      if (!ok) { location.hash = '#/reader/'; return; }
     }
     const key = location.hash;
     if (!force && key === this.current && $('#main').childElementCount) return;

@@ -118,8 +118,11 @@ onSync('getAutoStart', e => { e.returnValue = app.getLoginItemSettings().openAtL
 handle('setFullscreen', (e, on) => { const w = BrowserWindow.fromWebContents(e.sender); if (w) w.setFullScreen(!!on); });
 onSync('isFullscreen', e => { const w = BrowserWindow.fromWebContents(e.sender); e.returnValue = !!(w && w.isFullScreen()); });
 handle('quit', () => app.quit());
-// do Windows: z celé obrazovky nejdřív do okna, pak minimalizovat (vrátí se z hlavního panelu)
-handle('minimize', e => { const w = BrowserWindow.fromWebContents(e.sender); if (!w) return; if (w.isFullScreen()) w.setFullScreen(false); w.minimize(); });
+// do Windows: z celé obrazovky nejdřív do okna, pak minimalizovat; po obnovení z hlavního panelu zase přes celou obrazovku
+let restoreFull = false;
+handle('minimize', e => { const w = BrowserWindow.fromWebContents(e.sender); if (!w) return; restoreFull = w.isFullScreen(); if (restoreFull) w.setFullScreen(false); w.minimize(); });
+// grafika: hardwarové vykreslování (plynulé), nebo softwarové (ovladač grafiky chybí / je na černé listině)
+onSync('gpuStatus', e => { const s = app.getGPUFeatureStatus() || {}; e.returnValue = { compositing: String(s.gpu_compositing || ''), raster: String(s.rasterization || '') }; });
 handle('makeShortcuts', () => makeShortcuts(true));
 onSync('dataDir', e => { e.returnValue = DATA; });
 
@@ -277,6 +280,7 @@ function createWindow() {
   });
   Menu.setApplicationMenu(null);
   win.once('ready-to-show', () => win.show());
+  win.on('restore', () => { if (restoreFull) { restoreFull = false; win.setFullScreen(true); } });
   win.loadFile(path.join(__dirname, '..', 'index.html'));
   win.webContents.setVisualZoomLevelLimits(1, 1);
   win.webContents.on('before-input-event', (e, input) => {

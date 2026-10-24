@@ -13,7 +13,7 @@ Aplikace pro psaní, úpravy a zobrazování textů písní na čtečce (prompte
 1. Rozbal `PROMPTER-mini-Windows-64bit.zip` třeba do `C:\PROMPTER mini`.
 2. Spusť `PROMPTER mini.exe`. Při prvním spuštění Windows může ukázat „Systém Windows ochránil váš počítač“. Klikni na **Další informace → Přesto spustit**. Program si sám vytvoří **zástupce na ploše a v nabídce Start** (znovu: Nastavení › Toto zařízení › Program). Mezi nainstalovanými aplikacemi není – je přenosný, celý ve své složce (i s daty); odinstalace = smazat složku a zástupce.
 3. Při prvním spuštění programu se objeví **průvodce nastavením zařízení** (ovládá se i jen šipkami a OK):
-   - **K čemu zařízení slouží**: čtečka na pódiu, počítač pro úpravy, nebo obojí na jednom. Čtečka pak po zapnutí rovnou otevře poslední playlist.
+   - **K čemu zařízení slouží**: čtečka na pódiu, počítač pro úpravy, nebo obojí na jednom. Čtečka pak po zapnutí otevře výběr playlistu (přes celou obrazovku) a do úprav pustí jen s **PINem** – u čtečky je povinný.
    - **Orientace monitoru** (na výšku / na šířku) a otočení obrazu, když ho Windows neotáčí.
    - **Obrazovka kapely**: zda je to hlavní čtečka, jiná už nadefinovaná obrazovka, nebo nová (např. „Tablet“).
    - **Velikost displeje**: rozlišení (předvolby 21,5″–43″ nebo **Z této obrazovky**), úhlopříčka a vzdálenost zpěváka. Z nich průvodce doporučí velikost písma.
@@ -21,7 +21,7 @@ Aplikace pro psaní, úpravy a zobrazování textů písní na čtečce (prompte
    - Průvodce jde odložit tlačítkem **Později** (nebo Esc na první stránce); nabídne se znovu při dalším spuštění. Vpravo nahoře je i **Ukončit**.
 4. Vše jde později změnit v **Nastavení › Toto zařízení** (tam je i **Průvodce nastavením → Spustit**). V **Nastavení › Čtečka a ovládání**:
    - Zapni **Spustit po zapnutí počítače**.
-   - V **Nastavení › Toto zařízení** volitelně nastav **PIN**, aby na čtečce nikdo omylem nic neupravil.
+   - **PIN** pro úpravy: na čtečce (role *Čtečka na pódiu*) je povinný – bez něj se do úprav nikdo nedostane (když ho čtečka ještě nemá, při prvním vstupu do úprav se zvolí) a po návratu do čtečky se úpravy zase zamknou. Na ostatních zařízeních je nepovinný (Nastavení › Toto zařízení).
    - V **Nastavení › Kapela a synchronizace** se přihlas ke kapele a zapni **Jen pro čtení**. Čtečka si pak při každém spuštění sama stáhne nové písně, pokud je internet.
 
 ### Ovládání čtečky
@@ -32,21 +32,26 @@ Aplikace pro psaní, úpravy a zobrazování textů písní na čtečce (prompte
 | předchozí stránka | **levé tlačítko** | ← ↑ PgUp |
 | playlist a nabídka | **podržet levé**, oba najednou, nebo prostřední | L, Tab, Q, klávesa Menu |
 | v nabídce: předchozí / další položka | levé / pravé | ↑ ↓ |
-| v nabídce: potvrdit / zpět | **podržet** pravé / levé | Enter / Esc |
+| v nabídce: potvrdit / zpět | **podržet** pravé / levé | Enter / Esc (nebo podržet → / ←) |
+| v nabídce: na tlačítka dole a zpět | **oba najednou** | → a ← najednou |
 | další / předchozí píseň | | Shift + → / ← |
 | výběr playlistu | | P |
 | celá obrazovka | | F (ukončit: F, F) nebo F11 |
 | stáhnout změny | | S |
-| nabídka (dlaždice) | | Q nebo klávesa Menu |
+| tlačítka dole v playlistu | | Q nebo klávesa Menu |
 | upravit píseň | | E, E |
 | nápověda | | H |
 | zavřít čtečku | | Esc, Esc |
 
-**Na pódiu je čtečka blbuvzdorná:** prázdný playlist – kterékoli tlačítko pedálu otevře výběr playlistu; pedál vždy jen listuje – i když kurzor airmouse zůstal stát nad tlačítkem nebo nabídkou; každé šlápnutí se počítá zvlášť, i rychlé klikání za sebou (rychlý přesun na vzdálenou píseň) – ignoruje se jen zákmit kontaktu do 40 ms; podržení je jen opravdu držené tlačítko. Pedál, který posílá klávesy: držená klávesa nelistuje, v nabídce po 0,6 s potvrdí / vrátí a držená klávesa nelistuje dál. Kurzor se ukáže jen při záměrném pohybu myši (chvění airmouse se nepočítá) a teprve tehdy kliknutí ovládá tlačítka. Co čtečku opouští (Esc, E, ukončení celé obrazovky), chce stisk dvakrát; tlačítka myši zpět / vpřed čtečku nezavřou. Seznam písní a nabídka se samy zavřou po 20 s nečinnosti, aby nepřekrývaly text. Když má píseň víc stránek, ukazují je tečky dole; na poslední stránce je vpravo dole další píseň (pokud ji neukazuje zápatí šablony) a při přechodu na jinou píseň se krátce ukáže její pořadí a název. Změny ze synchronizace během hraní nepřeskočí na jinou píseň.
+**Na pódiu je čtečka blbuvzdorná:** prázdný playlist – kterékoli tlačítko pedálu otevře výběr playlistu; pedál vždy jen listuje – i když kurzor airmouse zůstal stát nad tlačítkem nebo nabídkou; každé šlápnutí se počítá zvlášť, i rychlé klikání za sebou (rychlý přesun na vzdálenou píseň) – ignoruje se jen zákmit kontaktu do 40 ms; podržení je jen opravdu držené tlačítko. Pedál, který posílá klávesy: držená klávesa nelistuje; v nabídce se výběr posune až při puštění klávesy, takže podržení (0,6 s) potvrdí / vrátí přesně tu položku, na které výběr stojí. Kurzor se ukáže jen při záměrném pohybu myši (chvění airmouse se nepočítá) a teprve tehdy kliknutí ovládá tlačítka. Co čtečku opouští (Esc, E, ukončení celé obrazovky), chce stisk dvakrát; tlačítka myši zpět / vpřed čtečku nezavřou. Seznam písní a nabídka se samy zavřou po 20 s nečinnosti, aby nepřekrývaly text. Když má píseň víc stránek, ukazují je tečky dole; na poslední stránce je vpravo dole další píseň (pokud ji neukazuje zápatí šablony) a při přechodu na jinou píseň se krátce ukáže její pořadí a název. Změny ze synchronizace během hraní nepřeskočí na jinou píseň.
 
-**Úvod čtečky** je výběr playlistu přes celou obrazovku – playlisty jako velké karty (oblíbené s hvězdou první, naposledy hraný vybraný). **Playlist** (Tab, L, prostřední tlačítko, podržet levý pedál) se vysune zprava a text písně zůstane vidět: odehrané písně s ✓, hraje, další, přídavky, tónina / BPM / délka; v jeho patičce je celá nabídka (playlisty, stáhnout změny, upravit, nápověda, zavřít čtečku) – Q nebo klávesa Menu ho otevře rovnou na ní. Dole je **stavový řádek**: pořadí a název písně, tečky stránek a co bude dál (schová se, když šablona ukazuje zápatí; jde vypnout v Nastavení). Když myš sjede dolů, objeví se **ovládací lišta** jako u přehrávače (předchozí / další píseň a stránka, playlist) a nahoře pruh s průběhem playlistu.
+**Úvod čtečky** (čtečka vždy začíná tady, přes celou obrazovku) je výběr playlistu: první **Všechny písně** (sestavují se samy ze všech písní, podle interpreta), pak oblíbené playlisty s hvězdou a pod tlačítkem **Všechny playlisty** ostatní. Dole je vybrané **Pokračovat** (otevře playlist, píseň i stránku, kde se naposledy skončilo – nahoře je napsané kde), **Stáhnout změny**, **Minimalizovat** (v okně místo něj **Celá obrazovka**; po obnovení z hlavního panelu se program vrátí přes celou obrazovku) a **Další** (upravit písně, upravit playlisty, nápověda, ukončit). **Playlist** (Tab, L, prostřední tlačítko, podržet levý pedál) se vysune zprava a text písně zůstane vidět: odehrané písně s ✓, hraje, další, přídavky a u každé písně barevné ladění, BPM, délka a kdo zpívá. Dole má **Pokračovat** (zpět do textu), **Jiný playlist**, **Stáhnout** a **Další** (upravit píseň, upravit playlist, nápověda, nastavení) – Q nebo klávesa Menu ho otevře rovnou na tlačítkách. Dole je **stavový řádek**: pořadí a název písně, tečky stránek a co bude dál (schová se, když šablona ukazuje zápatí; jde vypnout v Nastavení). Při každém listování pedálem (i když myš sjede dolů) se na chvíli objeví **ovládací lišta**: předchozí píseň, hrající píseň s barevným laděním, BPM, délkou a pořadím, další píseň, tlačítka pro listování a červené tlačítko playlistu (*podrž levé* = totéž pedálem); nahoře je pruh s průběhem playlistu.
 
-**Cesta ven z programu (i jen airmouse, bez klávesy Windows):** v levé liště tlačítko **Program** → **Minimalizovat** (do Windows), **Celá obrazovka** zapnout / vypnout, **Ukončit program**. V úvodní nabídce čtečky (výběr playlistu) jsou dole **Minimalizovat** a **Ukončit**. Funguje i F11 (celá obrazovka) a Alt+F4.
+**Plynulost:** nabídky a lišta se animují jen posunem a průhledností a překreslují se odděleně od textu písně. Když počítač nemá funkční grafickou kartu (Nastavení › O aplikaci › Grafika ukazuje „softwarové vykreslování“), čtečka animace a stíny vypne úplně – pomůže aktualizace ovladače grafiky.
+
+**Zadaná hesla a PIN** jde ukázat okem vedle pole.
+
+**Cesta ven z programu (i jen airmouse, bez klávesy Windows):** v levé liště tlačítko **Program** → **Minimalizovat** (do Windows), **Celá obrazovka** zapnout / vypnout, **Ukončit program**. V úvodní nabídce čtečky (výběr playlistu) je dole **Minimalizovat** / **Celá obrazovka** a v **Další** **Ukončit program**. Funguje i F11 (celá obrazovka) a Alt+F4.
 
 **Virtuální klávesnice:** když klávesnice airmouse píše jiné znaky, než má natištěné, klikni v aktivním textovém poli na malé tlačítko **⌨** vpravo – otevře se česká klávesnice na obrazovce (háčky a čárky, čísla, ⇧ velká písmena – 2× trvale, ?# symboly, ⌫ podržením maže dál, ⏎ potvrdí, ✕ nebo Esc zavře). Sama se nikdy neotevře. Funguje i v řádku textu na stránce editoru. Vypnout jde v Nastavení › Toto zařízení.
 

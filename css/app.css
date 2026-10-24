@@ -248,6 +248,11 @@ kbd { font: 600 11px/1 var(--mono); padding: 3px 5px; border: 1px solid var(--li
 /* Oblíbené playlisty: vlastní pořadí nad ostatními playlisty */
 .pl-sec { display: flex; align-items: baseline; gap: 10px; margin: 0 12px; padding: 26px 10px 8px; border-bottom: 2px solid var(--line2); color: var(--text); }
 .pl-sec:first-child { padding-top: 12px; }
+/* Všechny písně: vždy první, sestavuje se sám */
+.sl-row.pl-all { margin-top: 6px; border-left: 3px solid var(--play); }
+.sl-row.pl-all .sl-title::before { content: '♪ '; color: var(--play-hi); }
+.pin-new { display: flex; flex-direction: column; gap: 10px; }
+.pin-new p { margin: 0; }
 .pl-sec b { font-size: 16px; font-weight: 600; display: inline-flex; align-items: baseline; gap: 7px; }
 .pl-sec b i { font-style: normal; color: var(--fav); }
 .pl-sec span { font-size: 13px; color: var(--faint); }
@@ -736,6 +741,11 @@ input[type=checkbox].switch:focus-visible { outline: 2px solid var(--acc-hi); ou
 .wz-row-t span { color: var(--dim); font-size: 13px; }
 .wz-btns { display: flex; gap: 8px; flex-wrap: wrap; }
 .wz-pin { width: 140px; }
+/* pole s heslem: oko vedle pole ukáže zadaný text */
+.pw-wrap { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.pw-wrap > .inp { flex: 1 1 auto; min-width: 0; }
+.pw-eye { flex: 0 0 auto; }
+.pw-eye[aria-pressed="true"] { color: var(--acc); }
 .wz-note { margin: 0; padding: 12px 14px; border-radius: var(--r); background: var(--well); color: var(--dim); font-size: 13px; }
 .wz-size { display: flex; gap: 28px; flex-wrap: wrap; }
 .wz-size-f { flex: 1 1 360px; display: flex; flex-direction: column; gap: 16px; }
@@ -824,9 +834,11 @@ input[type=checkbox].switch:focus-visible { outline: 2px solid var(--acc-hi); ou
 #reader .r-lay-center { align-items: center; justify-content: center; }
 #reader .r-lay-drawer { justify-content: flex-end; background: linear-gradient(90deg, rgba(0,0,0,.1), rgba(0,0,0,.72)); }
 #reader .r-lay-full { justify-content: center; background: radial-gradient(ellipse at top, #1d1d22, #0b0b0d 70%); }
-.r-menu { --rp: #1c1c1f; --rb: #151517; --rl: #2f2f35; --rd: #9d9da5; display: flex; flex-direction: column; overflow: hidden; background: var(--rp); color: #f2f2f4; font: 24px var(--font); }
-.r-lay-center .r-menu { width: min(760px, 92vw); max-height: 88vh; border: 1px solid var(--rl); border-radius: 16px; box-shadow: 0 30px 90px rgba(0,0,0,.7); }
-.r-lay-drawer .r-menu { width: min(580px, 94vw); height: 100%; border-left: 1px solid var(--rl); box-shadow: -30px 0 80px rgba(0,0,0,.6); animation: r-in .18s ease-out; }
+/* Plynulost i na slabém počítači: nabídka je vlastní vrstva (posun výběru překreslí jen ji, ne text pod ní),
+   animuje se jen posun a průhlednost, žádné velké rozmazané stíny ani animace velikosti písma */
+.r-menu { --rp: #1c1c1f; --rb: #151517; --rl: #2f2f35; --rd: #9d9da5; display: flex; flex-direction: column; overflow: hidden; background: var(--rp); color: #f2f2f4; font: 24px var(--font); contain: layout paint; will-change: transform; }
+.r-lay-center .r-menu { width: min(760px, 92vw); max-height: 88vh; border: 1px solid var(--rl); border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,.5); }
+.r-lay-drawer .r-menu { width: min(640px, 94vw); height: 100%; border-left: 1px solid var(--rl); animation: r-in .16s ease-out; }
 @keyframes r-in { from { transform: translateX(40px); opacity: 0; } }
 .r-lay-full .r-menu { width: min(1200px, 100%); height: 100%; padding: 5vh 4vw 2vh; background: none; }
 .r-head { padding: 18px 24px 16px; border-bottom: 1px solid var(--rl); }
@@ -846,8 +858,12 @@ input[type=checkbox].switch:focus-visible { outline: 2px solid var(--acc-hi); ou
 .r-menu .r-t { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .r-menu .r-l { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .r-menu .r-sub { font-size: 16px; color: var(--rd); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.r-chips { flex: 0 0 auto; display: flex; gap: 6px; }
-.r-chips i { padding: 3px 8px; border-radius: 6px; background: #2c2c32; color: #d2d2d7; font: 600 14px var(--font); font-style: normal; }
+/* údaje písně v řádku playlistu: ladění (barevně), tempo, délka, kdo zpívá – vždy ve stejných sloupcích */
+.r-meta { flex: 0 0 auto; display: grid; grid-template-columns: 46px 74px 48px 34px; align-items: center; gap: 8px; font: 600 15px var(--font); color: #c8c8ce; font-variant-numeric: tabular-nums; }
+.r-meta .key-badge { font-size: 14px; }
+.r-meta .rm-dur { text-align: right; }
+.r-meta .sl-dots { flex-wrap: wrap; gap: 3px; }
+.r-meta .sl-dots i { width: 10px; height: 10px; }
 .r-menu .r-opt kbd { font: 15px var(--font); border: 0; background: none; color: var(--rd); }
 .r-menu .r-badge { flex: 0 0 auto; padding: 3px 12px; border-radius: 999px; background: #e8493f; color: #fff; font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
 .r-menu .r-opt.sel { background: #2b2b31; outline: 3px solid #fff; outline-offset: -3px; }
@@ -882,29 +898,44 @@ input[type=checkbox].switch:focus-visible { outline: 2px solid var(--acc-hi); ou
 .r-start .r-opt.fav .r-l::before { content: '★ '; color: #ffcc33; }
 .r-start .r-opt.all .r-l { color: #d0d0d5; }
 .r-start .r-badge { align-self: flex-start; }
+.r-start .r-opt.r-expand { grid-column: 1 / -1; min-height: 72px; border-style: dashed; background: none; }
+.r-start .r-opt.r-expand .r-l { font-size: 24px; color: #d0d0d5; }
+.r-start .r-opt.r-expand > .ic { order: 2; }
+.r-menu .r-opt.r-tool.go { background: #1f3a2b; border-color: #2b9a5d; color: #dff5e8; }
 .r-start .r-foot { flex-direction: row; align-items: center; }
 .r-start .r-tools { flex: 0 0 auto; }
-.r-start .r-opt.r-tool { flex: 0 0 128px; }
+.r-start .r-opt.r-tool { flex: 0 0 150px; }
 .r-start .r-hint { flex: 1; text-align: right; }
 /* nápověda: skupiny */
 .r-menu .r-opt.r-grp { min-height: 40px; margin-top: 10px; cursor: default; color: #ff8a80; font-size: 16px; letter-spacing: .06em; text-transform: uppercase; }
 .r-menu .r-opt.r-grp .r-l { font-weight: 700; }
 /* podržený pedál: vybraná položka se plní, po dokončení se potvrdí (pravý) / vrátí (levý) */
-#reader .r-overlay.holding .r-opt.sel { background-image: linear-gradient(#e8493f, #e8493f); background-repeat: no-repeat; background-position: left bottom; animation: r-hold .6s linear forwards; }
-@keyframes r-hold { from { background-size: 0 5px; } to { background-size: 100% 5px; } }
+#reader .r-overlay.holding .r-opt.sel::after { content: ""; position: absolute; left: 0; right: 0; top: auto; bottom: 0; height: 5px; padding: 0; border: 0; border-radius: 0 0 12px 12px; background: #e8493f; transform-origin: left; animation: r-hold .6s linear forwards; will-change: transform; }
+@keyframes r-hold { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 /* ovládací lišta dole (jako přehrávač) a průběh playlistu nahoře */
-#reader .r-bar { position: absolute; left: 50%; bottom: 6vh; transform: translate(-50%, 20px); display: flex; align-items: center; gap: 6px; padding: 8px; background: rgba(28,28,32,.96); border: 1px solid #303036; border-radius: 18px; box-shadow: 0 20px 60px rgba(0,0,0,.6); z-index: 6; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; color: #fff; font-family: var(--font); }
+#reader .r-bar { position: absolute; left: 50%; bottom: 6vh; width: min(1240px, 96vw); transform: translate(-50%, 20px); display: flex; align-items: center; gap: 6px; padding: 8px; background: #1c1c20; border: 1px solid #303036; border-radius: 18px; box-shadow: 0 6px 18px rgba(0,0,0,.5); z-index: 6; opacity: 0; pointer-events: none; transition: opacity .18s, transform .18s; will-change: opacity, transform; color: #fff; font-family: var(--font); }
 #reader.bar-on .r-bar { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
 .r-bbtn { width: 64px; height: 64px; display: grid; place-items: center; border: 0; border-radius: 12px; background: #2b2b30; color: #fff; cursor: pointer; }
 .r-bbtn:hover { background: #3a3a40; }
 .r-bbtn.off { display: none; }   /* stránky jen u písně s víc stránkami */
 .r-bbtn:disabled { opacity: .3; cursor: default; }
-.r-bbtn.wide { width: 80px; background: #e8493f; }
+.r-bbtn.wide { width: 92px; display: flex; flex-direction: column; justify-content: center; gap: 2px; background: #e8493f; }
+.r-bbtn.wide small { font: 700 11px var(--font); letter-spacing: .02em; opacity: .9; white-space: nowrap; }   /* podržení levého pedálu = toto tlačítko */
 .r-bbtn.wide:hover { background: #f05a50; }
 .r-bbtn .ic { width: 28px; height: 28px; stroke-width: 2; }
-.r-binfo { width: 300px; padding: 0 10px; display: flex; flex-direction: column; align-items: center; font-size: 20px; }
-.r-binfo b { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.r-binfo span { font-size: 15px; color: #a5a5ab; }
+/* uprostřed lišty: předchozí | hraje (ladění, BPM, délka, pořadí) | další */
+.r-binfo { flex: 1; min-width: 0; padding: 0 8px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) minmax(0, 1fr); align-items: center; gap: 14px; }
+.r-bside { min-width: 0; display: flex; flex-direction: column; font-size: 17px; color: #c9c9cf; }
+.r-bside.next { text-align: right; }
+.r-bside small { font: 700 12px var(--font); letter-spacing: .1em; text-transform: uppercase; color: #8d8d95; }
+.r-bside.next small { color: #e8493f; }
+.r-bside span, .r-bcur b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.r-bcur { min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 21px; }
+.r-bcur b { max-width: 100%; }
+.r-bmeta { display: flex; align-items: center; gap: 10px; font: 600 15px var(--font); color: #c8c8ce; font-variant-numeric: tabular-nums; }
+.r-bmeta span:empty { display: none; }
+.r-bmeta em { font-style: normal; color: #8d8d95; }
+.r-bmeta .sl-dots i { width: 10px; height: 10px; }
 .r-bsep { width: 1px; height: 44px; margin: 0 6px; background: #36363c; }
 #reader .r-progress { position: absolute; left: 0; right: 0; top: 0; height: 5px; background: #1a1a1c; z-index: 6; opacity: 0; transition: opacity .2s; pointer-events: none; }
 #reader .r-progress i { display: block; height: 100%; background: #e8493f; }
@@ -924,21 +955,21 @@ input[type=checkbox].switch:focus-visible { outline: 2px solid var(--acc-hi); ou
 .r-hud-r.more { color: #ffb547; }
 .r-hud-r.next span { font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #e8493f; }
 .r-hud-r.end b { color: #ffb547; }
-#reader .r-hud.new .r-hud-l { animation: r-new 1.8s ease-out; }
-@keyframes r-new { 0%, 45% { color: #fff; font-size: 24px; } }
+#reader .r-hud.new .r-hud-l span { animation: r-new 1.8s ease-out; }
+@keyframes r-new { 0%, 45% { color: #ffb547; } }
 /* displej na výšku (monitor otočený, tablet): setlist se vysune zespodu a text nahoře zůstane vidět,
    playlisty pod sebou, lišta a stavový řádek přes šířku */
 @media (orientation: portrait) {
   #reader .r-lay-drawer { flex-direction: column; justify-content: flex-end; background: linear-gradient(rgba(0,0,0,.1), rgba(0,0,0,.75)); }
-  .r-lay-drawer .r-menu { width: 100%; height: 74%; border-left: 0; border-top: 1px solid var(--rl); border-radius: 20px 20px 0 0; box-shadow: 0 -30px 80px rgba(0,0,0,.6); animation-name: r-up; }
+  .r-lay-drawer .r-menu { width: 100%; height: 74%; border-left: 0; border-top: 1px solid var(--rl); border-radius: 20px 20px 0 0; animation-name: r-up; }
   .r-lay-full .r-menu { padding: 4vh 5vw 2vh; }
   .r-start .r-grid { grid-template-columns: 1fr; }
   .r-start .r-foot { flex-direction: column; align-items: stretch; }
   .r-start .r-tools { flex: 1 1 auto; }
   .r-start .r-opt.r-tool { flex: 1 1 0; }
   .r-start .r-hint { text-align: center; }
-  #reader .r-bar { width: min(96vw, 820px); }
-  .r-binfo { flex: 1; width: auto; min-width: 0; }
+  .r-binfo { grid-template-columns: minmax(0, 1fr); }
+  .r-bside { display: none; }
 }
 @keyframes r-up { from { transform: translateY(60px); opacity: 0; } }
 /* úzký displej (mobil): menší tlačítka a písmo */
@@ -949,10 +980,16 @@ input[type=checkbox].switch:focus-visible { outline: 2px solid var(--acc-hi); ou
   .r-bsep { display: none; }
   #reader .r-hud { padding: 18px 12px 8px; gap: 10px; font-size: 15px; }
   .r-menu .r-opt.r-tool { height: 68px; font-size: 13px; }
-  .r-chips { display: none; }
+  .r-meta { grid-template-columns: 40px 44px; }
+  .r-meta .rm-bpm, .r-meta .rm-sing { display: none; }
 }
 /* krátká oznámení */
-#reader .r-toast { position: absolute; left: 50%; top: 22px; transform: translateX(-50%); padding: 10px 22px; border: 1px solid #3a3a40; border-radius: 999px; background: rgba(24,24,27,.96); color: #f2f2f4; font: 600 20px var(--font); box-shadow: 0 10px 30px rgba(0,0,0,.5); z-index: 7; pointer-events: none; transition: opacity .3s; }
+#reader .r-toast { position: absolute; left: 50%; top: 22px; transform: translateX(-50%); padding: 10px 22px; border: 1px solid #3a3a40; border-radius: 999px; background: #18181b; color: #f2f2f4; font: 600 20px var(--font); box-shadow: 0 4px 12px rgba(0,0,0,.45); z-index: 7; pointer-events: none; transition: opacity .3s; will-change: opacity; }
+/* bez grafické karty (softwarové vykreslování): žádné animace, přechody ani stíny – vše se ukáže hned */
+#reader.lowfx *, #reader.lowfx *::after { animation: none !important; transition: none !important; box-shadow: none !important; }
+#reader.lowfx .r-lay-full, #reader.lowfx .r-lay-drawer { background: rgba(0,0,0,.6); }
+#reader.lowfx .r-lay-full { background: #0d0d0f; }
+#reader.lowfx .r-overlay.holding .r-opt.sel { outline-color: #e8493f; }
 #reader .r-toast.low { top: auto; bottom: 40px; }
 #reader .r-fs-hint { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); background: #d7372b; color: #fff; padding: 8px 18px; border-radius: 0; font-size: 15px; font-family: var(--label); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; z-index: 6; pointer-events: none; }
 
@@ -1078,7 +1115,6 @@ input[type=checkbox].switch:focus-visible { outline: 2px solid var(--acc-hi); ou
   .r-menu { font-size: 18px; }
   .r-start .r-grid { grid-template-columns: 1fr; }
   .r-lay-full .r-menu h2 { font-size: 32px; }
-  .r-binfo { width: 160px; }
 }
 
 /* ===== Přihlášení ke kapele ===== */

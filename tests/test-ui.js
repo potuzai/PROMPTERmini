@@ -166,7 +166,23 @@ const assert = (c, m) => { if (!c) { console.log('FAIL: ' + m); process.exitCode
   await p.evaluate(() => { Settings.set('pinHash', sha1Bytes(utf8.enc('prompter:1234'))); sessionStorage.removeItem('unlocked'); location.hash = '#/settings/device'; });
   await p.waitForTimeout(300);
   assert(await p.isVisible('.modal'), 'PIN je vyžadován');
+  await p.click('.modal .pw-eye'); await p.waitForTimeout(50);
+  assert(await p.evaluate(() => document.querySelector('.modal .pw-wrap input').type === 'text'), 'oko ukáže zadaný PIN');
   await p.fill('.modal input', '1234'); await p.keyboard.press('Enter'); await p.waitForTimeout(300);
   assert(await p.isVisible('.set-head h1'), 'odemčeno PINem');
+  // čtečka na pódiu: do úprav jen s PINem; bez PINu se nejdřív zvolí, po návratu do čtečky se zase zamkne
+  await p.evaluate(() => { Settings.set('deviceRole', 'reader'); Settings.set('pinHash', ''); sessionStorage.removeItem('unlocked'); location.hash = '#/reader/'; });
+  await p.waitForTimeout(400);
+  assert(await p.evaluate(() => !App.canEdit()), 'čtečka bez PINu: úpravy zamčené');
+  await p.keyboard.press('Escape'); await p.waitForTimeout(100); await p.keyboard.press('Escape'); await p.waitForTimeout(300);
+  assert(await p.evaluate(() => Reader.isOpen()) && await p.isVisible('.r-start'), 'čtečka: Esc nevede do úprav');
+  await p.evaluate(() => { location.hash = '#/songs'; }); await p.waitForTimeout(300);
+  assert(await p.isVisible('.modal .pin-new'), 'čtečka bez PINu: vstup do úprav nejdřív chce zvolit PIN');
+  const pins = p.locator('.modal .pin-new input');
+  await pins.nth(0).fill('77'); await pins.nth(1).fill('77'); await p.click('.modal button:has-text("Nastavit a odemknout")'); await p.waitForTimeout(400);
+  assert(await p.evaluate(() => App.canEdit() && !!Settings.get('pinHash') && location.hash === '#/songs'), 'PIN zvolen, úpravy odemčené');
+  await p.evaluate(() => { location.hash = '#/reader/'; }); await p.waitForTimeout(300);
+  assert(await p.evaluate(() => !App.canEdit()), 'po návratu do čtečky jsou úpravy zase zamčené');
+  await p.evaluate(() => { Settings.set('deviceRole', 'editor'); Settings.set('pinHash', ''); });
   await b.close();
 })();

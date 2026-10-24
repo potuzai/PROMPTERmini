@@ -158,7 +158,7 @@ async function loginDialog(opts = {}) {
       ? 'Toto zařízení si přihlášení nepamatuje. Přihlas se znovu – písně v něm zůstaly, jen se teď nesynchronizují.'
       : 'Přihlas se e-mailem a heslem kapely (společný účet Mega). Písně a playlisty se pak samy stáhnou a synchronizují.'),
     h('label', { class: 'f', for: 'login-email' }, h('span', {}, 'E-mail'), email),
-    h('label', { class: 'f', for: 'login-password' }, h('span', {}, 'Heslo'), pass),
+    h('label', { class: 'f', for: 'login-password' }, h('span', {}, 'Heslo'), pwField(pass)),
     window.native ? null : h('label', { class: 'chk' }, remember, 'Zůstat přihlášen',
       h('span', { class: 'help' }, ' – na cizím nebo sdíleném počítači vypni')),
     err,

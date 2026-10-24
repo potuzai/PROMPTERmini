@@ -398,7 +398,7 @@ const SettingsView = {
         h('li', { html: '<a href="https://github.com/new?name=kapela-pisne&visibility=private" target="_blank">Vytvoř soukromý repozitář</a> – musí být <b>Private</b>.' }),
         h('li', { html: `<a href="${tokenUrl}" target="_blank">Vytvoř přístupový token</a> – <b>Only select repositories</b> → kapela-pisne, <b>Contents: Read and write</b>.` }),
         h('li', {}, 'Vlož sem repozitář a token a klikni Připojit. Ostatní členové zadají stejný repozitář a token.')),
-      h('div', { class: 'grid2' }, h('label', { class: 'f' }, h('span', {}, 'Repozitář'), repoIn), h('label', { class: 'f' }, h('span', {}, 'Token'), tokenIn)),
+      h('div', { class: 'grid2' }, h('label', { class: 'f' }, h('span', {}, 'Repozitář'), repoIn), h('label', { class: 'f' }, h('span', {}, 'Token'), pwField(tokenIn))),
       h('div', { class: 'row', style: { marginTop: '10px' } }, h('button', { class: 'btn primary nogrow', onclick: connect }, '🔗 Připojit ke GitHubu')),
       status);
   },
@@ -411,7 +411,11 @@ const SettingsView = {
       box.innerHTML = '';
       const roleSel = h('select', { class: 'inp set-sel' }, h('option', { value: '', disabled: true, selected: !S.deviceRole }, '— nevybráno —'),
         DEVICE_ROLES.map(r => h('option', { value: r.id, selected: r.id === S.deviceRole }, r.name)));
-      roleSel.onchange = () => { applyDeviceRole(roleSel.value); toast('Uloženo: ' + roleName(roleSel.value), 'ok'); };
+      roleSel.onchange = () => {
+        applyDeviceRole(roleSel.value);
+        if (App.isStage()) sessionStorage.setItem('unlocked', '1');   // teď jsem v úpravách: zamkne se až při otevření čtečky
+        toast('Uloženo: ' + roleName(roleSel.value) + (App.isStage() ? ' – do úprav pak jen s PINem' + (S.pinHash ? '' : ' (zvolíš ho při příštím vstupu)') : ''), 'ok', 5000);
+      };
       const scrSel = h('select', { class: 'inp set-sel' }, [Screens.auto(), ...Screens.list()].map(sc => h('option', { value: sc.id, selected: sc.id === Screens.myId() }, Screens.label(sc))));
       scrSel.onchange = () => { Settings.set('screenId', scrSel.value); toast('Toto zařízení: ' + Screens.mine().name, 'ok'); paint(); };
       const singerSel = h('select', { class: 'inp set-sel' }, h('option', { value: '' }, '— nikdo / nezvýrazňovat —'),
@@ -574,6 +578,8 @@ const SettingsView = {
       h('div', { class: 'set-rows' },
         setRow('Verze', null, h('b', {}, APP_VERSION)),
         setRow('Druh', null, h('span', {}, window.native ? 'program pro Windows' : (matchMedia('(display-mode: standalone)').matches || navigator.standalone ? 'nainstalovaná aplikace' : 'webová verze'))),
+        window.native ? setRow('Grafika', gpuSoft() ? 'Bez grafické karty je vykreslování pomalejší – čtečka proto vypne animace. Pomůže aktualizace ovladače grafiky.' : null,
+          h('span', {}, gpuSoft() ? 'softwarové vykreslování' : 'grafická karta (plynulé)')) : null,
         setRow('Adresa aplikace', 'Stejná aplikace pro telefon, tablet i počítač.', h('a', { href: appUrl(), target: '_blank' }, appUrl().replace(/^https:\/\//, '')))));
   },
 };

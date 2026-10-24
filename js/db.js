@@ -44,6 +44,7 @@ const DEFAULT_SETTINGS = {
   readerRotate: 0,               // otočení obrazu čtečky (když Windows obrazovku neotáčí)
   readerFullscreen: true,        // čtečka automaticky přes celou obrazovku
   startInReader: false,          // po otevření aplikace rovnou čtečka (pro PC čtečky)
+  readerPos: null,               // kde čtečka naposledy skončila { pl, song, idx, page } – tlačítko Pokračovat
   swapMouse: false,              // prohodit levé/pravé tlačítko myši
   wheelNav: false,               // listovat kolečkem myši
   hideCursor: true,

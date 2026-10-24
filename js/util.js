@@ -53,6 +53,16 @@ function plural(n, one, few, many) { return n + ' ' + (n === 1 ? one : n >= 2 &&
 function screenPx() { return [Math.round(screen.width * devicePixelRatio), Math.round(screen.height * devicePixelRatio)]; }
 
 function isMobile() { return window.matchMedia('(max-width: 820px)').matches; }
+/* práce na později, až prohlížeč nemá co dělat (ne uprostřed animace nebo hned po otočení stránky) */
+function idle(fn) { if (window.requestIdleCallback) requestIdleCallback(fn, { timeout: 1500 }); else setTimeout(fn, 200); }
+/* program bez hardwarové grafiky (ovladač chybí nebo je na černé listině): animace by se trhaly */
+function gpuSoft() {
+  if (gpuSoft.v === undefined) {
+    try { const g = window.native && window.native.gpuStatus ? window.native.gpuStatus() : null; gpuSoft.v = !!g && !/^enabled/.test(g.compositing); }
+    catch (e) { gpuSoft.v = false; }
+  }
+  return gpuSoft.v;
+}
 
 function clone(o) { return JSON.parse(JSON.stringify(o)); }
 
@@ -337,6 +347,20 @@ function chooseDlg(title, opts) {
 
 function confirmDlg(text, okLabel = 'Ano', danger = false) {
   return modal({ title: 'Potvrzení', body: h('p', {}, text), buttons: [{ label: 'Zrušit', value: false }, { label: okLabel, value: true, primary: true, danger }] });
+}
+
+/* Pole s heslem / PINem: vedle něj oko, které zadaný text ukáže (a zase skryje) */
+function pwField(inp) {
+  const eye = h('button', { type: 'button', class: 'btn icon pw-eye', tabindex: '-1', onmousedown: e => e.preventDefault() });
+  const paint = () => {
+    const shown = inp.type === 'text';
+    eye.replaceChildren(ic(shown ? 'eyeoff' : 'eye'));
+    eye.title = shown ? 'Skrýt zadaný text' : 'Ukázat zadaný text';
+    eye.setAttribute('aria-pressed', String(shown));
+  };
+  eye.onclick = () => { inp.type = inp.type === 'password' ? 'text' : 'password'; paint(); inp.focus(); };
+  paint();
+  return h('span', { class: 'pw-wrap' }, inp, eye);
 }
 
 function promptDlg(title, value = '', placeholder = '') {

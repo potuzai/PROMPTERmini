@@ -6,12 +6,23 @@ const READER_HELP = [
   ['Pedál (tlačítka myši)', [
     ['Pravé', 'další stránka, na konci písně další píseň'], ['Levé', 'předchozí stránka'],
     ['Podržet levé, nebo oba najednou', 'playlist a nabídka'], ['Rychlé šlápnutí za sebou', 'každé se počítá – rychlý přesun'], ['Prostřední', 'playlist a nabídka'], ['Prázdný playlist: kterékoli', 'výběr playlistu'],
-    ['V nabídce: levé / pravé', 'předchozí / další položka'], ['V nabídce: podržet pravé', 'potvrdit'], ['V nabídce: podržet levé', 'zpět, zavřít nabídku']]],
+    ['V nabídce: levé / pravé', 'předchozí / další položka'], ['V nabídce: podržet pravé', 'potvrdit'], ['V nabídce: podržet levé', 'zpět, zavřít nabídku'],
+    ['V nabídce: oba najednou', 'na tlačítka dole (znovu = zpět do seznamu)'], ['Při listování', 'dole se na chvíli ukáže lišta: předchozí a další píseň, ladění, BPM, délka']]],
   ['Airmouse a klávesnice', [
     ['→ ↓ PgDn mezera Enter', 'další stránka'], ['← ↑ PgUp', 'předchozí stránka'], ['Shift + → / ←', 'další / předchozí píseň'],
     ['Tab / L', 'seznam písní (číslem skok na píseň)'], ['P', 'jiný playlist'], ['Q / klávesa Menu', 'nabídka'], ['S', 'stáhnout změny'],
     ['E, E', 'upravit píseň'], ['F', 'celá obrazovka (ukončit: F, F)'], ['Esc, Esc', 'zavřít čtečku'], ['H', 'tato nápověda']]],
 ];
+
+/* Údaje písně do řádku playlistu a do lišty: barevné ladění, tempo, délka, kdo zpívá (prázdné místo drží zarovnání) */
+function songMeta(s) {
+  return [
+    h('span', { class: 'rm-key' }, s.key ? keyBadge(s.key) : null),
+    h('span', { class: 'rm-bpm' }, s.tempo ? s.tempo + ' BPM' : ''),
+    h('span', { class: 'rm-dur' }, durSec(s) ? s.duration : ''),
+    h('span', { class: 'rm-sing sl-dots' }, songSingers(s).map(g => h('i', { title: g.name, style: { background: g.color } }))),
+  ];
+}
 
 const Reader = {
   el: null, wrap: null, stage: null, stageTplKey: '',
@@ -25,6 +36,8 @@ const Reader = {
     this.el.appendChild(this.wrap);
     document.body.appendChild(this.el);
     this.el.addEventListener('contextmenu', e => e.preventDefault());
+    if (gpuSoft()) this.el.classList.add('lowfx');   // bez grafické karty: žádné animace ani stíny
+    addEventListener('pagehide', () => this.flushPos());
     this.el.addEventListener('mousedown', e => this.onMouse(e));
     // tlačítka myši zpět / vpřed (pedál, airmouse) nesmí čtečku opustit
     for (const ev of ['mouseup', 'auxclick']) this.el.addEventListener(ev, e => { if (e.button === 3 || e.button === 4) e.preventDefault(); });
@@ -38,7 +51,9 @@ const Reader = {
       const kd = this.keyDown;
       if (!kd || kd.k !== e.key) return;
       this.keyDown = null;
-      if (kd.back && !kd.fired && this.isOpen() && !this.menu) this.prev();
+      if (!this.isOpen()) return;
+      if (kd.menu) { if (this.menu) { this.menu.el.classList.remove('holding'); if (!kd.fired) this.menuStep(kd.fwd ? 1 : -1, kd.step); } return; }
+      if (kd.back && !kd.fired && !this.menu) { this.prev(); this.showBar(); }
     });
     window.addEventListener('resize', () => {
       if (!this.isOpen()) return;
@@ -61,7 +76,8 @@ const Reader = {
 
   isOpen() { return !this.el.classList.contains('hidden'); },
 
-  open(plId, songIdx = 0) {
+  /* songId: otevřít na této písni (když v playlistu je), jinak na pořadí songIdx */
+  open(plId, songIdx = 0, pageIdx = 0, songId = '') {
     this.el.classList.remove('hidden');
     this.cache.clear();
     this.wakeCursor();
@@ -70,18 +86,20 @@ const Reader = {
       this._synced = true;
       Sync.run().then(r => { if (r && r.downloaded && this.isOpen()) this.flash(`Staženo ${r.downloaded} změn`); }).catch(() => {});
     }
-    if (!plId) { this.showStartMenu(); return; }
+    if (!plId) { this.plId = null; this.items = []; this.stage = null; this.wrap.innerHTML = ''; if (this.hud) this.hud.classList.add('off'); this.showStartMenu(); return; }   // vždy čistý výběr playlistu
     this.plId = plId;
     if (!plId.startsWith('song:')) Settings.set('lastPlaylist', plId);
     this.loadItems();
-    this.songIdx = Math.max(0, Math.min(songIdx | 0, this.items.length - 1));
-    this.pageIdx = 0;
+    const at = songId ? this.items.indexOf(songId) : -1;
+    this.songIdx = at >= 0 ? at : Math.max(0, Math.min(songIdx | 0, this.items.length - 1));
+    this.pageIdx = Math.max(0, pageIdx | 0);
     this.closeMenu();
     this.shownSong = null;
     this.render();
   },
 
   close() {
+    this.flushPos();
     this.el.classList.add('hidden');
     this.closeMenu();
     if (document.fullscreenElement && !window.native) document.exitFullscreen().catch(() => {});
@@ -164,8 +182,31 @@ const Reader = {
     this.fit();
     this.paintBar();
     this.paintHud(cur, nextSong);
-    // předpočítat další píseň, ať je listování okamžité
-    if (nextSong) setTimeout(() => { try { this.layoutFor(nextSong, this.tplFor(nextSong)); } catch (e) { /* nic */ } }, 50);
+    this.savePos();
+    // předpočítat další píseň, ať je listování okamžité – až v klidu, ne hned po otočení stránky (to by trhalo)
+    if (nextSong) idle(() => { try { if (this.isOpen()) this.layoutFor(nextSong, this.tplFor(nextSong)); } catch (e) { /* nic */ } });
+  },
+
+  /* Kde se naposledy skončilo (tlačítko Pokračovat): uloží se chvíli po listování, ne při každém šlápnutí */
+  savePos() {
+    if (!this.plId || this.plId.startsWith('song:') || !this.items.length) return;
+    this.pos = { pl: this.plId, song: this.items[this.songIdx], idx: this.songIdx, page: this.pageIdx };
+    clearTimeout(this.posT);
+    this.posT = setTimeout(() => this.flushPos(), 3000);
+  },
+  flushPos() { clearTimeout(this.posT); if (this.pos) { Settings.set('readerPos', this.pos); this.pos = null; } },
+  lastPos() {
+    const p = this.pos || Settings.get('readerPos');
+    return p && p.pl && (p.pl === 'all' || Store.playlists.has(p.pl)) ? p : null;
+  },
+  resume() {
+    const p = this.lastPos();
+    if (!p) return this.flash('Zatím není kde pokračovat – vyber playlist');
+    this.open(p.pl, p.idx, p.page, p.song);
+  },
+  resumeLabel() {
+    const p = this.lastPos(), s = p && Store.songs.get(p.song);
+    return p ? (p.pl === 'all' ? 'Všechny písně' : (Store.playlists.get(p.pl) || {}).name || '') + (s ? ' · ' + s.title : '') : '';
   },
 
   fit() {
@@ -298,7 +339,7 @@ const Reader = {
     const np = this.press = { b, start: now, down: true, pos: [this.songIdx, this.pageIdx] };
     if (!this.items.length) { np.fired = true; return this.showStartMenu(); }
     if (b === 1) { np.fired = true; return this.showJumpMenu(); }
-    if (b === 2 || b === 4) return this.next();
+    if (b === 2 || b === 4) { this.next(); return this.showBar(); }
     np.back = true;   // zpět až při puštění
     clearTimeout(this.holdT);
     this.holdT = setTimeout(() => {   // podržený levý = playlist (nic se předtím neposune)
@@ -309,7 +350,7 @@ const Reader = {
     const p = this.press;
     if (!p || p.b !== b) return;
     p.down = false; p.up = Date.now();
-    if (p.back && !p.fired) { p.fired = true; clearTimeout(this.holdT); this.prev(); }
+    if (p.back && !p.fired) { p.fired = true; clearTimeout(this.holdT); this.prev(); this.showBar(); }
   },
   /* zákmit kontaktu: stejné tlačítko znovu dole hned po puštění */
   bounce(p, b, now) { return !!(p && p.b === b && !p.down && now - (p.up || 0) < 40); },
@@ -351,9 +392,10 @@ const Reader = {
     }
     this.keyDown = { k, t: Date.now(), fired: false, pos: [this.songIdx, this.pageIdx] };
     const leave = () => this.confirm2('esc', 'Zavřít čtečku? Stiskni znovu Esc', () => this.exit());
+    const fwd = () => { this.next(); this.showBar(); };
     const map = {
-      ArrowRight: () => e.shiftKey ? this.nextSong() : this.next(),
-      ArrowDown: () => this.next(), PageDown: () => this.next(), ' ': () => this.next(), Enter: () => this.next(),
+      ArrowRight: () => e.shiftKey ? this.nextSong() : fwd(),
+      ArrowDown: fwd, PageDown: fwd, ' ': fwd, Enter: fwd,
       ArrowLeft: () => e.shiftKey ? this.prevSong() : this.keyBack(),
       ArrowUp: () => this.keyBack(), PageUp: () => this.keyBack(), Backspace: () => this.keyBack(),
       Home: () => { this.pageIdx = 0; this.render(); },
@@ -366,7 +408,7 @@ const Reader = {
       p: () => this.showStartMenu(),
       f: () => this.isFullscreenLike() ? this.confirm2('f', 'Ukončit celou obrazovku? Stiskni znovu F', () => this.toggleFullscreen()) : this.toggleFullscreen(),
       q: () => this.showQuickMenu(), ContextMenu: () => this.showQuickMenu(),
-      e: () => App.canEdit() && this.current() ? this.confirm2('e', 'Upravit píseň (opustí čtečku)? Stiskni znovu E', () => this.editCurrent()) : null,
+      e: () => this.current() ? this.confirm2('e', 'Upravit píseň (opustí čtečku)? Stiskni znovu E', () => this.editCurrent()) : null,
       s: () => this.syncNow(),
       h: () => this.showHelp(), '?': () => this.showHelp(),
     };
@@ -399,11 +441,11 @@ const Reader = {
       h('div', { class: 'r-foot' }, tools, h('div', { class: 'r-hint' }, hint || ''))));
     options.forEach(o => {
       const el = o.foot
-        ? h('div', { class: 'r-opt r-tool' + (o.cls ? ' ' + o.cls : ''), title: o.label + (o.key ? ' (' + o.key + ')' : '') }, ic(o.icon), h('span', {}, o.label), o.key ? h('kbd', {}, o.key) : null)
+        ? h('div', { class: 'r-opt r-tool' + (o.cls ? ' ' + o.cls : ''), title: o.title || o.label + (o.key ? ' (' + o.key + ')' : '') }, ic(o.icon), h('span', {}, o.label), o.key ? h('kbd', {}, o.key) : null)
         : h('div', { class: 'r-opt' + (o.cls ? ' ' + o.cls : '') },
           o.icon ? ic(o.icon) : o.n !== '' && o.n != null ? h('span', { class: 'n' }, o.n) : null,
           h('span', { class: 'r-t' }, h('span', { class: 'r-l' }, o.label), o.sub ? h('span', { class: 'r-sub' }, o.sub) : null),
-          o.chips && o.chips.length ? h('span', { class: 'r-chips' }, o.chips.map(c => h('i', {}, c))) : null,
+          o.meta ? h('span', { class: 'r-meta' }, o.meta) : null,
           o.badge ? h('span', { class: 'r-badge' }, o.badge) : null,
           o.key ? h('kbd', {}, o.key) : null);
       (o.foot ? tools : list).appendChild(el);
@@ -423,6 +465,13 @@ const Reader = {
       back: () => opt.back ? opt.back() : this.plId ? this.closeMenu(true) : this.exit(),   // Esc, podržet levý pedál, klik vedle
       els: () => [...list.children, ...tools.children],
       pick: () => { const o = options[m.sel]; if (o) onPick(o); },
+      // oba pedály najednou: skok na tlačítka dole, znovu = zpět na položku v seznamu
+      foot: () => {
+        const nl = list.children.length;
+        if (!tools.children.length) return;
+        if (m.sel < nl) { m.listSel = m.sel; m.sel = nl; } else m.sel = Math.min(m.listSel || 0, nl - 1);
+        m.paint();
+      },
       paint: (scroll = true) => {
         const all = m.els();
         all.forEach((x, i) => x.classList.toggle('sel', i === m.sel));
@@ -470,6 +519,11 @@ const Reader = {
     }
     if (b === 1) { this.press = { b, start: now, down: true, fired: true, menu: true }; return m.pick(); }
     if (b !== 0 && b !== 2) return;
+    if (p && p.menu && p.down && p.b !== b && !p.fired) {   // oba najednou = tlačítka dole (a zpět)
+      p.fired = true; clearTimeout(this.holdT); m.el.classList.remove('holding');
+      this.press = { b, start: now, down: true, fired: true, menu: true };
+      return m.foot();
+    }
     const np = this.press = { b, start: now, down: true, menu: true };
     clearTimeout(this.holdT);
     m.el.classList.add('holding');
@@ -485,27 +539,39 @@ const Reader = {
     p.down = false; p.up = Date.now();
     if (!m || p.fired || !p.menu) return;   // podržení už se provedlo (nebo dozvuk podržení z textu)
     p.fired = true; clearTimeout(this.holdT); m.el.classList.remove('holding');
-    m.sel = b === 2 ? Math.min(m.options.length - 1, m.sel + 1) : Math.max(0, m.sel - 1);
+    this.menuStep(b === 2 ? 1 : -1);
+  },
+  menuStep(d, step = 1) {
+    const m = this.menu;
+    if (!m) return;
+    m.sel = Math.max(0, Math.min(m.options.length - 1, m.sel + d * step));
     m.paint();
   },
   menuKey(e) {
     const m = this.menu;
     const k = e.key;
     this.menuTouch();
-    // pedál, který posílá klávesy: držená klávesa se neopakuje (nelistuje), po 0,6 s vpřed = potvrdit, zpět = zpět
+    /* Šipky a PgUp/PgDn (i pedál, který posílá klávesy) posunou výběr až při puštění – podržená klávesa tak nic
+       neposune a po 0,6 s potvrdí (vpřed) nebo vrátí (zpět) tu položku, na které výběr stojí.
+       Vpřed i zpět najednou = tlačítka dole. */
     const fwd = ['ArrowDown', 'ArrowRight', 'PageDown'].includes(k), bwd = ['ArrowUp', 'ArrowLeft', 'PageUp'].includes(k);
-    if ((fwd || bwd) && e.repeat) {
+    if (fwd || bwd) {
       e.preventDefault();
       const kd = this.keyDown;
-      if (kd && kd.k === k && !kd.fired && Date.now() - kd.t >= 600) { kd.fired = true; if (fwd) m.pick(); else m.back(); }
+      if (e.repeat) {
+        if (kd && kd.k === k && kd.menu && !kd.fired && Date.now() - kd.t >= 600) { kd.fired = true; m.el.classList.remove('holding'); if (fwd) m.pick(); else m.back(); }
+        return;
+      }
+      if (kd && kd.menu && !kd.fired && kd.k !== k && kd.fwd !== fwd) {
+        kd.fired = true; m.el.classList.remove('holding');
+        this.keyDown = { k, t: Date.now(), fired: true, menu: true, fwd };
+        return m.foot();
+      }
+      this.keyDown = { k, t: Date.now(), fired: false, menu: true, fwd, step: m.grid && (k === 'ArrowDown' || k === 'ArrowUp') ? 2 : 1 };
+      m.el.classList.add('holding');
       return;
     }
-    if (fwd || bwd) this.keyDown = { k, t: Date.now(), fired: false };
-    const step = m.grid && (k === 'ArrowDown' || k === 'ArrowUp') ? 2 : 1;
-    if (k === 'ArrowDown' || k === 'ArrowRight' || (k === 'Tab' && !e.shiftKey)) { m.sel = Math.min(m.options.length - 1, m.sel + step); m.paint(); }
-    else if (k === 'ArrowUp' || k === 'ArrowLeft' || (k === 'Tab' && e.shiftKey)) { m.sel = Math.max(0, m.sel - step); m.paint(); }
-    else if (k === 'PageDown') { m.sel = Math.min(m.options.length - 1, m.sel + 1); m.paint(); }
-    else if (k === 'PageUp') { m.sel = Math.max(0, m.sel - 1); m.paint(); }
+    if (k === 'Tab') { this.menuStep(e.shiftKey ? -1 : 1); }
     else if (k === 'Home') { m.sel = 0; m.paint(); }
     else if (k === 'End') { m.sel = m.options.length - 1; m.paint(); }
     else if (k === 'Enter' || k === ' ') m.pick();
@@ -522,59 +588,99 @@ const Reader = {
     e.preventDefault();
   },
 
-  /* Úvodní obrazovka: playlisty jako velké karty (oblíbené první, naposledy hraný vybraný) */
-  showStartMenu() {
+  /* Úvodní obrazovka: Všechny písně, oblíbené playlisty, ostatní až po rozbalení; dole Pokračovat (vybrané) a nabídka.
+     sel = index položky, která má být vybraná (po překreslení) */
+  showStartMenu(sel) {
     const last = Settings.get('lastPlaylist'), pls = Store.sortedPlaylists();
-    const fav = pls.filter(isReadyPl).sort((a, b) => a.ready - b.ready);
-    const opts = [...fav, ...pls.filter(p => !isReadyPl(p))].map(p => ({ id: p.id, label: p.name || '(bez názvu)',
+    const fav = pls.filter(isReadyPl).sort((a, b) => a.ready - b.ready), rest = pls.filter(p => !isReadyPl(p));
+    const card = p => ({ id: p.id, label: p.name || '(bez názvu)',
       sub: [p.date ? new Date(p.date).toLocaleDateString('cs-CZ') : '', plural(p.items.length, 'píseň', 'písně', 'písní')].filter(Boolean).join(' · '),
-      badge: p.id === last ? 'naposledy' : '', cls: isReadyPl(p) ? 'fav' : '' }));
-    opts.push({ id: 'all', label: 'Všechny písně', sub: 'A–Z · ' + plural(Store.songs.size, 'píseň', 'písně', 'písní'), cls: 'all' });
+      badge: p.id === last ? 'naposledy' : '', cls: isReadyPl(p) ? 'fav' : '' });
+    const opts = [{ id: 'all', label: 'Všechny písně', sub: 'podle interpreta · ' + plural(Store.songs.size, 'píseň', 'písně', 'písní'), badge: last === 'all' ? 'naposledy' : '', cls: 'all' },
+      ...fav.map(card)];
+    if (rest.length) opts.push({ id: '__pls', icon: this.startAll ? 'up' : 'down', label: this.startAll ? 'Skrýt ostatní playlisty' : 'Všechny playlisty',
+      sub: plural(rest.length, 'další playlist', 'další playlisty', 'dalších playlistů'), cls: 'r-expand' });
+    if (this.startAll) opts.push(...rest.map(card));
     opts.forEach((o, i) => { o.n = i + 1; });
+    const resume = this.lastPos();
+    if (resume) opts.push({ id: '__cont', icon: 'cont', label: 'Pokračovat', foot: true, cls: 'go', title: 'Pokračovat, kde se skončilo: ' + this.resumeLabel() });
     if (Sync.enabled()) opts.push({ id: '__sync', icon: 'sync', label: 'Stáhnout změny', key: 'S', foot: true });
-    if (App.canEdit()) opts.push({ id: '__edit', icon: 'edit', label: 'Upravit písně', foot: true });
-    opts.push({ id: '__help', icon: 'help', label: 'Nápověda', foot: true });
-    if (window.native) opts.push({ id: '__min', icon: 'down', label: 'Minimalizovat', foot: true }, { id: '__quit', icon: 'power', label: 'Ukončit', foot: true, cls: 'danger' });
-    this.showMenu('Vyber playlist', opts, Math.max(0, opts.findIndex(o => o.id === last)), o => {
-      if (o.id === '__quit') return window.native.quit();
-      if (o.id === '__min') return window.native.minimize();
-      if (o.id === '__edit') { this.closeMenu(); return this.exit(); }
+    opts.push(this.screenTool(), { id: '__menu', icon: 'more', label: 'Další', foot: true, title: 'Upravit písně a playlisty, nápověda, ukončit' });
+    const def = resume ? opts.findIndex(o => o.id === '__cont') : Math.max(0, opts.findIndex(o => o.id === last));
+    this.showMenu('Vyber playlist', opts, sel >= 0 && sel < opts.length ? sel : def, o => {
+      const at = this.menu ? this.menu.sel : 0;
+      if (o.id === '__cont') return this.resume();
+      if (o.id === '__pls') { this.startAll = !this.startAll; return this.showStartMenu(at); }
       if (o.id === '__sync') return this.syncNow();
-      if (o.id === '__help') return this.showHelp(() => this.showStartMenu());
+      if (o.id === '__min') return window.native.minimize();
+      if (o.id === '__fs') { this.toggleFullscreen(); return setTimeout(() => { if (this.menu && !this.plId) this.showStartMenu(at); }, 500); }
+      if (o.id === '__menu') return this.showMore('start', () => this.showStartMenu(at));
       this.open(o.id, 0);
-    }, 'Šipky nebo pedál vybrat · OK nebo podržet pravý pedál = spustit od první písně', { layout: 'full', grid: true, cls: 'r-start', kicker: 'PROMPTER mini', stay: true });
+    }, 'Pedál ◀ ▶ vybrat · podržet ▶ spustit · oba najednou = tlačítka dole', { layout: 'full', grid: true, cls: 'r-start', kicker: 'PROMPTER mini', stay: true, sub: resume ? 'Pokračovat: ' + this.resumeLabel() : '' });
+  },
+  /* jedno tlačítko podle stavu: přes celou obrazovku → Minimalizovat (do Windows), v okně → Celá obrazovka */
+  screenTool() {
+    const full = this.isFullscreenLike();
+    if (window.native && full) return { id: '__min', icon: 'min', label: 'Minimalizovat', foot: true, title: 'Minimalizovat do Windows (po obnovení zase přes celou obrazovku)' };
+    return { id: '__fs', icon: 'full', label: full ? 'Do okna' : 'Celá obrazovka', key: 'F', foot: true };
   },
 
-  /* Playlist (panel vpravo, text písně zůstane vidět): odehrané, hraje, další, přídavky; v patičce celá nabídka.
-     actions = otevřít rovnou na nabídce (Q, klávesa Menu) */
+  /* Playlist (panel vpravo, text písně zůstane vidět): odehrané, hraje, další, přídavky; dole Pokračovat a nabídka.
+     actions = otevřít rovnou na tlačítkách dole (Q, klávesa Menu) */
   showJumpMenu(actions) {
     const opts = this.items.map((id, i) => {
       const s = Store.songs.get(id), st = i < this.songIdx ? 'done' : i === this.songIdx ? 'cur' : i === this.songIdx + 1 ? 'next' : '';
-      return { idx: i, n: i + 1, label: s ? s.title : '?', sub: s ? s.artist || '' : '',
-        chips: s ? [s.key, s.tempo ? s.tempo + ' BPM' : '', s.duration].filter(Boolean) : [],
+      return { idx: i, n: i + 1, label: s ? s.title : '?', sub: s ? s.artist || '' : '', meta: s ? songMeta(s) : null,
         cls: [st, i === this.encoreAt ? 'encore-first' : '', this.encoreAt >= 0 && i >= this.encoreAt ? 'encore' : ''].filter(Boolean).join(' '),
         badge: st === 'cur' ? 'hraje' : st === 'next' ? 'další' : '' };
     });
     const first = opts.length;
+    opts.push({ idx: -3, icon: 'cont', label: 'Pokračovat', foot: true, cls: 'go', title: 'Zpět do textu, kde jsi skončil' });
     opts.push({ idx: -1, icon: 'list', label: 'Jiný playlist', key: 'P', foot: true });
     if (Sync.enabled()) opts.push({ idx: -4, icon: 'sync', label: 'Stáhnout', key: 'S', foot: true });
-    if (App.canEdit() && this.current()) opts.push({ idx: -5, icon: 'edit', label: 'Upravit', foot: true });
-    opts.push({ idx: -6, icon: 'help', label: 'Nápověda', key: 'H', foot: true });
-    opts.push({ idx: -2, icon: 'x', label: 'Zavřít čtečku', foot: true, cls: 'danger' });
+    opts.push({ idx: -7, icon: 'more', label: 'Další', foot: true, title: 'Upravit píseň nebo playlist, nápověda, nastavení' });
     const n = this.items.length, pct = n ? (this.songIdx + 1) / n * 100 : 0;
     this.showMenu(this.playlistName() || 'Písně', opts, actions ? first : this.songIdx, o => {
+      if (o.idx === -3) return this.closeMenu();
       if (o.idx === -1) return this.showStartMenu();
       if (o.idx === -4) { this.closeMenu(); return this.syncNow(); }
-      if (o.idx === -5) { this.closeMenu(); return this.editCurrent(); }
-      if (o.idx === -6) return this.showHelp(() => this.showJumpMenu());
-      if (o.idx === -2) { this.closeMenu(); return this.exit(); }
+      if (o.idx === -7) return this.showMore('set', () => this.showJumpMenu(true));
       this.closeMenu(); this.songIdx = o.idx; this.pageIdx = 0; this.render();
-    }, 'Pedál ◀ ▶ vybrat · podržet ▶ přejít · podržet ◀ zpět · číslo = skok',
+    }, 'Pedál ◀ ▶ vybrat · podržet ▶ přejít · podržet ◀ zpět · oba najednou = tlačítka dole',
       { layout: 'drawer', cls: 'r-set', kicker: 'Playlist', sub: `Píseň ${this.songIdx + 1} z ${n}`, headExtra: h('div', { class: 'r-prog' }, h('i', { style: { width: pct + '%' } })) });
   },
   showQuickMenu() { this.showJumpMenu(true); },
 
-  editCurrent() { const cur = this.current(); if (cur && App.canEdit()) { this.close(); location.hash = '#/songs/' + cur.song.id; } },
+  /* Nabídka „Další“: méně častá tlačítka (úpravy, nápověda, nastavení / ukončit). where: 'start' | 'set' */
+  showMore(where, back) {
+    const cur = where === 'set' && this.current(), real = this.plId && Store.playlists.has(this.plId);
+    const opts = (where === 'set' ? [
+      cur ? { id: 'song', icon: 'edit', label: 'Upravit píseň', sub: cur.song.title } : null,
+      real ? { id: 'pl', icon: 'list', label: 'Upravit playlist', sub: this.playlistName() } : null,
+      !real ? { id: 'songs', icon: 'song', label: 'Upravit písně', sub: 'seznam písní' } : null,
+      { id: 'help', icon: 'help', label: 'Nápověda', sub: 'ovládání pedálem a klávesami', key: 'H' },
+      { id: 'set', icon: 'sliders', label: 'Nastavení', sub: 'zavře čtečku' },
+    ] : [
+      { id: 'songs', icon: 'song', label: 'Upravit písně', sub: 'seznam písní' },
+      { id: 'pls', icon: 'list', label: 'Upravit playlisty', sub: 'seznam playlistů' },
+      { id: 'help', icon: 'help', label: 'Nápověda', sub: 'ovládání pedálem a klávesami', key: 'H' },
+      window.native ? { id: 'quit', icon: 'power', label: 'Ukončit program', cls: 'danger' } : { id: 'close', icon: 'x', label: 'Zavřít čtečku' },
+    ]).filter(Boolean);
+    this.showMenu('Další možnosti', opts, 0, o => {
+      if (o.id === 'song') return this.editCurrent();
+      if (o.id === 'pl') return this.leaveTo('#/playlists/' + encodeURIComponent(this.plId));
+      if (o.id === 'songs') return this.leaveTo('#/songs');
+      if (o.id === 'pls') return this.leaveTo('#/playlists');
+      if (o.id === 'set') return this.leaveTo('#/settings');
+      if (o.id === 'help') return this.showHelp(() => this.showMore(where, back));
+      if (o.id === 'quit') return App.quit();
+      if (o.id === 'close') { this.closeMenu(); return this.exit(); }
+    }, 'Podržet ▶ vybrat · podržet ◀ zpět', { cls: 'r-more', back });
+  },
+
+  editCurrent() { const cur = this.current(); if (cur) this.leaveTo('#/songs/' + cur.song.id); },
+  // do úprav (s PINem se App zeptá; špatný PIN = zpět do čtečky)
+  leaveTo(hash) { this.closeMenu(); this.close(); location.hash = hash; },
 
   /* Ovládací lišta dole – ukáže se, když myš sjede do spodní části obrazovky */
   showBar() {
@@ -588,7 +694,8 @@ const Reader = {
         this.barInfo,
         this.bNextPage = b('right', 'Další stránka', () => this.next()), this.bNextSong = b('skipf', 'Další píseň (Shift + →)', () => this.nextSong()),
         h('span', { class: 'r-bsep' }),
-        b('list', 'Playlist a nabídka (Tab)', () => this.items.length ? this.showJumpMenu() : this.showStartMenu(), 'wide'));
+        b('list', 'Playlist a nabídka (Tab, podržet levé tlačítko)', () => this.items.length ? this.showJumpMenu() : this.showStartMenu(), 'wide'));
+      $('.r-bbtn.wide', this.bar).append(h('small', {}, 'podrž levé'));
       this.progress = h('div', { class: 'r-progress' }, h('i'));
       // kurzor na liště: lišta (i kurzor) nezmizí, dokud z ní neodjede
       this.bar.addEventListener('mouseenter', () => { this.barHover = true; clearTimeout(this.barT); });
@@ -609,9 +716,14 @@ const Reader = {
     this.bPrevPage.classList.toggle('off', n < 2); this.bNextPage.classList.toggle('off', n < 2);
     this.bPrevSong.classList.toggle('off', !cur); this.bNextSong.classList.toggle('off', !cur);
     this.bPrevSong.disabled = this.songIdx <= 0; this.bNextSong.disabled = this.songIdx >= this.items.length - 1;
-    this.barInfo.innerHTML = '';
-    if (!cur) this.barInfo.append(h('b', {}, 'Prázdný playlist'), h('span', {}, 'tlačítko vpravo = jiný playlist'));
-    else this.barInfo.append(h('b', {}, cur.song.title), h('span', {}, `Píseň ${this.songIdx + 1} / ${this.items.length}` + (n > 1 ? ` · strana ${this.pageIdx + 1} / ${n}` : '')));
+    const n1 = this.items.length, prevS = Store.songs.get(this.items[this.songIdx - 1]), nextS = Store.songs.get(this.items[this.songIdx + 1]);
+    const side = (cls, lbl, song, none) => h('div', { class: 'r-bside ' + cls }, h('small', {}, lbl), h('span', {}, song ? song.title : none));
+    if (!cur) this.barInfo.replaceChildren(h('div', { class: 'r-bcur' }, h('b', {}, 'Prázdný playlist'), h('span', {}, 'tlačítko vpravo = jiný playlist')));
+    else this.barInfo.replaceChildren(
+      side('prev', 'Předchozí', prevS, '—'),
+      h('div', { class: 'r-bcur' }, h('b', {}, cur.song.title),
+        h('span', { class: 'r-bmeta' }, ...songMeta(cur.song), h('em', {}, `${this.songIdx + 1}/${n1}` + (n > 1 ? ` · str. ${this.pageIdx + 1}/${n}` : '')))),
+      side('next', 'Další', nextS, 'konec playlistu'));
     $('i', this.progress).style.width = (this.items.length ? (this.songIdx + (this.pageIdx + 1) / n) / this.items.length * 100 : 0) + '%';
   },
 
