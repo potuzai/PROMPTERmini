@@ -144,6 +144,7 @@
     .fab:hover { opacity: 1; border-color: #e8493f; }
     .fab.on { background: #e8493f; border-color: #e8493f; color: #fff; opacity: 1; }
     .fab svg { width: 16px; height: 16px; flex: none; }
+    @media (max-width: 820px) { .fab { width: 40px; height: 40px; padding: 0; justify-content: center; border-radius: 50%; } .fab span { display: none; } .fab svg { width: 20px; height: 20px; } }
     .box { position: fixed; z-index: 1; pointer-events: none; border: 2px dashed #e8493f; background: rgba(232,73,63,.10);
       border-radius: 3px; display: none; }
     .box.sel { border-style: solid; background: rgba(232,73,63,.16); }
@@ -244,7 +245,12 @@
   }
   function placeFab(p) {
     const f = ui.fab, w = f.offsetWidth || 90, hh = f.offsetHeight || 36;
-    if (!p) { f.style.left = ''; f.style.top = ''; f.style.right = '16px'; f.style.bottom = innerWidth <= 820 ? '78px' : '16px'; return; }   // v telefonu nad spodní navigací
+    if (!p) {   // v telefonu u pravého okraje uprostřed výšky – dole jsou navigace a ovládání editoru
+      const phone = matchMedia('(max-width: 820px)').matches;
+      f.style.left = ''; f.style.right = phone ? '6px' : '16px';
+      f.style.top = phone ? '46%' : ''; f.style.bottom = phone ? '' : '16px';
+      return;
+    }
     f.style.right = ''; f.style.bottom = '';
     f.style.left = Math.max(4, Math.min(innerWidth - w - 4, p.x)) + 'px';
     f.style.top = Math.max(4, Math.min(innerHeight - hh - 4, p.y)) + 'px';

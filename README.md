@@ -153,7 +153,7 @@ V editoru vpravo v části **Náhled** přepínáš obrazovku a vidíš píseň 
 
 ### V telefonu
 
-Navigace je dole (Playlisty, Písně, Čtečka, Šablony, Nastavení). Playlist je přehledná karta (＋ Přidat, Uložit, ⋯, ▶ Čtečka; pořadí změníš klepnutím na číslo). Editor písně má nahoře jednu řadu: zpět, přepínač **Text | Údaje**, čtečka, ⋯ a uložit. **Text** = lišta úprav (posun prstem), zpěváci a stránka na celou šířku displeje; **Údaje** = údaje písně, stránka písně, struktura (klepnutí na sekci vrátí na její text), poznámky a náhled. Nabídky se otevírají pod tlačítkem přes celou šířku, okna s otázkou nahoře (klávesnice je nepřekryje) s velkými tlačítky.
+Navigace je dole (Playlisty, Písně, Čtečka, Šablony, Nastavení). Playlist je přehledná karta (＋ Přidat, Uložit, ⋯, ▶ Čtečka; pořadí změníš klepnutím na číslo). Editor písně má nahoře jednu řadu: zpět, přepínač **Text | Údaje**, čtečka, ⋯ a uložit; spodní navigace se v editoru schová. **Text** = stránka na celou šířku displeje a dole na dosah palce **Zpět**, **Znovu**, **Písmo** a **Zpěváci** – Písmo a Zpěváci otevřou nad nimi panel s velkými popsanými ovládacími prvky (písmo, barva a styl, velikost, rozestup, řádkování, mezera, zarovnání; zpěváci vybraného řádku), stránka zůstane vidět a řádky jde dál vybírat; **Údaje** = údaje písně, stránka písně, struktura (klepnutí na sekci vrátí na její text), poznámky a náhled. Nabídky se otevírají pod tlačítkem přes celou šířku, okna s otázkou nahoře (klávesnice je nepřekryje) s velkými tlačítky.
 
 ## 3. Sdílení s kapelou
 

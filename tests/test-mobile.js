@@ -38,6 +38,14 @@ const URL = process.env.APP_URL || 'http://localhost:8123/index.html';
   assert(await p.isVisible('.ed-left-panel .ep-meta') && !(await p.isVisible('.se-wrap')), 'záložka Údaje: údaje a struktura písně');
   await p.tap('.m-tabs [data-k=text]'); await sleep(200);
   assert(await p.isVisible('.se-wrap'), 'záložka Text: zpět na stránku');
+  // dole dok pro palec (Zpět, Znovu, Písmo, Zpěváci), spodní navigace aplikace se v editoru schová
+  assert(await p.isVisible('.m-dock .m-dk:has-text("Písmo")') && !(await p.isVisible('#topbar')) && !(await p.isVisible('.ed-tools')), 'editor v telefonu: dok dole, bez lišty nahoře a bez navigace');
+  await p.tap('.m-dk:has-text("Písmo")'); await sleep(200);
+  assert(await p.isVisible('.m-panel .m-row:has-text("Velikost písma") .tl-step') && await p.isVisible('.m-panel .m-row:has-text("Písmo") select'), 'Písmo: panel s popsanými řádky');
+  await p.tap('.m-dk:has-text("Zpěváci")'); await sleep(200);
+  assert(await p.isVisible('.m-panel .m-sing .sw') && !(await p.isVisible('.m-panel .m-row')), 'Zpěváci: panel se zpěváky řádku');
+  await p.tap('.m-panel-head .btn'); await sleep(200);
+  assert(!(await p.isVisible('.m-panel')), 'panel jde zavřít');
   await p.tap('.m-head button[title^="Další volby písně"]'); await sleep(200);
   assert(await p.evaluate(() => { const m = document.querySelector('.menu.m-sheet'), b = document.querySelector('.m-head button[title^="Další volby písně"]'); return !!m && m.getBoundingClientRect().top >= b.getBoundingClientRect().bottom && m.offsetWidth > innerWidth - 20; }), 'nabídka v telefonu shora pod tlačítkem přes celou šířku');
   await p.tap('.m-head .ep-back'); await sleep(300);

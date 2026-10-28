@@ -186,8 +186,8 @@ class SongEditor {
           } }, ic('save'))))),
       h('div', { class: 'ep-group' }, h('div', { class: 'ep-lbl ep-lbl-row' }, h('span', {}, 'Struktura'),
         h('button', { class: 'btn small nogrow', title: 'Nová sekce u vybraného řádku – označené řádky (tažením myší) budou celá sekce', onclick: () => this.addSection() }, '＋ Sekce'),
-        h('button', { class: 'btn small nogrow', title: 'Zopakovat sekci (např. refrén) u vybraného řádku – ve čtečce se vypíše celá', onclick: e => this.insertRepeat(e.currentTarget) }, '↻'),
-        h('button', { class: 'btn small icon nogrow', title: 'Sekce této písně: nadpisy, mezera mezi slokami, barvy sloky / refrénu / mezičásti', onclick: e => this.sectionPopover(e.currentTarget) }, ic('sliders'))),
+        h('button', { class: 'btn small nogrow ep-rep', title: 'Zopakovat sekci (např. refrén) u vybraného řádku – ve čtečce se vypíše celá', onclick: e => this.insertRepeat(e.currentTarget) }, '↻'),
+        h('button', { class: 'btn small icon nogrow ep-secset', title: 'Sekce této písně: nadpisy, mezera mezi slokami, barvy sloky / refrénu / mezičásti', onclick: e => this.sectionPopover(e.currentTarget) }, ic('sliders'))),
         this.structBox),
       h('div', { class: 'ep-group' }, h('div', { class: 'ep-lbl' }, 'Moje poznámky'),
         this.privNote = h('textarea', { class: 'inp ep-priv', rows: 2, placeholder: 'Vidíš jen ty na tomto zařízení. Ukážou se nahoře na stránce.' }, PrivateNotes.get(song.id))));
@@ -235,7 +235,7 @@ class SongEditor {
       this.undoGrp);   // zpět / znovu úplně vpravo
     // zpěváci: nahoře v pravém panelu
     this.sgRow = h('div', { class: 'sw-row', title: 'Kdo zpívá vybraný řádek (všichni vypnutí = nikdo)' });
-    const sgShowBtn = tool(ic('sliders'), 'Zpěváci a jejich označení jen pro tuto píseň: barva, přidání, odebrání, proužek vlevo / vpravo, podklad, barva písma', e => this.singerPopover(e.currentTarget), 'tl-sgshow');
+    const sgShowBtn = this.sgShowBtn = tool(ic('sliders'), 'Zpěváci a jejich označení jen pro tuto píseň: barva, přidání, odebrání, proužek vlevo / vpravo, podklad, barva písma', e => this.singerPopover(e.currentTarget), 'tl-sgshow');
     this.makeSingerBtns();
 
     this.stageWrap = h('div', { class: 'se-wrap' });
@@ -406,8 +406,9 @@ class SongEditor {
     else this.tools.style.left = this.tools.style.top = '';
     this.layoutMobile();
   }
-  /* Telefon: nahoře zpět, přepínač Text / Údaje a akce; Text = lišta úprav, zpěváci a stránka přes celou výšku,
-     Údaje = údaje písně, šablona, stránka písně, struktura, náhled a poznámky */
+  /* Telefon: nahoře zpět, přepínač Text / Údaje a akce; Text = stránka přes celou výšku a dole dok na dosah palce
+     (Zpět, Znovu, Písmo, Zpěváci) – Písmo a Zpěváci otevřou nad dokem panel s velkými popsanými ovládacími prvky,
+     stránka zůstane vidět a řádky jde dál vybírat. Údaje = údaje písně, šablona, stránka písně, struktura, náhled a poznámky */
   layoutMobile() {
     const m = isMobile();
     this.edEl.classList.toggle('m-ed', m);
@@ -416,12 +417,46 @@ class SongEditor {
       this.mHead.append(this.readerBtn, this.moreBtn, this.saveBtn);
       $('.ep-meta', this.leftPanel).after(this.pageGroup);   // za údaje písně
       this.leftPanel.append(this.pvGroup);
+      if (!this.mDock) this.buildMobileDock();
       this.setMTab(this.mTab || 'text');
     } else {
       this.leftPanel.prepend(this.backEl);
       this.saveRow.replaceChildren(this.moreBtn, this.saveBtn);
       this.saveBox.append(this.readerBtn);
     }
+  }
+  buildMobileDock() {
+    // Údaje: interpret a název s popisem (v telefonu není vedle stránky vidět, co které pole je)
+    for (const [inp, l] of [[this.inArtist, 'Interpret'], [this.inTitle, 'Název písně']]) { const w = h('label', { class: 'f' }, h('span', {}, l)); inp.replaceWith(w); w.append(inp); }
+    // nástroje textu jako řádky s popisem (pořadí jako v liště: písmo, styl, velikost, rozestup, řádkování, mezera, zarovnání)
+    const labels = ['Písmo', 'Barva a styl', 'Velikost písma', 'Rozestup písmen', 'Řádkování', 'Mezera pod řádkem', 'Zarovnání řádku'];
+    this.mFmt = h('div', { class: 'm-rows' }, [...this.toolsText.children].map((el, i) => h('div', { class: 'm-row' }, h('span', { class: 'm-row-l' }, labels[i] || ''), el)));
+    this.mSing = h('div', { class: 'm-rows' }, h('div', { class: 'm-sing' }, this.sgRow),
+      h('button', { class: 'btn m-sing-set', onclick: e => this.singerPopover(e.currentTarget) }, ic('sliders'), 'Zpěváci této písně: barvy, přidat, odebrat'));
+    this.mPanelTitle = h('b', {});
+    this.mPanel = h('div', { class: 'm-panel' }, h('div', { class: 'm-panel-head' }, this.mPanelTitle,
+      h('button', { class: 'btn icon', title: 'Zavřít', onclick: () => this.mOpen(null) }, ic('x'))), this.mPanelBody = h('div', { class: 'm-panel-body' }));
+    const dk = (icon, label, fn, cls = '') => h('button', { class: 'm-dk ' + cls, onmousedown: e => e.preventDefault(), onclick: fn }, icon, h('span', {}, label));
+    this.mSingDots = h('span', { class: 'm-dk-dots sl-dots' });
+    this.mDock = h('div', { class: 'm-dock' },
+      dk(h('span', { class: 'm-dk-g' }, '↶'), 'Zpět', () => this.se.undo(-1)),
+      dk(h('span', { class: 'm-dk-g' }, '↷'), 'Znovu', () => this.se.undo(1)),
+      this.mFmtBtn = dk(h('span', { class: 'm-dk-g' }, 'Aa'), 'Písmo', () => this.mOpen(this.mPanelKind === 'fmt' ? null : 'fmt'), 'tg'),
+      this.mSingBtn = dk(h('span', { class: 'm-dk-g' }, this.mSingDots), 'Zpěváci', () => this.mOpen(this.mPanelKind === 'sing' ? null : 'sing'), 'tg'));
+    this.edEl.append(this.mPanel, this.mDock);
+    this.mOpen(null);
+  }
+  /* panel nad dokem: 'fmt' písmo a řádky, 'sing' zpěváci řádku, null = zavřít */
+  mOpen(kind) {
+    this.mPanelKind = kind;
+    this.mPanel.classList.toggle('on', !!kind);
+    this.mFmtBtn.classList.toggle('on', kind === 'fmt');
+    this.mSingBtn.classList.toggle('on', kind === 'sing');
+    if (kind) {
+      this.mPanelTitle.textContent = kind === 'fmt' ? 'Písmo a řádky' : 'Kdo zpívá vybraný řádek';
+      this.mPanelBody.replaceChildren(kind === 'fmt' ? this.mFmt : this.mSing);
+    }
+    if (this.se) requestAnimationFrame(() => this.se.fit());
   }
   setMTab(k) {
     this.mTab = k;
@@ -602,6 +637,10 @@ class SongEditor {
     const host = se.editEl && selSingerHost(window.getSelection(), se.editEl);
     if (host) own = parseCodes(host.dataset.c);
     this.sgButtons.forEach((b, i) => b.classList.toggle('on', own.includes((this.singers()[i] || {}).code)));
+    if (this.mSingDots) {   // telefon: v doku barevné tečky zpěváků vybraného řádku
+      const on = this.singers().filter(g => own.includes(g.code));
+      this.mSingDots.replaceChildren(...(on.length ? on.map(g => h('i', { style: { background: g.color } })) : [h('i', { class: 'none' })]));
+    }
   }
   /* řádkování řádku s kurzorem: vlastní, jinak písně / šablony (šedě) */
   paintLh() {
