@@ -674,7 +674,7 @@ const Reader = {
       if (o.id === 'set') return this.leaveTo('#/settings');
       if (o.id === 'help') return this.showHelp(() => this.showMore(where, back));
       if (o.id === 'quit') return App.quit();
-      if (o.id === 'close') { this.closeMenu(); return this.exit(); }
+      if (o.id === 'close') return this.leaveTo(App.lastEditHash || '#/playlists');   // do úprav (čtečka na pódiu: s PINem)
     }, 'Podržet ▶ vybrat · podržet ◀ zpět', { cls: 'r-more', back });
   },
 
