@@ -36,6 +36,7 @@ const App = {
     window.addEventListener('hashchange', () => this.onHash());   // i zpět na úvodní stránku bez #
     document.addEventListener('keydown', e => {
       if (Reader.isOpen()) return;
+      if (e.key === 'F13' && !$('.modal')) { e.preventDefault(); location.hash = '#/reader/'; return; }   // prostřední tlačítko pedálu: do čtečky
       if (e.ctrlKey && (e.key === 's' || e.key === 'S')) { e.preventDefault(); if (this.edit) this.edit.save(true); }
       if (e.key === 'F5' && window.native) { e.preventDefault(); }
     });

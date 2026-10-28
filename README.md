@@ -26,6 +26,8 @@ Aplikace pro psaní, úpravy a zobrazování textů písní na čtečce (prompte
 
 ### Ovládání čtečky
 
+**Vlastní nožní pedál** (3 tlačítka a deska RP2040-Zero, hlásí se jako USB klávesnice): návod, zapojení a program jsou ve složce [`pedal`](pedal/README.md). Levé = PageUp, pravé = PageDown, prostřední = F13 (playlist, v nabídce potvrdit).
+
 | Akce | Pedál / myš | Airmouse, klávesnice |
 |---|---|---|
 | další stránka / píseň | **pravé tlačítko** | → ↓ PgDn mezera Enter |

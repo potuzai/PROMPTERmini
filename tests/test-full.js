@@ -355,6 +355,12 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pf-'));
   await p.evaluate(() => { Reader.menu.sel = 0; Reader.menu.paint(); });
   await p.keyboard.down('PageDown'); for (let i = 0; i < 25; i++) { await sleep(35); await p.keyboard.down('PageDown'); } await p.keyboard.up('PageDown'); await sleep(200);
   assert(await p.evaluate(() => !Reader.menu) && (await pos())[0] === 0, 'držená klávesa pedálu v seznamu potvrdí položku, na které stojí (neposune se dál)');
+  // pedál z RP2040 (pedal/code.py): prostřední tlačítko = F13 – v textu playlist, v nabídce potvrdit
+  const f13 = () => p.evaluate(() => { for (const type of ['keydown', 'keyup']) document.dispatchEvent(new KeyboardEvent(type, { key: 'F13', code: 'F13', bubbles: true, cancelable: true })); });   // Playwright F13 nezná
+  await sleep(300); await f13(); await sleep(200);
+  assert(await p.evaluate(() => !!Reader.menu && Reader.menu.sel === Reader.songIdx), 'F13 (prostřední pedál) v textu otevře playlist');
+  await p.keyboard.press('PageDown'); await f13(); await sleep(200);
+  assert(await p.evaluate(() => !Reader.menu) && (await pos())[0] === 1, 'F13 v nabídce potvrdí vybranou píseň');
   // podržet levý pedál v textu = setlist, listování zpět se vrátí
   await sleep(400); await p.evaluate(() => { Reader.songIdx = 1; Reader.pageIdx = 0; Reader.render(); });
   await p.mouse.down({ button: 'left' }); await sleep(950);

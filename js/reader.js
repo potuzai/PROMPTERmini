@@ -10,7 +10,7 @@ const READER_HELP = [
     ['V nabídce: oba najednou', 'na tlačítka dole (znovu = zpět do seznamu)'], ['Při listování', 'dole se na chvíli ukáže lišta: předchozí a další píseň, ladění, BPM, délka']]],
   ['Airmouse a klávesnice', [
     ['→ ↓ PgDn mezera Enter', 'další stránka'], ['← ↑ PgUp', 'předchozí stránka'], ['Shift + → / ←', 'další / předchozí píseň'],
-    ['Tab / L', 'seznam písní (číslem skok na píseň)'], ['P', 'jiný playlist'], ['Q / klávesa Menu', 'nabídka'], ['S', 'stáhnout změny'],
+    ['Tab / L', 'seznam písní (číslem skok na píseň)'], ['F13 (prostřední tlačítko pedálu)', 'playlist; v nabídce potvrdit'], ['P', 'jiný playlist'], ['Q / klávesa Menu', 'nabídka'], ['S', 'stáhnout změny'],
     ['E, E', 'upravit píseň'], ['F', 'celá obrazovka (ukončit: F, F)'], ['Esc, Esc', 'zavřít čtečku'], ['H', 'tato nápověda']]],
 ];
 
@@ -400,6 +400,7 @@ const Reader = {
       ArrowUp: () => this.keyBack(), PageUp: () => this.keyBack(), Backspace: () => this.keyBack(),
       Home: () => { this.pageIdx = 0; this.render(); },
       MediaTrackNext: () => this.nextSong(), MediaTrackPrevious: () => this.prevSong(),
+      F13: () => this.items.length ? this.showJumpMenu() : this.showStartMenu(),   // prostřední tlačítko pedálu (pedal/code.py)
       Escape: leave, BrowserBack: leave, GoBack: leave,
     };
     const lk = k.length === 1 ? k.toLowerCase() : k;
@@ -574,7 +575,7 @@ const Reader = {
     if (k === 'Tab') { this.menuStep(e.shiftKey ? -1 : 1); }
     else if (k === 'Home') { m.sel = 0; m.paint(); }
     else if (k === 'End') { m.sel = m.options.length - 1; m.paint(); }
-    else if (k === 'Enter' || k === ' ') m.pick();
+    else if (k === 'Enter' || k === ' ' || k === 'F13') m.pick();   // F13 = prostřední tlačítko pedálu
     else if (k === 'Escape' || k === 'BrowserBack' || k === 'GoBack' || k.toLowerCase() === 'l') m.back();
     else if (/^[0-9]$/.test(k)) {
       // rychlý skok číslem (např. 1 2 = 12. položka)
